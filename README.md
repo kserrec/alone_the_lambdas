@@ -5,13 +5,15 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 7 is complete. The repository now contains the raw lambda
+> **Status:** Phase 8 is complete. The repository now contains the raw lambda
 > foundation, all seven Church type tags, generic typed objects, explicit
 > Michaelson-style Lists, canonical binary Nat arithmetic, and structured
 > Error roots with propagation frames, plus one generalized curried runtime
 > checker for strict typed functions of any arity. Tagged Boolean constants,
 > strict Boolean operations, and the canonical lazy typed `if` are now built
-> on that foundation. See [PLAN.md](PLAN.md) for the ordered build.
+> on that foundation. The complete public Nat API now applies the same strict
+> checker to the existing raw arithmetic and comparisons. See
+> [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -77,6 +79,9 @@ precedence over conflicting examples in the base specification.
 - `core/binary-nat.rkt` provides normalized MSB-first Nat payloads, typed
   constants `ZERO` through `TEN`, and raw zero, successor, arithmetic, and
   comparison algorithms.
+- `core/typed-nat.rkt` provides the checker-backed strict Nat API, including
+  canonical `SUCC`, `ADD`, `SUB`, `MULT`, `EQ`, `LT`, `LTE`, `GT`, `GTE`, and
+  `IS-ZERO` exports.
 - `core/list-nat.rkt` provides raw List length, take, and drop algorithms plus
   checker-backed strict operations using canonical Nat values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering

@@ -13,7 +13,8 @@ frames. Phase 6 adds the single generalized curried runtime checker, its
 signature-driven Error absorbers and return policies, and migrates every
 eligible bootstrap List operation onto it. Phase 7 adds tagged Bool values,
 strict checker-backed Boolean operations, and the canonical lazy typed
-conditional.
+conditional. Phase 8 adds the strict checker-backed Nat API without changing
+the raw binary algorithms.
 
 ## Computational boundary
 
@@ -63,6 +64,9 @@ representation instead of importing `core/lists.rkt`; this lets the ordinary
 typed List operations depend on the checker without a cycle. Typed logic sits
 above raw logic, objects, Lists, and the checker; this keeps its List-encoded
 signatures and strict wrappers out of the raw Boolean layer.
+`core/typed-nat.rkt` similarly sits above binary Nat, Lists, tags, and the
+checker. It owns the public strict Nat surface while leaving every binary
+algorithm in `core/binary-nat.rkt` raw and reusable.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -164,8 +168,16 @@ four order comparisons directly on MSB-first digit Lists. Addition and
 subtraction reverse their operands for carry and borrow propagation;
 multiplication scans one operand with binary shift-and-add. None converts
 through Church numerals or host numbers. `ZERO` through `TEN` are canonical
-typed constants. Phase 8 adds the strict typed arithmetic API by reusing the
-now-implemented generalized checker and Bool layer.
+typed constants.
+
+`core/typed-nat.rkt` routes every public Nat operation through the generalized
+checker. `SUCC`, `ADD`, `SUB`, and `MULT` return tagged Nat values; `EQ`, `LT`,
+`LTE`, `GT`, `GTE`, and `IS-ZERO` return tagged Bool values. Unary operations
+use one Nat signature entry, and binary operations use two, so partial
+application, wrong-type failures, incoming-Error bubbling, and remaining-arity
+absorption all have the same behavior as other strict typed functions. Current
+Nat Error frames contain the canonical argument position and expected Nat
+type. Textual function names remain deferred until String exists.
 
 ### Errors and results
 
@@ -238,6 +250,7 @@ core/
   errors.rkt
   lists.rkt
   binary-nat.rkt
+  typed-nat.rkt
   list-nat.rkt
   typecheck.rkt
   typed-logic.rkt
@@ -251,7 +264,7 @@ tooling/
 run-all-tests.sh
 ```
 
-Eleven production modules currently exist under `core/`; the remaining core
+Twelve production modules currently exist under `core/`; the remaining core
 paths are planned in dependency order. New abstraction layers require a
 concrete need.
 
@@ -277,7 +290,11 @@ policies; exact remaining-arity absorption; and ignored-argument laziness. The
 typed-logic suite covers both tagged Bool constants, every strict operation
 truth-table row, mismatch and incoming-Error propagation at each applicable
 position, curried shape, typed `IS-NIL`, polymorphic branch results, canonical
-exports, and divergent unselected branches. The structural purity tool scans
+exports, and divergent unselected branches. The typed Nat suite covers all
+constants and public operations, representative large values, arithmetic and
+comparison semantics, every applicable mismatch and incoming-Error position,
+root preservation, exact absorber arity, ignored-argument laziness, currying,
+and canonical exports. The structural purity tool scans
 production Racket sources for non-unary lambdas, host-style function
 definitions, forbidden host computation, and host literal data. It will be
 hardened further as later production forms arrive.

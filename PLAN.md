@@ -119,10 +119,12 @@ Acceptance: public `if` is canonical, typed, lazy, and distinct from internal
 
 ## Phase 8 — Strict typed Nat API
 
-- [ ] Route every public Nat operation through the generalized checker.
-- [ ] Keep raw binary algorithms isolated below the typed layer.
-- [ ] Attach canonical function frames to Nat errors.
-- [ ] Run raw arithmetic, typed behavior, and propagation tests together.
+Status: complete (2026-08-24)
+
+- [x] Route every public Nat operation through the generalized checker.
+- [x] Keep raw binary algorithms isolated below the typed layer.
+- [x] Attach canonical function frames to Nat errors.
+- [x] Run raw arithmetic, typed behavior, and propagation tests together.
 
 Acceptance: all public Nat operations enforce signatures uniformly without
 changing binary semantics.
