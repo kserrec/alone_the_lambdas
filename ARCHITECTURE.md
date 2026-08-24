@@ -1,8 +1,8 @@
 # Architecture
 
-This document records the target architecture. The repository currently
-contains specifications and planning only; implementation paths below are
-planned, not yet present.
+This document records both the target architecture and the verified current
+state. Phase 1 implements the lazy host shell, mechanical syntax, lambda pairs,
+raw Boolean logic, external observation, and the first structural purity gate.
 
 ## Computational boundary
 
@@ -12,9 +12,10 @@ The object language is pure untyped lambda calculus:
 2. exactly unary `lambda`;
 3. application.
 
-Every production value and algorithm must reduce to those forms after
-mechanical macro expansion. Multi-argument functions are nested unary lambdas,
-and partial application is ordinary application.
+Every computationally meaningful production term must contain only those forms
+after mechanical macro expansion. There is no host-computation escape hatch.
+Multi-argument functions are nested unary lambdas, and partial application is
+ordinary application.
 
 Racket supplies only the enclosing module system, lazy evaluation, syntactic
 sugar, readers, tests, and development tooling. It must not decide
@@ -35,6 +36,19 @@ object-language results or provide object-language representations.
 Dependencies point downward only. Typed operations may use raw operations; raw
 operations must not depend on typed wrappers. Readers may inspect values but
 production code must never depend on readers.
+
+## Implemented foundation
+
+The Phase 1 dependency path is deliberately short. The lazy module shell sits
+under the mechanical macro layer; the pair and logic modules depend on that
+foundation. The raw Boolean reader is test-only and no production module
+depends on it.
+
+`def` mechanically builds any requested arity as nested unary lambdas.
+`lambda-let` expands one binding into one unary-lambda application; the future
+standalone language will export that binding as canonical `let`. `raw-if` is an
+ordinary curried selector function, not a host conditional. The reader forces
+and formats raw Booleans only from outside production computation.
 
 ## Representation contracts
 
@@ -111,7 +125,7 @@ Public exports use canonical language vocabulary. Underscore prefixes must not
 exist solely to avoid Racket bindings. Host collisions are handled at module
 boundaries through renaming and selective export.
 
-## Planned repository layout
+## Repository layout
 
 ```text
 macros/
@@ -120,6 +134,7 @@ macros/
 core/
   pair.rkt
   logic.rkt
+  # Later phases add the modules below.
   tags.rkt
   objects.rkt
   lists.rkt
@@ -132,11 +147,22 @@ core/
   strings.rkt
 readers/
 tests/
+tooling/
 run-all-tests.sh
 ```
 
-The exact paths may become simpler if the dependency graph proves a better
-layout. New abstraction layers require a concrete need.
+Only `pair.rkt` and `logic.rkt` currently exist under `core/`; the remaining
+core paths are planned in dependency order. New abstraction layers require a
+concrete need.
+
+## Verification boundary
+
+The test suite checks macro currying and hygiene, pair selection, every raw
+Boolean truth-table row, and lazy non-evaluation of rejected pair fields and
+`raw-if` branches. The structural purity tool scans production Racket sources
+for non-unary lambdas, host-style function definitions, and forbidden host
+computation. It is an initial guard that will be hardened as later production
+forms arrive.
 
 ## Deferred boundary
 

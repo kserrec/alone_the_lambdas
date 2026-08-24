@@ -20,11 +20,13 @@ Status: complete (2026-08-24)
 
 ## Phase 1 — Raw calculus and mechanical syntax
 
-- [ ] Add the lazy Racket module shell and expansion-only macro layer.
-- [ ] Implement `def` and lambda-based `let` as nested unary-lambda sugar.
-- [ ] Implement lambda pairs and raw Boolean operations, including internal
+Status: complete (2026-08-24)
+
+- [x] Add the lazy Racket module shell and expansion-only macro layer.
+- [x] Implement `def` and lambda-based `let` as nested unary-lambda sugar.
+- [x] Implement lambda pairs and raw Boolean operations, including internal
   `raw-if`.
-- [ ] Add focused pair and Boolean tests plus the first purity checks.
+- [x] Add focused pair and Boolean tests plus the first purity checks.
 
 Acceptance: macro expansion preserves unary lambdas; pair selection and every
 Boolean truth table pass without host conditionals deciding results.

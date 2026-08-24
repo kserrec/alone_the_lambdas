@@ -5,8 +5,9 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** repository foundation only. The language implementation has not
-> started. See [PLAN.md](PLAN.md) for the ordered build.
+> **Status:** Phase 1 is complete. The repository now contains the lazy module
+> shell, mechanical unary-lambda syntax, lambda pairs, and raw Boolean logic.
+> See [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -43,17 +44,36 @@ precedence over conflicting examples in the base specification.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
 
+## Implemented foundation
+
+- `macros/lazy-with-macros.rkt` provides the minimal Lazy Racket module shell.
+- `macros/macros.rkt` provides arbitrary-arity curried `def` and the internal
+  `lambda-let` sugar that will later be exported publicly as `let`.
+- `core/pair.rkt` provides lambda-encoded pairs and selectors.
+- `core/logic.rkt` provides raw Boolean selectors and lambda-based Boolean
+  operations, including lazy `raw-if`.
+- `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
+  the production dependency graph.
+- `tooling/check-purity.rkt` performs the initial structural purity scan over
+  production modules.
+
 ## Development
 
-The intended host is Racket with its `lazy` language. Confirm Racket is
-available with:
+The host is Racket with the `lazy` package. Run the complete test and purity
+suite with:
 
 ```sh
-racket --version
+./run-all-tests.sh
 ```
 
-There is no build, runnable module, or test suite yet. Each implementation
-phase must add focused tests and leave the complete suite green.
+Run only the production-source purity scan with:
+
+```sh
+racket tooling/check-purity.rkt
+```
+
+Each implementation phase adds focused tests and must leave the complete suite
+green. GitHub Actions runs the same suite for pushes and pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.

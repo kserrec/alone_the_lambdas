@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Racket
+        uses: Bogdanp/setup-racket@v1.11
+        with:
+          version: stable
+          variant: CS
+
+      - name: Install lazy package if needed
+        run: racket -e '(require lazy)' 2>/dev/null || raco pkg install --auto lazy
+
+      - name: Run test suite
+        run: ./run-all-tests.sh
