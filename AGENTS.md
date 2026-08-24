@@ -1,0 +1,95 @@
+# Project rules
+
+These rules apply to every change in Alone the Lambdas.
+
+## Authority
+
+1. The three documents in `docs/specifications/` define the language.
+2. The type-tag and absolute-purity addendum overrides weaker purity examples
+   in the base specification.
+3. The canonical-naming addendum overrides earlier naming examples.
+4. `PLAN.md` controls implementation order but cannot override a
+   specification.
+
+Stop and surface a conflict rather than silently choosing a new language
+design.
+
+## Absolute object-language purity
+
+- Production object-language computation may contain only variables, unary
+  `lambda`, and application after macro expansion.
+- Every lambda takes exactly one argument. Multiple arguments are represented
+  by nested unary lambdas.
+- Do not use Racket numbers, Booleans, pairs, lists, strings, characters,
+  structs, vectors, hashes, exceptions, or control flow as object-language
+  values or computation.
+- Do not use host conditionals, pattern matching, arithmetic, equality, loops,
+  mutation, or data access to decide object-language results.
+- Racket is allowed only for modules, `#lang lazy`, mechanical macro
+  expansion, readers, tests, and tooling.
+- Readers may observe and format values. Production modules must never depend
+  on readers.
+- Do not add `host` during this milestone.
+
+## Representation invariants
+
+- Church numerals are reserved for the seven closed type tags: Error 0, Bool
+  1, List 2, Nat 3, Result 4, Char 5, and String 6.
+- Public Nat is a normalized most-significant-bit-first binary digit List.
+  `[0]` is the only zero; positive values have no leading zeroes.
+- List follows the explicit Michaelson-style representation. `NIL` is a
+  List, distinct from false and zero, and every tail is a List.
+- One generalized arbitrary-arity curried checker owns strict runtime typing.
+  Never add `type-check2`, `type-check3`, or any arity-specific equivalent.
+- An early Error must absorb exactly the function's remaining arguments
+  through unary lambdas.
+- Use Error for contract or invariant failure. Use Result Err for expected
+  computational failure.
+- Char holds binary values 0 through 255. String is a List of Char.
+
+## Names and layers
+
+- Public language names are canonical: `lambda`, `def`, `let`, `if`,
+  and `cons` where specified.
+- Public `if` is the strict typed conditional. Public `cons` is the proper
+  typed List constructor.
+- Internal raw operations use descriptive `raw-*` names; strict typed
+  operations use `typed-*` names.
+- Never add an underscore prefix solely to avoid a Racket binding.
+- Resolve host collisions with module boundaries, renaming, and selective
+  exports.
+
+## Implementation discipline
+
+- Follow `PLAN.md` in dependency order and complete one phase as one
+  meaningful unit.
+- Keep files small, dependency-oriented, and logically nested. Avoid
+  abstraction layers without a demonstrated need.
+- Prefer the minimal implementation that satisfies the current phase and its
+  tests.
+- Study `all_the_lambdas` for proven patterns and reusable code, but verify
+  every borrowed choice against all three Alone the Lambdas specifications.
+  Do not import compatibility constraints, underscore-based public names, or
+  representations superseded by this project.
+- Do not add a dependency for a convenience that is safer and clearer to write
+  directly. Racket's lazy evaluator is the intended backbone.
+- Keep raw algorithms raw. Add strict wrappers only at the typed layer.
+- Do not build deferred features: host interop, parser beyond Lisp syntax,
+  optimizer, compiler, records, JSON, or unrelated standard-library breadth.
+
+## Tests and verification
+
+- Add focused tests with every production unit.
+- Test behavior, representation invariants, error propagation, partial
+  application, and laziness where applicable.
+- Maintain structural purity checks for forbidden host forms and non-unary
+  lambdas in production modules.
+- Run focused tests while working, then the complete suite before each commit.
+- Documentation must distinguish observed implementation from planned design.
+
+## Git
+
+- Work directly on `main`.
+- Commit and push after each meaningful, verified phase.
+- Keep commits narrow and descriptive.
+- Do not leave generated Racket artifacts in Git.
