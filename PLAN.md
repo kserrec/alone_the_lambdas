@@ -74,12 +74,14 @@ numbers.
 
 ## Phase 5 — Structured Error
 
-- [ ] Implement the Error type, root kinds, and frame representation.
-- [ ] Implement creation, frame addition, and bubbling primitives.
-- [ ] Replace provisional bootstrap Error payloads with canonical structured
+Status: complete (2026-08-24)
+
+- [x] Implement the Error type, root kinds, and frame representation.
+- [x] Implement creation, frame addition, and bubbling primitives.
+- [x] Replace provisional bootstrap Error payloads with canonical structured
   roots.
-- [ ] Establish canonical function-name values used in frames.
-- [ ] Test root preservation and frame order through nested failures.
+- [x] Use canonical argument-position and expected-type metadata in frames.
+- [x] Test root preservation and frame order through nested failures.
 
 Acceptance: errors remain ordinary lambda-encoded values and accumulate
 context without losing their root cause.

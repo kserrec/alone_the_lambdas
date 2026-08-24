@@ -7,7 +7,9 @@ lambda-encoded typed-object shape, external observation, and a structural
 purity gate that rejects host computation and host data. Phase 3 adds explicit
 Michaelson-style Lists, strict bootstrap primitives, and raw recursive List
 algorithms. Phase 4 adds normalized binary Nat values, direct raw binary
-arithmetic and comparison, and the Nat-dependent List operations.
+arithmetic and comparison, and the Nat-dependent List operations. Phase 5
+replaces provisional failures with structured Error roots and propagation
+frames.
 
 ## Computational boundary
 
@@ -47,10 +49,11 @@ production code must never depend on readers.
 The implemented dependency path is deliberately short. The lazy module shell
 sits under the mechanical macro layer. Pair and logic depend on that
 foundation; tags depend on raw logic; typed objects depend on pairs and tags.
-Fixed-point recursion and provisional bootstrap Errors support Lists. Readers
-are test-only, and no production module depends on them. Binary Nat depends on
-the raw List representation; `core/list-nat.rkt` sits above both modules so
-Nat-dependent List operations do not create a dependency cycle.
+Fixed-point recursion ties canonical `NIL` and its canonical empty-List Error
+inside `core/errors.rkt`; Lists then depend on that lower representation knot.
+Readers are test-only, and no production module depends on them. Binary Nat
+depends on the raw List representation; `core/list-nat.rkt` sits above both
+modules so Nat-dependent List operations do not create a dependency cycle.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -58,18 +61,20 @@ standalone language will export that binding as canonical `let`. `raw-if` is an
 ordinary curried selector function, not a host conditional. The reader forces
 and formats raw Booleans only from outside production computation.
 
-`core/tags.rkt` defines Church zero through six solely to name Error, Bool,
-List, Nat, Result, Char, and String. Its private predecessor and subtraction
-terms exist only to implement `raw-tag-equal`; they are not a public arithmetic
-system. `core/objects.rkt` represents a typed object as a lambda pair of tag
-and payload. `raw-object-type`, `raw-object-value`, and `raw-is-type` operate
-only on canonical project objects, not arbitrary untyped lambda terms.
+`core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
+Result, Char, and String. The same tiny Church values may serve in separate
+metadata namespaces such as Error kinds and argument positions. Its private
+predecessor and subtraction terms exist only to implement `raw-tag-equal`;
+they are not a public arithmetic system. `core/objects.rkt` represents a typed
+object as a lambda pair of tag and payload. `raw-object-type`,
+`raw-object-value`, and `raw-is-type` operate only on canonical project
+objects, not arbitrary untyped lambda terms.
 
 ## Representation contracts
 
-### Type tags
+### Tiny discriminants
 
-Only type tags use Church numerals:
+The seven runtime type tags use Church numerals:
 
 | Tag | Type |
 | ---: | --- |
@@ -81,7 +86,9 @@ Only type tags use Church numerals:
 | 5 | Char |
 | 6 | String |
 
-Tags are closed discriminants, not public arithmetic values.
+Tags are closed discriminants, not public arithmetic values. Structured Error
+kinds and argument positions also reuse tiny Church values as explicitly
+permitted metadata. Ordinary numeric computation always uses binary Nat.
 
 ### Objects
 
@@ -92,19 +99,23 @@ structure. The representation must remain entirely inside the calculus.
 
 Lists use an explicit Michaelson-style representation. A nonempty List is a
 List-tagged object whose payload pairs a head with another List object. `NIL`
-is itself List-tagged; its payload contains the provisional empty-List Error in
-both positions, so it is neither false nor numeric zero. `typed-cons` is the
-only strict constructor and accepts only a List tail. NIL recognition checks
-the tail's Error tag in O(1), so an Error head does not make a nonempty List
-look empty.
+is itself List-tagged; its payload contains the canonical empty-List Error in
+both positions, so it is neither false nor numeric zero. That Error's empty
+frame List is the same `NIL`; `raw-fix` ties this finite lazy graph without a
+host reference or module cycle. `typed-cons` is the only strict constructor
+and accepts only a List tail. NIL recognition checks the tail's Error tag in
+O(1), so an Error head does not make a nonempty List look empty.
 
 During bootstrap, `typed-cons`, `typed-head`, `typed-tail`, and `typed-is-nil`
-perform their checks manually and bubble an incoming Error unchanged. Their
-opaque Error payloads are provisional: Phase 5 replaces them with structured
-roots, and Phase 6 moves ordinary strict checks onto the generalized checker.
-`typed-is-nil` returns a raw Boolean until the typed Bool layer exists. The raw
-layer currently provides a right fold, append, reverse, map, and filter; the
-fold callback receives the head followed by the folded tail.
+still perform checks manually, but wrong concrete types now create structured
+TypeMismatch roots containing argument position, expected type, and actual
+type. Boundaries with a concrete expected type prepend propagation frames to
+incoming Errors. The polymorphic head of `typed-cons` preserves an incoming
+Error without inventing an expected type; its List tail has ordinary framed
+propagation. Phase 6 moves appropriate strict checks onto the generalized
+checker. `typed-is-nil` returns a raw Boolean until the typed Bool layer
+exists. The raw layer currently provides a right fold, append, reverse, map,
+and filter; the fold callback receives the head followed by the folded tail.
 
 `core/list-nat.rkt` adds raw length, take, and drop after binary Nat is
 available. Length returns canonical raw Nat bits. Take and drop accept raw Nat
@@ -132,9 +143,18 @@ generalized checker and typed Bool exist.
 
 ### Errors and results
 
-The current List bootstrap uses opaque Error-tagged placeholders. Phase 5
-replaces them with canonical `Error`, representing a violated language contract
-or broken invariant with a root error kind plus a stack of propagation frames.
+Every Error is an Error-tagged object whose payload pairs one immutable root
+with a proper List of propagation frames. Root kinds are the small Church
+discriminants TypeMismatch, EmptyList, InvalidNat, and DivideByZero. A
+TypeMismatch root additionally stores its argument position, expected runtime
+type, and actual runtime type. The other current roots need no extra details.
+
+A frame pairs an argument position with the expected runtime type at the
+current boundary. `raw-bubble-error` reuses the exact root and prepends one
+frame, so the frame List is newest-first and root metadata never changes.
+Function names remain absent until canonical String exists in Phase 11; Phase
+12 adds those names and the Error reader. Language-level failures never use
+host exceptions or strings.
 
 `Result` represents an expected success-or-failure outcome. Its error branch
 contains an Error value but does not turn expected failure into a language
@@ -182,7 +202,7 @@ core/
   tags.rkt
   objects.rkt
   fix.rkt
-  bootstrap-errors.rkt
+  errors.rkt
   lists.rkt
   binary-nat.rkt
   list-nat.rkt
@@ -215,10 +235,12 @@ Nat tests cover normalization, the typed constants, carries, borrows,
 saturating subtraction, multiplication, comparisons, larger bit widths,
 currying, and applicable laziness. Nat-dependent List tests cover length,
 take, drop, boundary counts, proper tails, strict failures, Error absorption,
-currying, and lazy base cases. The structural purity tool scans production
-Racket sources for non-unary lambdas, host-style function definitions,
-forbidden host computation, and host literal data. It will be hardened further
-as later production forms arrive.
+currying, and lazy base cases. Structured Error tests cover every kind, root
+metadata, the `NIL`/empty-Error knot, frame order, nested root preservation,
+canonical List failures, currying, and lazy field access. The structural purity
+tool scans production Racket sources for non-unary lambdas, host-style function
+definitions, forbidden host computation, and host literal data. It will be
+hardened further as later production forms arrive.
 
 ## Deferred boundary
 

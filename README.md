@@ -5,10 +5,11 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 4 is complete. The repository now contains the raw lambda
+> **Status:** Phase 5 is complete. The repository now contains the raw lambda
 > foundation, all seven Church type tags, generic typed objects, explicit
-> Michaelson-style Lists, and canonical binary Nat arithmetic. See
-> [PLAN.md](PLAN.md) for the ordered build.
+> Michaelson-style Lists, canonical binary Nat arithmetic, and structured
+> Error roots with propagation frames. See [PLAN.md](PLAN.md) for the ordered
+> build.
 
 ## Commitments
 
@@ -17,7 +18,8 @@ variables, unary lambdas, and application.
   computation.
 - Racket is limited to modules, lazy evaluation, mechanical macros, readers,
   tests, and tooling.
-- Church numerals are used only for the small closed set of type tags.
+- Church numerals are used only for tiny fixed discriminants such as type
+  tags, Error kinds, and argument positions—not ordinary numbers.
 - Public natural numbers are normalized, most-significant-bit-first binary
   digit lists; zero is `[0]`.
 - Lists use an explicit Michaelson-style tagged representation with a distinct
@@ -58,8 +60,9 @@ precedence over conflicting examples in the base specification.
   selectors, and canonical-object type comparison.
 - `core/fix.rkt` provides the pure fixed-point term used by recursive raw
   algorithms.
-- `core/bootstrap-errors.rkt` provides provisional Error-tagged values until
-  the structured Error phase.
+- `core/errors.rkt` provides structured Error roots and metadata, canonical
+  root Errors, newest-first propagation frames, and the lazy `NIL`/empty-Error
+  representation knot.
 - `core/lists.rkt` provides canonical `NIL`, strict bootstrap List primitives,
   and raw fold, append, reverse, map, and filter operations.
 - `core/binary-nat.rkt` provides normalized MSB-first Nat payloads, typed

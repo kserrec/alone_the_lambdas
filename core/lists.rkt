@@ -1,7 +1,7 @@
 #lang s-exp "../macros/lazy-with-macros.rkt"
 
 (require "../macros/macros.rkt"
-         "bootstrap-errors.rkt"
+         "errors.rkt"
          "fix.rkt"
          "logic.rkt"
          "objects.rkt"
@@ -26,11 +26,6 @@
 (def raw-list-cell value tail =
   ((raw-pair value) tail))
 
-(def NIL =
-  ((raw-make-object list-type)
-   ((raw-list-cell bootstrap-empty-list-error)
-    bootstrap-empty-list-error)))
-
 (def raw-cons value tail =
   ((raw-make-object list-type)
    ((raw-list-cell value) tail)))
@@ -54,41 +49,61 @@
      ((raw-cons value) tail))
     (((raw-if
        ((raw-is-type error-type) tail))
-      tail)
-     bootstrap-type-error))))
+      (((raw-bubble-error tail)
+        argument-position-two)
+       list-type))
+     (((raw-make-type-mismatch-error
+        argument-position-two)
+       list-type)
+      (raw-object-type tail))))))
 
 (def typed-head list =
   (((raw-if
      ((raw-is-type error-type) list))
-    list)
+    (((raw-bubble-error list)
+      argument-position-one)
+     list-type))
    (((raw-if
       ((raw-is-type list-type) list))
      (((raw-if
         (raw-list-is-nil list))
-       bootstrap-empty-list-error)
+       empty-list-error)
       (raw-list-head list)))
-    bootstrap-type-error)))
+    (((raw-make-type-mismatch-error
+       argument-position-one)
+      list-type)
+     (raw-object-type list)))))
 
 (def typed-tail list =
   (((raw-if
      ((raw-is-type error-type) list))
-    list)
+    (((raw-bubble-error list)
+      argument-position-one)
+     list-type))
    (((raw-if
       ((raw-is-type list-type) list))
      (((raw-if
         (raw-list-is-nil list))
-       bootstrap-empty-list-error)
+       empty-list-error)
       (raw-list-tail list)))
-    bootstrap-type-error)))
+    (((raw-make-type-mismatch-error
+       argument-position-one)
+      list-type)
+     (raw-object-type list)))))
 
 (def typed-is-nil list =
   (((raw-if
      ((raw-is-type error-type) list))
-    list)
+    (((raw-bubble-error list)
+      argument-position-one)
+     list-type))
    (((raw-if
       ((raw-is-type list-type) list))
      (raw-list-is-nil list))
-    bootstrap-type-error)))
+    (((raw-make-type-mismatch-error
+       argument-position-one)
+      list-type)
+     (raw-object-type list)))))
 
 (def raw-fold-step recur function initial list =
   (((raw-if

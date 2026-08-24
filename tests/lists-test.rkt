@@ -2,6 +2,7 @@
 
 (require rackunit
          racket/promise
+         "../core/errors.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
          "../core/objects.rkt"
@@ -44,6 +45,15 @@
 (define (error-value? value)
   (raw-boolean->boolean
    (apply2 raw-is-type error-type value)))
+
+(define (error-kind=? error kind)
+  (raw-boolean->boolean
+   (apply2
+    raw-error-kind-equal
+    (lazy-apply
+     raw-error-root-kind
+     (lazy-apply raw-error-root error))
+    kind)))
 
 (define (nil-value? value)
   (raw-boolean->boolean
@@ -134,7 +144,7 @@
   (lazy-apply typed-tail NIL)))
 
 (define incoming-error
-  (apply2 raw-make-object error-type raw-true))
+  invalid-nat-error)
 
 (define bubbled-values
   (list (apply2 typed-cons incoming-error NIL)
@@ -146,8 +156,7 @@
 (for ([bubbled (in-list bubbled-values)])
   (check-true (error-value? bubbled))
   (check-true
-   (raw-boolean->boolean
-    (lazy-apply raw-object-value bubbled))))
+   (error-kind=? bubbled invalid-nat-kind)))
 
 (define error-headed-list
   (apply2 raw-cons incoming-error NIL))
@@ -190,9 +199,8 @@
    (lazy-apply typed-cons incoming-error)))
  1)
 (check-true
- (raw-boolean->boolean
-  (lazy-apply raw-object-value
-              bubbled-before-tail)))
+ (error-kind=? bubbled-before-tail
+               invalid-nat-kind))
 
 (check-true
  (error-value?

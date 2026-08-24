@@ -3,6 +3,7 @@
 (require rackunit
          racket/promise
          "../core/binary-nat.rkt"
+         "../core/errors.rkt"
          "../core/list-nat.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
@@ -36,6 +37,15 @@
 (define (error-value? value)
   (raw-boolean->boolean
    (apply2 raw-is-type error-type value)))
+
+(define (error-kind=? error kind)
+  (raw-boolean->boolean
+   (apply2
+    raw-error-kind-equal
+    (lazy-apply
+     raw-error-root-kind
+     (lazy-apply raw-error-root error))
+    kind)))
 
 (define (nil-value? value)
   (raw-boolean->boolean
@@ -131,7 +141,7 @@
   (apply2 typed-drop ONE sample)))
 
 (define incoming-error
-  (apply2 raw-make-object error-type raw-true))
+  invalid-nat-error)
 
 (define rejected-bool-object
   (apply2
@@ -153,8 +163,8 @@
 
 (check-true (error-value? bubbled-length))
 (check-true
- (raw-boolean->boolean
-  (lazy-apply raw-object-value bubbled-length)))
+ (error-kind=? bubbled-length
+               invalid-nat-kind))
 
 (for ([function (in-list (list typed-take typed-drop))])
   (define bubbled-count
@@ -166,8 +176,8 @@
               "forced list after count Error"))))
   (check-true (error-value? bubbled-count))
   (check-true
-   (raw-boolean->boolean
-    (lazy-apply raw-object-value bubbled-count)))
+   (error-kind=? bubbled-count
+                 invalid-nat-kind))
 
   (define rejected-count
     (apply2
@@ -177,16 +187,16 @@
        (error 'list-nat-operation
               "forced list after wrong count type"))))
   (check-true (error-value? rejected-count))
-  (check-false
-   (raw-boolean->boolean
-    (lazy-apply raw-object-value rejected-count)))
+  (check-true
+   (error-kind=? rejected-count
+                 type-mismatch-kind))
 
   (define bubbled-list
     (apply2 function TWO incoming-error))
   (check-true (error-value? bubbled-list))
   (check-true
-   (raw-boolean->boolean
-    (lazy-apply raw-object-value bubbled-list)))
+   (error-kind=? bubbled-list
+                 invalid-nat-kind))
 
   (check-true
    (error-value?

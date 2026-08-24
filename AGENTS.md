@@ -33,8 +33,9 @@ design.
 
 ## Representation invariants
 
-- Church numerals are reserved for the seven closed type tags: Error 0, Bool
-  1, List 2, Nat 3, Result 4, Char 5, and String 6.
+- Church numerals are limited to the seven closed type tags and tiny fixed
+  metadata explicitly required by the specifications, including Error kinds
+  and argument positions. Never use them for ordinary numeric values.
 - Public Nat is a normalized most-significant-bit-first binary digit List.
   `[0]` is the only zero; positive values have no leading zeroes.
 - List follows the explicit Michaelson-style representation. `NIL` is a

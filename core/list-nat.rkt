@@ -2,7 +2,7 @@
 
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
-         "bootstrap-errors.rkt"
+         "errors.rkt"
          "fix.rkt"
          "lists.rkt"
          "logic.rkt"
@@ -66,53 +66,78 @@
 (def typed-len list =
   (((raw-if
      ((raw-is-type error-type) list))
-    list)
+    (((raw-bubble-error list)
+      argument-position-one)
+     list-type))
    (((raw-if
       ((raw-is-type list-type) list))
      (raw-make-nat
       (raw-list-length list)))
-    bootstrap-type-error)))
+    (((raw-make-type-mismatch-error
+       argument-position-one)
+      list-type)
+     (raw-object-type list)))))
 
 (def typed-take-list count list =
   (((raw-if
      ((raw-is-type error-type) list))
-    list)
+    (((raw-bubble-error list)
+      argument-position-two)
+     list-type))
    (((raw-if
       ((raw-is-type list-type) list))
      ((raw-list-take
-       (raw-nat-value count))
+      (raw-nat-value count))
       list))
-    bootstrap-type-error)))
+    (((raw-make-type-mismatch-error
+       argument-position-two)
+      list-type)
+     (raw-object-type list)))))
 
 (def typed-take count =
   (((raw-if
      ((raw-is-type error-type) count))
     (lambda (ignored)
-      count))
+      (((raw-bubble-error count)
+        argument-position-one)
+       nat-type)))
    (((raw-if
       ((raw-is-type nat-type) count))
      (typed-take-list count))
     (lambda (ignored)
-      bootstrap-type-error))))
+      (((raw-make-type-mismatch-error
+         argument-position-one)
+        nat-type)
+       (raw-object-type count))))))
 
 (def typed-drop-list count list =
   (((raw-if
      ((raw-is-type error-type) list))
-    list)
+    (((raw-bubble-error list)
+      argument-position-two)
+     list-type))
    (((raw-if
       ((raw-is-type list-type) list))
      ((raw-list-drop
-       (raw-nat-value count))
+      (raw-nat-value count))
       list))
-    bootstrap-type-error)))
+    (((raw-make-type-mismatch-error
+       argument-position-two)
+      list-type)
+     (raw-object-type list)))))
 
 (def typed-drop count =
   (((raw-if
      ((raw-is-type error-type) count))
     (lambda (ignored)
-      count))
+      (((raw-bubble-error count)
+        argument-position-one)
+       nat-type)))
    (((raw-if
       ((raw-is-type nat-type) count))
      (typed-drop-list count))
     (lambda (ignored)
-      bootstrap-type-error))))
+      (((raw-make-type-mismatch-error
+         argument-position-one)
+        nat-type)
+       (raw-object-type count))))))
