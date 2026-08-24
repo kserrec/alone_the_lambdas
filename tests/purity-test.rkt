@@ -29,6 +29,43 @@
                          value)
                        argument))
               '())
+(check-equal? (kinds '(lambda (value)
+                        0))
+              '(forbidden-host-datum))
+(check-equal? (kinds '(lambda (value)
+                        #t))
+              '(forbidden-host-datum))
+(check-equal? (kinds '(lambda (value)
+                        "host value"))
+              '(forbidden-host-datum))
+(check-equal? (kinds '(lambda (value)
+                        #\a))
+              '(forbidden-host-datum))
+(check-equal? (kinds '(lambda (value)
+                        #(host vector)))
+              '(forbidden-host-datum))
+
+(define scaffolding-datum
+  '(module example "lazy-shell.rkt"
+     (#%module-begin
+      (require "dependency.rkt")
+      (provide identity)
+      (def identity value =
+        value))))
+
+(check-equal? (kinds scaffolding-datum)
+              '())
+
+(define host-backed-production-datum
+  '(module example "lazy-shell.rkt"
+     (#%module-begin
+      (require "dependency.rkt")
+      (provide value)
+      (def value =
+        0))))
+
+(check-equal? (kinds host-backed-production-datum)
+              '(forbidden-host-datum))
 
 (define-runtime-path core-directory
   "../core")

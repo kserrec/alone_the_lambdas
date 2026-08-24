@@ -2,7 +2,9 @@
 
 This document records both the target architecture and the verified current
 state. Phase 1 implements the lazy host shell, mechanical syntax, lambda pairs,
-raw Boolean logic, external observation, and the first structural purity gate.
+and raw Boolean logic. Phase 2 adds the seven Church tags, the generic
+lambda-encoded typed-object shape, external observation, and a structural
+purity gate that rejects host computation and host data.
 
 ## Computational boundary
 
@@ -39,16 +41,23 @@ production code must never depend on readers.
 
 ## Implemented foundation
 
-The Phase 1 dependency path is deliberately short. The lazy module shell sits
-under the mechanical macro layer; the pair and logic modules depend on that
-foundation. The raw Boolean reader is test-only and no production module
-depends on it.
+The implemented dependency path is deliberately short. The lazy module shell
+sits under the mechanical macro layer. Pair and logic depend on that
+foundation; tags depend on raw logic; typed objects depend on pairs and tags.
+Readers are test-only, and no production module depends on them.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
 standalone language will export that binding as canonical `let`. `raw-if` is an
 ordinary curried selector function, not a host conditional. The reader forces
 and formats raw Booleans only from outside production computation.
+
+`core/tags.rkt` defines Church zero through six solely to name Error, Bool,
+List, Nat, Result, Char, and String. Its private predecessor and subtraction
+terms exist only to implement `raw-tag-equal`; they are not a public arithmetic
+system. `core/objects.rkt` represents a typed object as a lambda pair of tag
+and payload. `raw-object-type`, `raw-object-value`, and `raw-is-type` operate
+only on canonical project objects, not arbitrary untyped lambda terms.
 
 ## Representation contracts
 
@@ -151,18 +160,19 @@ tooling/
 run-all-tests.sh
 ```
 
-Only `pair.rkt` and `logic.rkt` currently exist under `core/`; the remaining
-core paths are planned in dependency order. New abstraction layers require a
-concrete need.
+`pair.rkt`, `logic.rkt`, `tags.rkt`, and `objects.rkt` currently exist under
+`core/`; the remaining core paths are planned in dependency order. New
+abstraction layers require a concrete need.
 
 ## Verification boundary
 
 The test suite checks macro currying and hygiene, pair selection, every raw
 Boolean truth-table row, and lazy non-evaluation of rejected pair fields and
-`raw-if` branches. The structural purity tool scans production Racket sources
-for non-unary lambdas, host-style function definitions, and forbidden host
-computation. It is an initial guard that will be hardened as later production
-forms arrive.
+`raw-if` branches. It also proves all 49 pairwise tag comparisons, every tag
+and payload round trip, object/accessor currying, and accessor laziness. The
+structural purity tool scans production Racket sources for non-unary lambdas,
+host-style function definitions, forbidden host computation, and host literal
+data. It will be hardened further as later production forms arrive.
 
 ## Deferred boundary
 

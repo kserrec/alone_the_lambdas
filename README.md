@@ -5,9 +5,9 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 1 is complete. The repository now contains the lazy module
-> shell, mechanical unary-lambda syntax, lambda pairs, and raw Boolean logic.
-> See [PLAN.md](PLAN.md) for the ordered build.
+> **Status:** Phase 2 is complete. The repository now contains the raw lambda
+> foundation, all seven Church type tags, and the generic lambda-encoded typed
+> object shape. See [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -52,10 +52,15 @@ precedence over conflicting examples in the base specification.
 - `core/pair.rkt` provides lambda-encoded pairs and selectors.
 - `core/logic.rkt` provides raw Boolean selectors and lambda-based Boolean
   operations, including lazy `raw-if`.
+- `core/tags.rkt` provides Church tags 0 through 6 and pure tag equality.
+- `core/objects.rkt` provides the raw tag/payload object constructor,
+  selectors, and canonical-object type comparison.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
-- `tooling/check-purity.rkt` performs the initial structural purity scan over
-  production modules.
+- `readers/type-tag.rkt` observes Church tags as host integers at the same
+  one-way boundary.
+- `tooling/check-purity.rkt` rejects forbidden host computation, host data,
+  and non-unary lambdas in production modules.
 
 ## Development
 

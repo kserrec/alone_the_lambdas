@@ -33,10 +33,12 @@ Boolean truth table pass without host conditionals deciding results.
 
 ## Phase 2 — Church tags and typed objects
 
-- [ ] Implement Church numerals only for tags 0 through 6.
-- [ ] Implement the generic lambda-encoded tag/payload object representation.
-- [ ] Add raw tag equality and object access operations.
-- [ ] Test every tag, payload round trip, and purity invariant.
+Status: complete (2026-08-24)
+
+- [x] Implement Church numerals only for tags 0 through 6.
+- [x] Implement the generic lambda-encoded tag/payload object representation.
+- [x] Add raw tag equality and object access operations.
+- [x] Test every tag, payload round trip, and purity invariant.
 
 Acceptance: all seven discriminants are distinct and typed objects contain no
 host data.

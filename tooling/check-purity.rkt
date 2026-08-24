@@ -87,6 +87,24 @@
     quasiquote
     λ))
 
+(define scaffolding-heads
+  '(require
+    provide
+    #%require
+    #%provide))
+
+(define (host-datum? datum)
+  (or (number? datum)
+      (boolean? datum)
+      (string? datum)
+      (char? datum)
+      (bytes? datum)
+      (vector? datum)
+      (hash? datum)
+      (box? datum)
+      (regexp? datum)
+      (byte-regexp? datum)))
+
 (define (unary-formals? formals)
   (and (list? formals)
        (= (length formals) 1)
@@ -117,14 +135,33 @@
                    (symbol->string head)))
        '())))
 
+(define (form-contents-violations form)
+  (cond
+    [(pair? form)
+     (append (datum-violations (car form))
+             (form-contents-violations (cdr form)))]
+    [(null? form)
+     '()]
+    [else
+     (datum-violations form)]))
+
 (define (datum-violations datum)
   (cond
     [(pair? datum)
-     (append (form-violations datum)
-             (append-map datum-violations datum))]
-    [(vector? datum)
-     (append-map datum-violations
-                 (vector->list datum))]
+     (define head (car datum))
+     (cond
+       [(eq? head 'module)
+        (append-map datum-violations
+                    (cdddr datum))]
+       [(memq head scaffolding-heads)
+        '()]
+       [else
+        (append (form-violations datum)
+                (form-contents-violations datum))])]
+    [(host-datum? datum)
+     (list
+      (violation 'forbidden-host-datum
+                 (format "~s" datum)))]
     [else
      '()]))
 
