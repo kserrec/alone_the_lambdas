@@ -13,10 +13,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
       - name: Install Racket
-        uses: Bogdanp/setup-racket@v1.11
+        uses: Bogdanp/setup-racket@v1.15
         with:
           version: stable
           variant: CS
