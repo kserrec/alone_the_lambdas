@@ -6,7 +6,8 @@
          "logic.rkt"
          "objects.rkt"
          "pair.rkt"
-         "tags.rkt")
+         "tags.rkt"
+         "typecheck.rkt")
 
 (provide NIL
          raw-cons
@@ -40,6 +41,19 @@
   ((raw-is-type error-type)
    (raw-list-tail list)))
 
+(def list-unary-signature =
+  ((raw-cons list-type) NIL))
+
+(def raw-list-payload-head payload =
+  (raw-first payload))
+
+(def raw-list-payload-tail payload =
+  (raw-second payload))
+
+(def raw-list-payload-is-nil payload =
+  ((raw-is-type error-type)
+   (raw-list-payload-tail payload)))
+
 (def typed-cons value tail =
   (((raw-if
      ((raw-is-type error-type) value))
@@ -57,53 +71,20 @@
        list-type)
       (raw-object-type tail))))))
 
-(def typed-head list =
-  (((raw-if
-     ((raw-is-type error-type) list))
-    (((raw-bubble-error list)
-      argument-position-one)
-     list-type))
-   (((raw-if
-      ((raw-is-type list-type) list))
-     (((raw-if
-        (raw-list-is-nil list))
-       empty-list-error)
-      (raw-list-head list)))
-    (((raw-make-type-mismatch-error
-       argument-position-one)
-      list-type)
-     (raw-object-type list)))))
+(def typed-head =
+  (((make-typed-function raw-list-payload-head)
+    list-unary-signature)
+   raw-keep-return))
 
-(def typed-tail list =
-  (((raw-if
-     ((raw-is-type error-type) list))
-    (((raw-bubble-error list)
-      argument-position-one)
-     list-type))
-   (((raw-if
-      ((raw-is-type list-type) list))
-     (((raw-if
-        (raw-list-is-nil list))
-       empty-list-error)
-      (raw-list-tail list)))
-    (((raw-make-type-mismatch-error
-       argument-position-one)
-      list-type)
-     (raw-object-type list)))))
+(def typed-tail =
+  (((make-typed-function raw-list-payload-tail)
+    list-unary-signature)
+   raw-keep-return))
 
-(def typed-is-nil list =
-  (((raw-if
-     ((raw-is-type error-type) list))
-    (((raw-bubble-error list)
-      argument-position-one)
-     list-type))
-   (((raw-if
-      ((raw-is-type list-type) list))
-     (raw-list-is-nil list))
-    (((raw-make-type-mismatch-error
-       argument-position-one)
-      list-type)
-     (raw-object-type list)))))
+(def typed-is-nil =
+  (((make-typed-function raw-list-payload-is-nil)
+    list-unary-signature)
+   raw-keep-return))
 
 (def raw-fold-step recur function initial list =
   (((raw-if

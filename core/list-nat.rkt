@@ -2,12 +2,12 @@
 
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
-         "errors.rkt"
          "fix.rkt"
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
-         "tags.rkt")
+         "tags.rkt"
+         "typecheck.rkt")
 
 (provide raw-list-length
          raw-list-take
@@ -63,81 +63,39 @@
     count)
    list))
 
-(def typed-len list =
-  (((raw-if
-     ((raw-is-type error-type) list))
-    (((raw-bubble-error list)
-      argument-position-one)
-     list-type))
-   (((raw-if
-      ((raw-is-type list-type) list))
-     (raw-make-nat
-      (raw-list-length list)))
-    (((raw-make-type-mismatch-error
-       argument-position-one)
-      list-type)
-     (raw-object-type list)))))
+(def list-unary-signature =
+  ((raw-cons list-type) NIL))
 
-(def typed-take-list count list =
-  (((raw-if
-     ((raw-is-type error-type) list))
-    (((raw-bubble-error list)
-      argument-position-two)
-     list-type))
-   (((raw-if
-      ((raw-is-type list-type) list))
-     ((raw-list-take
-      (raw-nat-value count))
-      list))
-    (((raw-make-type-mismatch-error
-       argument-position-two)
-      list-type)
-     (raw-object-type list)))))
+(def nat-list-signature =
+  ((raw-cons nat-type)
+   ((raw-cons list-type) NIL)))
 
-(def typed-take count =
-  (((raw-if
-     ((raw-is-type error-type) count))
-    (lambda (ignored)
-      (((raw-bubble-error count)
-        argument-position-one)
-       nat-type)))
-   (((raw-if
-      ((raw-is-type nat-type) count))
-     (typed-take-list count))
-    (lambda (ignored)
-      (((raw-make-type-mismatch-error
-         argument-position-one)
-        nat-type)
-       (raw-object-type count))))))
+(def raw-list-object payload =
+  ((raw-make-object list-type) payload))
 
-(def typed-drop-list count list =
-  (((raw-if
-     ((raw-is-type error-type) list))
-    (((raw-bubble-error list)
-      argument-position-two)
-     list-type))
-   (((raw-if
-      ((raw-is-type list-type) list))
-     ((raw-list-drop
-      (raw-nat-value count))
-      list))
-    (((raw-make-type-mismatch-error
-       argument-position-two)
-      list-type)
-     (raw-object-type list)))))
+(def raw-list-length-value list-value =
+  (raw-list-length
+   (raw-list-object list-value)))
 
-(def typed-drop count =
-  (((raw-if
-     ((raw-is-type error-type) count))
-    (lambda (ignored)
-      (((raw-bubble-error count)
-        argument-position-one)
-       nat-type)))
-   (((raw-if
-      ((raw-is-type nat-type) count))
-     (typed-drop-list count))
-    (lambda (ignored)
-      (((raw-make-type-mismatch-error
-         argument-position-one)
-        nat-type)
-       (raw-object-type count))))))
+(def raw-list-take-values count list-value =
+  ((raw-list-take count)
+   (raw-list-object list-value)))
+
+(def raw-list-drop-values count list-value =
+  ((raw-list-drop count)
+   (raw-list-object list-value)))
+
+(def typed-len =
+  (((make-typed-function raw-list-length-value)
+    list-unary-signature)
+   (raw-wrap-return nat-type)))
+
+(def typed-take =
+  (((make-typed-function raw-list-take-values)
+    nat-list-signature)
+   raw-keep-return))
+
+(def typed-drop =
+  (((make-typed-function raw-list-drop-values)
+    nat-list-signature)
+   raw-keep-return))

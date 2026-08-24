@@ -9,7 +9,9 @@ Michaelson-style Lists, strict bootstrap primitives, and raw recursive List
 algorithms. Phase 4 adds normalized binary Nat values, direct raw binary
 arithmetic and comparison, and the Nat-dependent List operations. Phase 5
 replaces provisional failures with structured Error roots and propagation
-frames.
+frames. Phase 6 adds the single generalized curried runtime checker, its
+signature-driven Error absorbers and return policies, and migrates every
+eligible bootstrap List operation onto it.
 
 ## Computational boundary
 
@@ -54,6 +56,9 @@ inside `core/errors.rkt`; Lists then depend on that lower representation knot.
 Readers are test-only, and no production module depends on them. Binary Nat
 depends on the raw List representation; `core/list-nat.rkt` sits above both
 modules so Nat-dependent List operations do not create a dependency cycle.
+The checker reads its List signatures through the lower object and pair
+representation instead of importing `core/lists.rkt`; this lets the ordinary
+typed List operations depend on the checker without a cycle.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -106,23 +111,23 @@ host reference or module cycle. `typed-cons` is the only strict constructor
 and accepts only a List tail. NIL recognition checks the tail's Error tag in
 O(1), so an Error head does not make a nonempty List look empty.
 
-During bootstrap, `typed-cons`, `typed-head`, `typed-tail`, and `typed-is-nil`
-still perform checks manually, but wrong concrete types now create structured
-TypeMismatch roots containing argument position, expected type, and actual
-type. Boundaries with a concrete expected type prepend propagation frames to
-incoming Errors. The polymorphic head of `typed-cons` preserves an incoming
-Error without inventing an expected type; its List tail has ordinary framed
-propagation. Phase 6 moves appropriate strict checks onto the generalized
-checker. `typed-is-nil` returns a raw Boolean until the typed Bool layer
-exists. The raw layer currently provides a right fold, append, reverse, map,
-and filter; the fold callback receives the head followed by the folded tail.
+`typed-head`, `typed-tail`, and `typed-is-nil` use the generalized checker with
+a one-element List signature. Wrong concrete types create structured
+TypeMismatch roots, while incoming Errors gain the current argument frame.
+`typed-cons` remains a direct strict constructor because its head is
+intentionally polymorphic and therefore has no expected runtime tag for a
+signature entry. Its polymorphic head preserves an incoming Error without
+inventing an expected type; its List tail has ordinary framed propagation.
+`typed-is-nil` returns a raw Boolean until the typed Bool layer exists. The raw
+layer currently provides a right fold, append, reverse, map, and filter; the
+fold callback receives the head followed by the folded tail.
 
 `core/list-nat.rkt` adds raw length, take, and drop after binary Nat is
 available. Length returns canonical raw Nat bits. Take and drop accept raw Nat
 bits first and a List second; taking beyond the end returns the complete List,
-while dropping beyond the end returns `NIL`. Their strict bootstrap operations
-accept tagged Nat and List values, bubble incoming Errors, and preserve the one
-remaining application after a bad first argument.
+while dropping beyond the end returns `NIL`. The strict wrappers now use the
+generalized checker. They accept tagged Nat and List values, bubble incoming
+Errors, and preserve the one remaining application after a bad first argument.
 
 ### Natural numbers
 
@@ -167,17 +172,22 @@ List of Char values.
 
 ## Runtime typing
 
-One generalized curried checker accepts a signature list and constructs strict
-typed functions of arbitrary arity. It must:
+`make-typed-function` accepts a raw curried function, an Alone the Lambdas List
+of expected type tags, and one unary return policy. It constructs strict typed
+functions of arbitrary arity by:
 
-- validate one argument per application;
-- bubble an existing Error;
-- create a structured Error for a wrong runtime type;
-- preserve the function's remaining arity by returning unary absorbing
-  continuations after an early error;
-- support both raw-result and already-typed-result functions.
+- validating one argument per application;
+- bubbling an existing Error with the current expected type and Church-encoded
+  argument position;
+- creating a structured Error for a wrong runtime type;
+- unwrapping a valid argument and partially applying the raw function;
+- preserving remaining arity with one unary absorbing continuation per
+  unconsumed signature entry after an early failure; and
+- applying `raw-wrap-return` for a raw result or `raw-keep-return` for a result
+  that is already typed.
 
-No arity-specific checker variants are allowed.
+The empty signature also supports a zero-argument raw value. No host arity
+counting or arity-specific checker variant exists.
 
 ## Naming
 
@@ -206,9 +216,8 @@ core/
   lists.rkt
   binary-nat.rkt
   list-nat.rkt
-  # Later phases add the modules below.
-  errors.rkt
   typecheck.rkt
+  # Later phases add the modules below.
   typed-logic.rkt
   result.rkt
   chars.rkt
@@ -219,7 +228,7 @@ tooling/
 run-all-tests.sh
 ```
 
-Nine production modules currently exist under `core/`; the remaining core
+Ten production modules currently exist under `core/`; the remaining core
 paths are planned in dependency order. New abstraction layers require a
 concrete need.
 
@@ -237,10 +246,14 @@ currying, and applicable laziness. Nat-dependent List tests cover length,
 take, drop, boundary counts, proper tails, strict failures, Error absorption,
 currying, and lazy base cases. Structured Error tests cover every kind, root
 metadata, the `NIL`/empty-Error knot, frame order, nested root preservation,
-canonical List failures, currying, and lazy field access. The structural purity
-tool scans production Racket sources for non-unary lambdas, host-style function
-definitions, forbidden host computation, and host literal data. It will be
-hardened further as later production forms arrive.
+canonical List failures, currying, and lazy field access. The generalized
+checker suite covers lambda List signatures and zero-, one-, two-, three-, and
+five-argument functions; valid partial application; every five-argument
+mismatch position; incoming Error framing; raw and already-typed return
+policies; exact remaining-arity absorption; and ignored-argument laziness. The
+structural purity tool scans production Racket sources for non-unary lambdas,
+host-style function definitions, forbidden host computation, and host literal
+data. It will be hardened further as later production forms arrive.
 
 ## Deferred boundary
 

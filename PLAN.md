@@ -88,14 +88,16 @@ context without losing their root cause.
 
 ## Phase 6 — Generalized curried runtime checker
 
-- [ ] Represent arbitrary signatures as Lists.
-- [ ] Implement the single unary, progressive argument-checking mechanism.
-- [ ] Support raw-result and already-typed-result functions.
-- [ ] Preserve remaining arity after early failure with unary absorbing
+Status: complete (2026-08-24)
+
+- [x] Represent arbitrary signatures as Lists.
+- [x] Implement the single unary, progressive argument-checking mechanism.
+- [x] Support raw-result and already-typed-result functions.
+- [x] Preserve remaining arity after early failure with unary absorbing
   continuations.
-- [ ] Migrate bootstrap List checks onto the generalized checker where
+- [x] Migrate bootstrap List checks onto the generalized checker where
   appropriate.
-- [ ] Test valid partial application, wrong types at every argument position,
+- [x] Test valid partial application, wrong types at every argument position,
   incoming Error bubbling, and final return validation.
 
 Acceptance: no arity-specific checker exists, and every failure has the same

@@ -5,11 +5,12 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 5 is complete. The repository now contains the raw lambda
+> **Status:** Phase 6 is complete. The repository now contains the raw lambda
 > foundation, all seven Church type tags, generic typed objects, explicit
 > Michaelson-style Lists, canonical binary Nat arithmetic, and structured
-> Error roots with propagation frames. See [PLAN.md](PLAN.md) for the ordered
-> build.
+> Error roots with propagation frames, plus one generalized curried runtime
+> checker for strict typed functions of any arity. See [PLAN.md](PLAN.md) for
+> the ordered build.
 
 ## Commitments
 
@@ -63,13 +64,17 @@ precedence over conflicting examples in the base specification.
 - `core/errors.rkt` provides structured Error roots and metadata, canonical
   root Errors, newest-first propagation frames, and the lazy `NIL`/empty-Error
   representation knot.
-- `core/lists.rkt` provides canonical `NIL`, strict bootstrap List primitives,
-  and raw fold, append, reverse, map, and filter operations.
+- `core/typecheck.rkt` provides the single generalized progressive checker,
+  signature-driven Error absorbers, and raw-result or already-typed-result
+  finalizers.
+- `core/lists.rkt` provides canonical `NIL`, the proper polymorphic `typed-cons`
+  constructor, checker-backed typed access operations, and raw fold, append,
+  reverse, map, and filter operations.
 - `core/binary-nat.rkt` provides normalized MSB-first Nat payloads, typed
   constants `ZERO` through `TEN`, and raw zero, successor, arithmetic, and
   comparison algorithms.
 - `core/list-nat.rkt` provides raw List length, take, and drop algorithms plus
-  their strict bootstrap operations using canonical Nat values.
+  checker-backed strict operations using canonical Nat values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/type-tag.rkt` observes Church tags as host integers at the same
