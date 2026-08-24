@@ -2,7 +2,10 @@
 
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
+         "errors.rkt"
          "lists.rkt"
+         "logic.rkt"
+         "result.rkt"
          "tags.rkt"
          "typecheck.rkt")
 
@@ -21,6 +24,7 @@
          typed-nat-add
          typed-nat-sub
          typed-nat-mult
+         typed-nat-div
          typed-nat-equal
          typed-nat-less
          typed-nat-less-equal
@@ -31,6 +35,7 @@
                      [typed-nat-add ADD]
                      [typed-nat-sub SUB]
                      [typed-nat-mult MULT]
+                     [typed-nat-div DIV]
                      [typed-nat-equal EQ]
                      [typed-nat-less LT]
                      [typed-nat-less-equal LTE]
@@ -70,6 +75,19 @@
   (((make-typed-function raw-nat-mult)
     nat-binary-signature)
    nat-return-policy))
+
+(def raw-safe-nat-div dividend divisor =
+  (((raw-if
+     (raw-nat-is-zero divisor))
+    (raw-make-err divide-by-zero-error))
+   (raw-make-ok
+    (raw-make-nat
+     ((raw-nat-div dividend) divisor)))))
+
+(def typed-nat-div =
+  (((make-typed-function raw-safe-nat-div)
+    nat-binary-signature)
+   raw-keep-return))
 
 (def typed-nat-equal =
   (((make-typed-function raw-nat-equal)

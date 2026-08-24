@@ -182,6 +182,42 @@
            (integer->raw-bits (first case))
            (integer->raw-bits (second case)))))
 
+(define division-cases
+  '((0 1 0)
+    (0 37 0)
+    (1 1 1)
+    (1 2 0)
+    (7 2 3)
+    (8 2 4)
+    (15 4 3)
+    (255 16 15)
+    (256 16 16)
+    (65535 255 257)
+    (654321 123 5319)))
+
+(for ([case (in-list division-cases)])
+  (define dividend (first case))
+  (define divisor (second case))
+  (define expected (third case))
+  (define quotient-bits
+    (apply2 raw-nat-div
+            (integer->raw-bits dividend)
+            (integer->raw-bits divisor)))
+  (define quotient
+    (raw-bits->integer quotient-bits))
+  (check-canonical expected quotient-bits)
+  (check-true (<= (* quotient divisor)
+                  dividend))
+  (check-true (< dividend
+                 (* (add1 quotient) divisor))))
+
+(check-canonical
+ 2
+ (apply2 raw-nat-div
+         (host-bits->raw
+          '(#f #f #t #f #t))
+         leading-zero-two))
+
 (define comparison-cases
   '((0 0)
     (0 1)
@@ -271,6 +307,7 @@
                  (list raw-nat-add
                        raw-nat-sub
                        raw-nat-mult
+                       raw-nat-div
                        raw-nat-equal
                        raw-nat-less
                        raw-nat-less-equal

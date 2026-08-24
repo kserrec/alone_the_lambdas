@@ -14,7 +14,8 @@ signature-driven Error absorbers and return policies, and migrates every
 eligible bootstrap List operation onto it. Phase 7 adds tagged Bool values,
 strict checker-backed Boolean operations, and the canonical lazy typed
 conditional. Phase 8 adds the strict checker-backed Nat API without changing
-the raw binary algorithms.
+the raw binary algorithms. Phase 9 adds lambda-encoded Result values, strict
+Result operations, raw binary long division, and safe typed `DIV`.
 
 ## Computational boundary
 
@@ -67,6 +68,9 @@ signatures and strict wrappers out of the raw Boolean layer.
 `core/typed-nat.rkt` similarly sits above binary Nat, Lists, tags, and the
 checker. It owns the public strict Nat surface while leaving every binary
 algorithm in `core/binary-nat.rkt` raw and reusable.
+`core/result.rkt` sits above Errors, Lists, objects, and the checker. Typed Nat
+depends on Result only for safe `DIV`, so Result itself remains independent of
+Nat and available to later data types.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -166,18 +170,25 @@ removes every unnecessary leading zero. It implements raw zero testing,
 successor, addition, saturating subtraction, multiplication, equality, and all
 four order comparisons directly on MSB-first digit Lists. Addition and
 subtraction reverse their operands for carry and borrow propagation;
-multiplication scans one operand with binary shift-and-add. None converts
-through Church numerals or host numbers. `ZERO` through `TEN` are canonical
-typed constants.
+multiplication scans one operand with binary shift-and-add. Division performs
+MSB-first binary long division, maintaining a remainder and building quotient
+bits without repeated host or Church arithmetic. Its raw contract requires a
+nonzero divisor; the strict layer owns the zero policy. None of these
+algorithms converts through Church numerals or host numbers. `ZERO` through
+`TEN` are canonical typed constants.
 
 `core/typed-nat.rkt` routes every public Nat operation through the generalized
 checker. `SUCC`, `ADD`, `SUB`, and `MULT` return tagged Nat values; `EQ`, `LT`,
-`LTE`, `GT`, `GTE`, and `IS-ZERO` return tagged Bool values. Unary operations
-use one Nat signature entry, and binary operations use two, so partial
-application, wrong-type failures, incoming-Error bubbling, and remaining-arity
-absorption all have the same behavior as other strict typed functions. Current
-Nat Error frames contain the canonical argument position and expected Nat
-type. Textual function names remain deferred until String exists.
+`LTE`, `GT`, `GTE`, and `IS-ZERO` return tagged Bool values. `DIV` uses the
+same two-Nat signature but keeps its already-typed Result return. Valid
+division by a nonzero value returns Ok containing a canonical Nat; valid
+division by zero returns Err containing the canonical DivideByZero Error.
+Unary operations use one Nat signature entry, and binary operations use two,
+so partial application, wrong-type failures, incoming-Error bubbling, and
+remaining-arity absorption all have the same behavior as other strict typed
+functions. Current Nat Error frames contain the canonical argument position
+and expected Nat type. Textual function names remain deferred until String
+exists.
 
 ### Errors and results
 
@@ -194,9 +205,19 @@ Function names remain absent until canonical String exists in Phase 11; Phase
 12 adds those names and the Error reader. Language-level failures never use
 host exceptions or strings.
 
-`Result` represents an expected success-or-failure outcome. Its error branch
-contains an Error value but does not turn expected failure into a language
-contract violation.
+`core/result.rkt` represents Result as a Result-tagged object whose payload
+pairs a raw Boolean discriminator with a payload. True identifies Ok; false
+identifies Err. `make-ok` accepts a polymorphic value but preserves an incoming
+Error instead of hiding it. `make-err` is the intentional exception to normal
+Error bubbling: it requires an Error and stores that Error as data. A wrong
+non-Error argument remains a TypeMismatch Error.
+
+`is-ok`, `is-err`, `unwrap-ok`, and `unwrap-err` strictly require Result via
+the generalized checker. The predicates return tagged Bool values; the unwrap
+operations return the stored payload without automatically propagating it.
+Callers use the predicates to select the matching unwrap operation. This is
+the semantic boundary: a Result Err is an ordinary valid Result until a caller
+explicitly unwraps and uses its Error payload.
 
 ### Characters and strings
 
@@ -223,6 +244,8 @@ The empty signature also supports a zero-argument raw value. No host arity
 counting or arity-specific checker variant exists. `typed-if` is the specified
 custom polymorphic exception: it reuses the same Error construction and
 framing primitives while preserving two untyped branch positions itself.
+`typed-make-ok` is likewise polymorphic, while `typed-make-err` intentionally
+accepts Error as data instead of invoking the checker's normal Error bubbling.
 
 ## Naming
 
@@ -250,12 +273,12 @@ core/
   errors.rkt
   lists.rkt
   binary-nat.rkt
+  result.rkt
   typed-nat.rkt
   list-nat.rkt
   typecheck.rkt
   typed-logic.rkt
   # Later phases add the modules below.
-  result.rkt
   chars.rkt
   strings.rkt
 readers/
@@ -264,7 +287,7 @@ tooling/
 run-all-tests.sh
 ```
 
-Twelve production modules currently exist under `core/`; the remaining core
+Thirteen production modules currently exist under `core/`; the remaining core
 paths are planned in dependency order. New abstraction layers require a
 concrete need.
 
@@ -277,8 +300,9 @@ and payload round trip, object/accessor currying, and accessor laziness. The
 List suite covers NIL identity, proper tails, nested traversal, strict
 failures, Error bubbling, laziness, and every implemented raw helper. Binary
 Nat tests cover normalization, the typed constants, carries, borrows,
-saturating subtraction, multiplication, comparisons, larger bit widths,
-currying, and applicable laziness. Nat-dependent List tests cover length,
+saturating subtraction, multiplication, long division, quotient laws,
+comparisons, larger bit widths, currying, and applicable laziness.
+Nat-dependent List tests cover length,
 take, drop, boundary counts, proper tails, strict failures, Error absorption,
 currying, and lazy base cases. Structured Error tests cover every kind, root
 metadata, the `NIL`/empty-Error knot, frame order, nested root preservation,
@@ -294,7 +318,11 @@ exports, and divergent unselected branches. The typed Nat suite covers all
 constants and public operations, representative large values, arithmetic and
 comparison semantics, every applicable mismatch and incoming-Error position,
 root preservation, exact absorber arity, ignored-argument laziness, currying,
-and canonical exports. The structural purity tool scans
+and canonical exports. The Result suite covers Ok and Err representation,
+strict constructors and accessors, Error encapsulation, mismatch and incoming
+Error behavior, safe division results, quotient laws, exact absorber arity,
+zero-divisor laziness, explicit post-unwrap propagation, currying, and public
+exports. The structural purity tool scans
 production Racket sources for non-unary lambdas, host-style function
 definitions, forbidden host computation, and host literal data. It will be
 hardened further as later production forms arrive.

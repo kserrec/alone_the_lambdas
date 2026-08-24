@@ -131,11 +131,13 @@ changing binary semantics.
 
 ## Phase 9 — Result and safe division
 
-- [ ] Implement typed Result success and failure variants.
-- [ ] Define strict constructors and access operations.
-- [ ] Implement safe binary division with expected failure represented as
+Status: complete (2026-08-24)
+
+- [x] Implement typed Result success and failure variants.
+- [x] Define strict constructors and access operations.
+- [x] Implement safe binary division with expected failure represented as
   Result Err.
-- [ ] Test the Error-versus-Result boundary and division laws.
+- [x] Test the Error-versus-Result boundary and division laws.
 
 Acceptance: expected division failure is data, while contract failure remains
 a bubbled Error.

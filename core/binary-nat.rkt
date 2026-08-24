@@ -13,6 +13,7 @@
          raw-nat-add
          raw-nat-sub
          raw-nat-mult
+         raw-nat-div
          raw-nat-equal
          raw-nat-less
          raw-nat-less-equal
@@ -289,6 +290,39 @@
      (raw-normalize-nat left))
     (raw-normalize-nat right))
    raw-zero-bits))
+
+(def raw-nat-shift-in bits bit =
+  (lambda-let doubled = (raw-nat-double bits)
+    (((raw-if bit)
+      (raw-nat-succ doubled))
+     doubled)))
+
+(def raw-nat-div-step recur remaining divisor remainder quotient-reversed =
+  (((raw-if
+     (raw-list-is-nil remaining))
+    (raw-normalize-nat
+     (raw-reverse quotient-reversed)))
+   (lambda-let shifted =
+     ((raw-nat-shift-in remainder)
+      (raw-list-head remaining))
+     (lambda-let subtracts =
+       ((raw-nat-greater-equal shifted)
+        divisor)
+       ((((recur
+           (raw-list-tail remaining))
+          divisor)
+         (((raw-if subtracts)
+           ((raw-nat-sub shifted) divisor))
+          shifted))
+        ((raw-cons subtracts)
+         quotient-reversed))))))
+
+(def raw-nat-div dividend divisor =
+  (((((raw-fix raw-nat-div-step)
+      (raw-normalize-nat dividend))
+     (raw-normalize-nat divisor))
+    raw-zero-bits)
+   NIL))
 
 (def raw-make-nat bits =
   ((raw-make-object nat-type)
