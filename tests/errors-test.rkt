@@ -10,6 +10,7 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../readers/bool.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
@@ -34,7 +35,7 @@
    (apply2 raw-is-type list-type value)))
 
 (define (nil-value? value)
-  (raw-boolean->boolean
+  (bool->boolean
    (lazy-apply typed-is-nil value)))
 
 (define (error-kind error)

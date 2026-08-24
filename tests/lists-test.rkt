@@ -8,6 +8,7 @@
          "../core/objects.rkt"
          "../core/tags.rkt"
          "../macros/macros.rkt"
+         "../readers/bool.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
@@ -56,7 +57,7 @@
     kind)))
 
 (define (nil-value? value)
-  (raw-boolean->boolean
+  (bool->boolean
    (lazy-apply typed-is-nil value)))
 
 (define (prepend value tail)

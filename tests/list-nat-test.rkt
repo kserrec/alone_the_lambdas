@@ -9,6 +9,7 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../readers/bool.rkt"
          "../readers/list.rkt"
          "../readers/nat.rkt"
          "../readers/raw-boolean.rkt"
@@ -48,7 +49,7 @@
     kind)))
 
 (define (nil-value? value)
-  (raw-boolean->boolean
+  (bool->boolean
    (lazy-apply typed-is-nil value)))
 
 (define true-object

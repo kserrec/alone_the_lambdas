@@ -105,11 +105,13 @@ remaining application shape as the function it replaces.
 
 ## Phase 7 — Strict typed Bool and public `if`
 
-- [ ] Wrap raw Booleans as tagged Bool values.
-- [ ] Implement strict typed Boolean operations through the generalized
+Status: complete (2026-08-24)
+
+- [x] Wrap raw Booleans as tagged Bool values.
+- [x] Implement strict typed Boolean operations through the generalized
   checker.
-- [ ] Implement lazy public `if` with a typed Bool condition.
-- [ ] Test strict condition checking and non-evaluation of the unselected
+- [x] Implement lazy public `if` with a typed Bool condition.
+- [x] Test strict condition checking and non-evaluation of the unselected
   branch.
 
 Acceptance: public `if` is canonical, typed, lazy, and distinct from internal

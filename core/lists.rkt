@@ -84,7 +84,7 @@
 (def typed-is-nil =
   (((make-typed-function raw-list-payload-is-nil)
     list-unary-signature)
-   raw-keep-return))
+   (raw-wrap-return bool-type)))
 
 (def raw-fold-step recur function initial list =
   (((raw-if

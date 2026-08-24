@@ -11,7 +11,9 @@ arithmetic and comparison, and the Nat-dependent List operations. Phase 5
 replaces provisional failures with structured Error roots and propagation
 frames. Phase 6 adds the single generalized curried runtime checker, its
 signature-driven Error absorbers and return policies, and migrates every
-eligible bootstrap List operation onto it.
+eligible bootstrap List operation onto it. Phase 7 adds tagged Bool values,
+strict checker-backed Boolean operations, and the canonical lazy typed
+conditional.
 
 ## Computational boundary
 
@@ -58,13 +60,17 @@ depends on the raw List representation; `core/list-nat.rkt` sits above both
 modules so Nat-dependent List operations do not create a dependency cycle.
 The checker reads its List signatures through the lower object and pair
 representation instead of importing `core/lists.rkt`; this lets the ordinary
-typed List operations depend on the checker without a cycle.
+typed List operations depend on the checker without a cycle. Typed logic sits
+above raw logic, objects, Lists, and the checker; this keeps its List-encoded
+signatures and strict wrappers out of the raw Boolean layer.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
 standalone language will export that binding as canonical `let`. `raw-if` is an
 ordinary curried selector function, not a host conditional. The reader forces
-and formats raw Booleans only from outside production computation.
+and formats raw Booleans only from outside production computation. The strict
+conditional remains internally named `typed-if`; `core/typed-logic.rkt` also
+exports that binding under canonical `if` without changing internal raw names.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -100,6 +106,21 @@ permitted metadata. Ordinary numeric computation always uses binary Nat.
 A runtime-typed object carries a tag and payload using lambda-encoded
 structure. The representation must remain entirely inside the calculus.
 
+### Booleans and conditional
+
+`TRUE` and `FALSE` are Bool-tagged objects containing `raw-true` and
+`raw-false`. `typed-not`, `typed-and`, `typed-or`, and `typed-xor` use the
+generalized checker with List signatures, unwrap their Bool inputs, run the
+existing raw operations, and wrap the raw result as Bool. The module also
+exports the specified `NOT`, `AND`, `OR`, and `XOR` names.
+
+`typed-if` validates only its tagged Bool condition because both branches are
+intentionally polymorphic. A valid condition unwraps to the raw selector and
+chooses without forcing the other branch. A wrong condition or incoming Error
+returns two unary ignoring continuations before exposing the failure, so the
+conditional retains its full curried application shape. The generalized
+monomorphic checker remains unchanged, as the specification allows.
+
 ### Lists
 
 Lists use an explicit Michaelson-style representation. A nonempty List is a
@@ -118,7 +139,7 @@ TypeMismatch roots, while incoming Errors gain the current argument frame.
 intentionally polymorphic and therefore has no expected runtime tag for a
 signature entry. Its polymorphic head preserves an incoming Error without
 inventing an expected type; its List tail has ordinary framed propagation.
-`typed-is-nil` returns a raw Boolean until the typed Bool layer exists. The raw
+`typed-is-nil` now wraps its O(1) raw predicate result as a tagged Bool. The raw
 layer currently provides a right fold, append, reverse, map, and filter; the
 fold callback receives the head followed by the folded tail.
 
@@ -143,8 +164,8 @@ four order comparisons directly on MSB-first digit Lists. Addition and
 subtraction reverse their operands for carry and borrow propagation;
 multiplication scans one operand with binary shift-and-add. None converts
 through Church numerals or host numbers. `ZERO` through `TEN` are canonical
-typed constants. Strict typed arithmetic remains Phase 8 work after the
-generalized checker and typed Bool exist.
+typed constants. Phase 8 adds the strict typed arithmetic API by reusing the
+now-implemented generalized checker and Bool layer.
 
 ### Errors and results
 
@@ -187,7 +208,9 @@ functions of arbitrary arity by:
   that is already typed.
 
 The empty signature also supports a zero-argument raw value. No host arity
-counting or arity-specific checker variant exists.
+counting or arity-specific checker variant exists. `typed-if` is the specified
+custom polymorphic exception: it reuses the same Error construction and
+framing primitives while preserving two untyped branch positions itself.
 
 ## Naming
 
@@ -217,8 +240,8 @@ core/
   binary-nat.rkt
   list-nat.rkt
   typecheck.rkt
-  # Later phases add the modules below.
   typed-logic.rkt
+  # Later phases add the modules below.
   result.rkt
   chars.rkt
   strings.rkt
@@ -228,7 +251,7 @@ tooling/
 run-all-tests.sh
 ```
 
-Ten production modules currently exist under `core/`; the remaining core
+Eleven production modules currently exist under `core/`; the remaining core
 paths are planned in dependency order. New abstraction layers require a
 concrete need.
 
@@ -251,9 +274,13 @@ checker suite covers lambda List signatures and zero-, one-, two-, three-, and
 five-argument functions; valid partial application; every five-argument
 mismatch position; incoming Error framing; raw and already-typed return
 policies; exact remaining-arity absorption; and ignored-argument laziness. The
-structural purity tool scans production Racket sources for non-unary lambdas,
-host-style function definitions, forbidden host computation, and host literal
-data. It will be hardened further as later production forms arrive.
+typed-logic suite covers both tagged Bool constants, every strict operation
+truth-table row, mismatch and incoming-Error propagation at each applicable
+position, curried shape, typed `IS-NIL`, polymorphic branch results, canonical
+exports, and divergent unselected branches. The structural purity tool scans
+production Racket sources for non-unary lambdas, host-style function
+definitions, forbidden host computation, and host literal data. It will be
+hardened further as later production forms arrive.
 
 ## Deferred boundary
 

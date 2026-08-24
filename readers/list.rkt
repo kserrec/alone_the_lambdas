@@ -2,7 +2,7 @@
 
 (require racket/promise
          "../core/lists.rkt"
-         "raw-boolean.rkt")
+         "bool.rkt")
 
 (provide list->host-list)
 
@@ -11,7 +11,7 @@
 
 (define (list->host-list list read-value)
   (let loop ([remaining list])
-    (if (raw-boolean->boolean
+    (if (bool->boolean
          (lazy-apply typed-is-nil remaining))
         '()
         (cons

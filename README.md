@@ -5,12 +5,13 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 6 is complete. The repository now contains the raw lambda
+> **Status:** Phase 7 is complete. The repository now contains the raw lambda
 > foundation, all seven Church type tags, generic typed objects, explicit
 > Michaelson-style Lists, canonical binary Nat arithmetic, and structured
 > Error roots with propagation frames, plus one generalized curried runtime
-> checker for strict typed functions of any arity. See [PLAN.md](PLAN.md) for
-> the ordered build.
+> checker for strict typed functions of any arity. Tagged Boolean constants,
+> strict Boolean operations, and the canonical lazy typed `if` are now built
+> on that foundation. See [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -67,6 +68,9 @@ precedence over conflicting examples in the base specification.
 - `core/typecheck.rkt` provides the single generalized progressive checker,
   signature-driven Error absorbers, and raw-result or already-typed-result
   finalizers.
+- `core/typed-logic.rkt` provides tagged `TRUE` and `FALSE`, checker-backed
+  strict Boolean operations, and the polymorphic lazy `typed-if` with its
+  canonical `if` export.
 - `core/lists.rkt` provides canonical `NIL`, the proper polymorphic `typed-cons`
   constructor, checker-backed typed access operations, and raw fold, append,
   reverse, map, and filter operations.
@@ -77,6 +81,7 @@ precedence over conflicting examples in the base specification.
   checker-backed strict operations using canonical Nat values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
+- `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
 - `readers/type-tag.rkt` observes Church tags as host integers at the same
   one-way boundary.
 - `readers/list.rkt` traverses completed Lists for human-facing observation.
