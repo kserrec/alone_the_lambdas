@@ -4,7 +4,9 @@ This document records both the target architecture and the verified current
 state. Phase 1 implements the lazy host shell, mechanical syntax, lambda pairs,
 and raw Boolean logic. Phase 2 adds the seven Church tags, the generic
 lambda-encoded typed-object shape, external observation, and a structural
-purity gate that rejects host computation and host data.
+purity gate that rejects host computation and host data. Phase 3 adds explicit
+Michaelson-style Lists, strict bootstrap primitives, and raw recursive List
+algorithms.
 
 ## Computational boundary
 
@@ -44,7 +46,8 @@ production code must never depend on readers.
 The implemented dependency path is deliberately short. The lazy module shell
 sits under the mechanical macro layer. Pair and logic depend on that
 foundation; tags depend on raw logic; typed objects depend on pairs and tags.
-Readers are test-only, and no production module depends on them.
+Fixed-point recursion and provisional bootstrap Errors support Lists. Readers
+are test-only, and no production module depends on them.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -84,9 +87,22 @@ structure. The representation must remain entirely inside the calculus.
 
 ### Lists
 
-Lists use an explicit Michaelson-style representation. `NIL` is a List value,
-not false and not numeric zero. Every nonempty cell has a head and a tail whose
-runtime type is List.
+Lists use an explicit Michaelson-style representation. A nonempty List is a
+List-tagged object whose payload pairs a head with another List object. `NIL`
+is itself List-tagged; its payload contains the provisional empty-List Error in
+both positions, so it is neither false nor numeric zero. `typed-cons` is the
+only strict constructor and accepts only a List tail. NIL recognition checks
+the tail's Error tag in O(1), so an Error head does not make a nonempty List
+look empty.
+
+During bootstrap, `typed-cons`, `typed-head`, `typed-tail`, and `typed-is-nil`
+perform their checks manually and bubble an incoming Error unchanged. Their
+opaque Error payloads are provisional: Phase 5 replaces them with structured
+roots, and Phase 6 moves ordinary strict checks onto the generalized checker.
+`typed-is-nil` returns a raw Boolean until the typed Bool layer exists. The raw
+layer currently provides a right fold, append, reverse, map, and filter; the
+fold callback receives the head followed by the folded tail. Nat-dependent
+length, take, and drop wait for canonical binary Nat in Phase 4.
 
 ### Natural numbers
 
@@ -96,9 +112,9 @@ no leading zeroes. Raw arithmetic works directly on this representation.
 
 ### Errors and results
 
-`Error` represents a violated language contract or broken invariant. It
-contains a root error kind plus a stack of frames added while the error
-bubbles.
+The current List bootstrap uses opaque Error-tagged placeholders. Phase 5
+replaces them with canonical `Error`, representing a violated language contract
+or broken invariant with a root error kind plus a stack of propagation frames.
 
 `Result` represents an expected success-or-failure outcome. Its error branch
 contains an Error value but does not turn expected failure into a language
@@ -143,10 +159,12 @@ macros/
 core/
   pair.rkt
   logic.rkt
-  # Later phases add the modules below.
   tags.rkt
   objects.rkt
+  fix.rkt
+  bootstrap-errors.rkt
   lists.rkt
+  # Later phases add the modules below.
   binary-nat.rkt
   errors.rkt
   typecheck.rkt
@@ -160,9 +178,9 @@ tooling/
 run-all-tests.sh
 ```
 
-`pair.rkt`, `logic.rkt`, `tags.rkt`, and `objects.rkt` currently exist under
-`core/`; the remaining core paths are planned in dependency order. New
-abstraction layers require a concrete need.
+Seven production modules currently exist under `core/`; the remaining core
+paths are planned in dependency order. New abstraction layers require a
+concrete need.
 
 ## Verification boundary
 
@@ -170,6 +188,8 @@ The test suite checks macro currying and hygiene, pair selection, every raw
 Boolean truth-table row, and lazy non-evaluation of rejected pair fields and
 `raw-if` branches. It also proves all 49 pairwise tag comparisons, every tag
 and payload round trip, object/accessor currying, and accessor laziness. The
+List suite covers NIL identity, proper tails, nested traversal, strict
+failures, Error bubbling, laziness, and every implemented raw helper. The
 structural purity tool scans production Racket sources for non-unary lambdas,
 host-style function definitions, forbidden host computation, and host literal
 data. It will be hardened further as later production forms arrive.

@@ -45,12 +45,14 @@ host data.
 
 ## Phase 3 — Michaelson-style List
 
-- [ ] Implement typed `NIL` and nonempty List cells.
-- [ ] Implement raw list structure and strict typed `cons`, head, tail, and
+Status: complete (2026-08-24)
+
+- [x] Implement typed `NIL` and nonempty List cells.
+- [x] Implement raw list structure and strict typed `cons`, head, tail, and
   nil predicate operations.
-- [ ] Add the remaining foundational folds and list helpers required by later
-  phases.
-- [ ] Test proper-tail enforcement, NIL distinction, traversal, and errors.
+- [x] Add the Nat-independent foundational folds and list helpers required by
+  later phases.
+- [x] Test proper-tail enforcement, NIL distinction, traversal, and errors.
 
 Acceptance: every public List is properly typed and every tail is a List.
 
@@ -61,6 +63,7 @@ Acceptance: every public List is properly typed and every tail is a List.
 - [ ] Implement canonicalization with `[0]` as the only zero.
 - [ ] Implement the required raw comparisons and arithmetic directly on binary
   lists.
+- [ ] Complete List `LEN`, `TAKE`, and `DROP` with canonical binary Nat values.
 - [ ] Test zero, carries, borrows, normalization, and representative larger
   values.
 
@@ -71,6 +74,8 @@ numbers.
 
 - [ ] Implement the Error type, root kinds, and frame representation.
 - [ ] Implement creation, frame addition, and bubbling primitives.
+- [ ] Replace provisional bootstrap Error payloads with canonical structured
+  roots.
 - [ ] Establish canonical function-name values used in frames.
 - [ ] Test root preservation and frame order through nested failures.
 
@@ -84,6 +89,8 @@ context without losing their root cause.
 - [ ] Support raw-result and already-typed-result functions.
 - [ ] Preserve remaining arity after early failure with unary absorbing
   continuations.
+- [ ] Migrate bootstrap List checks onto the generalized checker where
+  appropriate.
 - [ ] Test valid partial application, wrong types at every argument position,
   incoming Error bubbling, and final return validation.
 
