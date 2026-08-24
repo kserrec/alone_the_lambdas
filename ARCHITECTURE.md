@@ -6,7 +6,8 @@ and raw Boolean logic. Phase 2 adds the seven Church tags, the generic
 lambda-encoded typed-object shape, external observation, and a structural
 purity gate that rejects host computation and host data. Phase 3 adds explicit
 Michaelson-style Lists, strict bootstrap primitives, and raw recursive List
-algorithms.
+algorithms. Phase 4 adds normalized binary Nat values, direct raw binary
+arithmetic and comparison, and the Nat-dependent List operations.
 
 ## Computational boundary
 
@@ -47,7 +48,9 @@ The implemented dependency path is deliberately short. The lazy module shell
 sits under the mechanical macro layer. Pair and logic depend on that
 foundation; tags depend on raw logic; typed objects depend on pairs and tags.
 Fixed-point recursion and provisional bootstrap Errors support Lists. Readers
-are test-only, and no production module depends on them.
+are test-only, and no production module depends on them. Binary Nat depends on
+the raw List representation; `core/list-nat.rkt` sits above both modules so
+Nat-dependent List operations do not create a dependency cycle.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -101,14 +104,31 @@ opaque Error payloads are provisional: Phase 5 replaces them with structured
 roots, and Phase 6 moves ordinary strict checks onto the generalized checker.
 `typed-is-nil` returns a raw Boolean until the typed Bool layer exists. The raw
 layer currently provides a right fold, append, reverse, map, and filter; the
-fold callback receives the head followed by the folded tail. Nat-dependent
-length, take, and drop wait for canonical binary Nat in Phase 4.
+fold callback receives the head followed by the folded tail.
+
+`core/list-nat.rkt` adds raw length, take, and drop after binary Nat is
+available. Length returns canonical raw Nat bits. Take and drop accept raw Nat
+bits first and a List second; taking beyond the end returns the complete List,
+while dropping beyond the end returns `NIL`. Their strict bootstrap operations
+accept tagged Nat and List values, bubble incoming Errors, and preserve the one
+remaining application after a bad first argument.
 
 ### Natural numbers
 
 Public Nat values are normalized binary digit lists in most-significant-bit
 first order. Zero has exactly one representation, `[0]`; positive values have
-no leading zeroes. Raw arithmetic works directly on this representation.
+no leading zeroes. Each digit is a raw lambda Boolean inside the same proper
+List structure used elsewhere; the outer Nat object supplies the runtime type.
+
+`core/binary-nat.rkt` normalizes empty or all-zero internal inputs to `[0]` and
+removes every unnecessary leading zero. It implements raw zero testing,
+successor, addition, saturating subtraction, multiplication, equality, and all
+four order comparisons directly on MSB-first digit Lists. Addition and
+subtraction reverse their operands for carry and borrow propagation;
+multiplication scans one operand with binary shift-and-add. None converts
+through Church numerals or host numbers. `ZERO` through `TEN` are canonical
+typed constants. Strict typed arithmetic remains Phase 8 work after the
+generalized checker and typed Bool exist.
 
 ### Errors and results
 
@@ -164,8 +184,9 @@ core/
   fix.rkt
   bootstrap-errors.rkt
   lists.rkt
-  # Later phases add the modules below.
   binary-nat.rkt
+  list-nat.rkt
+  # Later phases add the modules below.
   errors.rkt
   typecheck.rkt
   typed-logic.rkt
@@ -178,7 +199,7 @@ tooling/
 run-all-tests.sh
 ```
 
-Seven production modules currently exist under `core/`; the remaining core
+Nine production modules currently exist under `core/`; the remaining core
 paths are planned in dependency order. New abstraction layers require a
 concrete need.
 
@@ -189,10 +210,15 @@ Boolean truth-table row, and lazy non-evaluation of rejected pair fields and
 `raw-if` branches. It also proves all 49 pairwise tag comparisons, every tag
 and payload round trip, object/accessor currying, and accessor laziness. The
 List suite covers NIL identity, proper tails, nested traversal, strict
-failures, Error bubbling, laziness, and every implemented raw helper. The
-structural purity tool scans production Racket sources for non-unary lambdas,
-host-style function definitions, forbidden host computation, and host literal
-data. It will be hardened further as later production forms arrive.
+failures, Error bubbling, laziness, and every implemented raw helper. Binary
+Nat tests cover normalization, the typed constants, carries, borrows,
+saturating subtraction, multiplication, comparisons, larger bit widths,
+currying, and applicable laziness. Nat-dependent List tests cover length,
+take, drop, boundary counts, proper tails, strict failures, Error absorption,
+currying, and lazy base cases. The structural purity tool scans production
+Racket sources for non-unary lambdas, host-style function definitions,
+forbidden host computation, and host literal data. It will be hardened further
+as later production forms arrive.
 
 ## Deferred boundary
 

@@ -58,13 +58,15 @@ Acceptance: every public List is properly typed and every tail is a List.
 
 ## Phase 4 — Binary Nat
 
-- [ ] Implement binary digits and normalized most-significant-bit-first Nat
+Status: complete (2026-08-24)
+
+- [x] Implement binary digits and normalized most-significant-bit-first Nat
   representation.
-- [ ] Implement canonicalization with `[0]` as the only zero.
-- [ ] Implement the required raw comparisons and arithmetic directly on binary
+- [x] Implement canonicalization with `[0]` as the only zero.
+- [x] Implement the required raw comparisons and arithmetic directly on binary
   lists.
-- [ ] Complete List `LEN`, `TAKE`, and `DROP` with canonical binary Nat values.
-- [ ] Test zero, carries, borrows, normalization, and representative larger
+- [x] Complete List `LEN`, `TAKE`, and `DROP` with canonical binary Nat values.
+- [x] Test zero, carries, borrows, normalization, and representative larger
   values.
 
 Acceptance: public arithmetic never converts through Church numerals or host

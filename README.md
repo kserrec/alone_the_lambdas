@@ -5,9 +5,10 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 3 is complete. The repository now contains the raw lambda
-> foundation, all seven Church type tags, generic typed objects, and explicit
-> Michaelson-style Lists. See [PLAN.md](PLAN.md) for the ordered build.
+> **Status:** Phase 4 is complete. The repository now contains the raw lambda
+> foundation, all seven Church type tags, generic typed objects, explicit
+> Michaelson-style Lists, and canonical binary Nat arithmetic. See
+> [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -61,11 +62,18 @@ precedence over conflicting examples in the base specification.
   the structured Error phase.
 - `core/lists.rkt` provides canonical `NIL`, strict bootstrap List primitives,
   and raw fold, append, reverse, map, and filter operations.
+- `core/binary-nat.rkt` provides normalized MSB-first Nat payloads, typed
+  constants `ZERO` through `TEN`, and raw zero, successor, arithmetic, and
+  comparison algorithms.
+- `core/list-nat.rkt` provides raw List length, take, and drop algorithms plus
+  their strict bootstrap operations using canonical Nat values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/type-tag.rkt` observes Church tags as host integers at the same
   one-way boundary.
 - `readers/list.rkt` traverses completed Lists for human-facing observation.
+- `readers/nat.rkt` observes completed Nat values as host bit lists or integers
+  without entering production computation.
 - `tooling/check-purity.rkt` rejects forbidden host computation, host data,
   and non-unary lambdas in production modules.
 
