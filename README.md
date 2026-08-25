@@ -12,7 +12,8 @@ variables, unary lambdas, and application.
 > preserve their root cause and accumulate canonical function-name Strings in
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
-> green. See [PLAN.md](PLAN.md) for the completed build order and
+> green. See [PLAN.md](PLAN.md) for the completed core build and the planned
+> effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
 
 ## Commitments
@@ -35,7 +36,8 @@ variables, unary lambdas, and application.
 - Public names are canonical language names such as `lambda`, `def`,
   `let`, `if`, and `cons`. Racket collision workarounds never become
   public language design.
-- The `host` boundary is deliberately absent from this milestone.
+- The completed core contains no `host` boundary. The next milestone adds
+  exactly one explicit bridge without weakening ordinary lambda computation.
 
 ## Specifications
 

@@ -422,8 +422,10 @@ and literals, the absent `host` escape, and numbered arity-specific checker
 variants. Focused tests prove representative violations are rejected. The
 complete evidence map is [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 
-## Deferred boundary
+## Planned boundary
 
-This milestone contains no `host` form. A later milestone may introduce
-exactly one explicit host boundary without weakening the purity of ordinary
-language code.
+The completed core contains no `host` form. Phases 13 through 20 in
+[PLAN.md](PLAN.md) design and then introduce exactly one explicit host
+boundary, ordinary lambda effect wrappers, a minimal lambda-built HTTP server,
+and the standalone language surface. Phase 13 is an approval gate because the
+three specifications deliberately leave the request protocol undefined.

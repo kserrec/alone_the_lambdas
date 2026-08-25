@@ -1,8 +1,10 @@
 # Plan
 
-This plan implements the first specification milestone in dependency order.
-Each phase is one coherent unit: implement every listed step, add focused
-tests, run the full suite, update documentation, then commit and push `main`.
+This plan implements the specification milestones in dependency order. Phases
+0 through 12 complete the pure core. Phases 13 through 20 build the explicitly
+deferred effects and standalone-language milestone. Each phase is one coherent
+`$next` unit: implement every listed step, add focused tests, run the full
+suite, update documentation, then commit and push `main`.
 
 The three files under [docs/specifications](docs/specifications/README.md) are
 the authority. The purity addendum overrides weaker purity examples, and the
@@ -181,8 +183,164 @@ Acceptance: every completion criterion in the three specifications is covered
 by an executable test or a documented structural check, and the full suite is
 green.
 
-## Deferred milestone
+# Milestone 2 — Effects and standalone language
 
-The first core milestone is complete. Next, design the standalone public
-language surface and the single explicit `host` boundary described by the
-specifications. Neither belongs in the completed core milestone.
+Status: planned
+
+The specifications fix the order and outer boundary of this milestone but do
+not define the `host` request protocol. Phase 13 therefore resolves that
+contract before any privileged implementation begins. It is an explicit
+approval gate: Phase 14 must not start until the resulting design is approved.
+
+The following constraints apply throughout:
+
+- `host` is the only privileged bridge between lambda values and Racket or the
+  operating system. It is unary, explicit, and closed over a documented
+  request protocol.
+- The 16 completed `core/` modules retain their zero-exception purity rule.
+  Adding `host` must not permit any other host shortcut in ordinary language
+  computation.
+- Requests, successful values, and failures cross the boundary through
+  lambda-encoded project values. Expected external failure uses Result Err;
+  contract or representation failure remains Error.
+- Effect wrappers and HTTP behavior are ordinary lambda computations except
+  for their explicit applications of `host`. Raw Racket ports, paths, socket
+  objects, exceptions, and collections never become object-language values.
+- The initial runtime is synchronous and blocking. Concurrency, async, TLS,
+  a general HTTP framework, JSON, records, static or coercive typing,
+  optimization, compilation, and arbitrary Racket interop remain out of
+  scope.
+
+## Phase 13 — Host contract and trust boundary
+
+- [ ] Write `docs/design/host-boundary.md` with the exact request and response
+  algebra for `stdout`, file access, and the complete blocking TCP lifecycle.
+- [ ] Fix the lambda encodings for operation identity, argument Lists, typed
+  acknowledgements, expected I/O failures, and opaque resource handles.
+- [ ] Define handle ownership and cleanup, blocking behavior, path and byte
+  semantics, and the authority granted to a running program.
+- [ ] Define the dependency split between pure `effects/`, the single trusted
+  `runtime/` bridge, and the future `lang/` surface, including deterministic
+  fake-host testing.
+- [ ] Specify the purity-checker classifications and the narrow project-rule
+  changes that become valid only after this design is approved.
+- [ ] Record which Lazy Racket and macro-shell patterns remain reusable from
+  `all_the_lambdas`; do not import its underscore names, coercive layers, or
+  superseded representations.
+
+Acceptance: every later phase can implement against one unambiguous protocol;
+no production interop code exists yet; the design is presented for explicit
+approval before Phase 14.
+
+## Phase 14 — Single `host` bridge and `stdout`
+
+- [ ] Apply the approved rule and architecture changes without weakening the
+  completed core boundary.
+- [ ] Implement one unary `host` binding and one closed dispatcher inside the
+  designated trusted runtime module.
+- [ ] Implement the pure `stdout` request constructor and wrapper, with typed
+  success and expected-failure results.
+- [ ] Add a deterministic fake dispatcher plus real output-capture tests for
+  request validation, result encoding, failure mapping, and laziness.
+- [ ] Make the purity tool reject privileged definitions and Racket effects
+  everywhere except the one trusted bridge, while scanning `core/` with no
+  new exceptions.
+
+Acceptance: a lambda String reaches standard output only through the single
+bridge, and repository checks prove no second escape hatch exists.
+
+## Phase 15 — File effects
+
+- [ ] Add pure `read-file` and `write-file` wrappers over the approved request
+  protocol.
+- [ ] Encode file contents as String byte values using Char 0 through 255; do
+  not route language computation through the existing human-facing readers.
+- [ ] Map missing paths, denied access, invalid byte data, and other expected
+  operating-system failures to the approved Result Err representation.
+- [ ] Test round trips, empty and non-ASCII byte content, replacement
+  semantics, cleanup, contract Errors, and fake-host request structure in
+  isolated temporary directories.
+
+Acceptance: a lambda program can write and recover identical byte content,
+and all filesystem access is confined to the trusted dispatcher.
+
+## Phase 16 — Blocking TCP effects
+
+- [ ] Add the approved connect, listen, accept, read, write, and close host
+  operations and their pure lambda wrappers.
+- [ ] Keep ports and connections in a runtime-owned handle registry; expose
+  only the approved lambda-encoded opaque handles.
+- [ ] Make close behavior and failure cleanup deterministic, including stale
+  handles, peer closure, partial writes, and read bounds.
+- [ ] Add fake-host protocol tests and real loopback integration tests with
+  test-only host concurrency where needed.
+
+Acceptance: a loopback client and server exchange lambda String bytes and
+release every resource, with no socket or host collection crossing into the
+object language.
+
+## Phase 17 — Pure HTTP messages
+
+- [ ] Implement only the String and List helpers demonstrably required for a
+  minimal HTTP/1.1 request and response path.
+- [ ] Parse a request line and header terminator into existing lambda values;
+  reject malformed or unsupported input through Result rather than host
+  exceptions.
+- [ ] Build status lines, required response headers, byte-accurate content
+  length, and response bodies entirely in lambda computation.
+- [ ] Cover fragmented input, CRLF boundaries, empty bodies, malformed
+  requests, and deterministic response formatting with pure focused tests.
+
+Acceptance: representative HTTP bytes parse and render correctly while the
+production purity scan rejects Racket String, regex, arithmetic, and HTTP
+helpers from the implementation.
+
+## Phase 18 — Minimal lambda-built HTTP server
+
+- [ ] Compose the TCP wrappers and pure HTTP message layer into a blocking,
+  sequential server with an ordinary lambda request handler.
+- [ ] Support the minimal useful subset: one request per connection, GET
+  routing by path, explicit status/body output, and connection close.
+- [ ] Preserve expected network and parse failures as Result values and close
+  acquired handles on every completed path.
+- [ ] Add a real loopback acceptance test driven by a test-side external HTTP
+  client, plus deterministic fake-host traces proving the only effects are the
+  documented TCP requests.
+
+Acceptance: an external client receives the response selected by a lambda
+handler, and neither parsing, routing, nor response construction uses host
+computation.
+
+## Phase 19 — Standalone `#lang` surface
+
+- [ ] Add the minimal Racket collection, reader, and expander needed for
+  `#lang alone_the_lambdas` while retaining Lisp syntax and lazy evaluation.
+- [ ] Export canonical `lambda`, `def`, `let`, strict typed `if`, proper typed
+  `cons`, the completed data API, effect wrappers, and the single explicit
+  `host`; hide internal raw bindings and Racket collision workarounds.
+- [ ] Mechanically lower only nonnegative Nat literals and byte-range String
+  literals into the existing pure representations; reject unsupported datum
+  forms during expansion and add no general parser.
+- [ ] Add package metadata and fresh-install tests for canonical names,
+  currying, branch laziness, literals, module isolation, and runnable programs.
+
+Acceptance: the specification's canonical sample shape runs under
+`#lang alone_the_lambdas` with no underscore names or unintended Racket
+bindings, and all literal runtime values are ordinary lambda encodings.
+
+## Phase 20 — Runnable applications and milestone acceptance
+
+- [ ] Add terse standalone examples for stdout, a file round trip, and the
+  minimal HTTP server; every example must run from a fresh repository setup.
+- [ ] Extend structural checks across pure core, effect wrappers, trusted
+  runtime, macros, language surface, readers, tests, and tooling with the
+  correct rule for each classification.
+- [ ] Add end-to-end acceptance coverage for every second-milestone claim,
+  including proof that only the one trusted bridge performs effects.
+- [ ] Synchronize README, architecture, project rules, setup instructions, and
+  acceptance documentation with observed behavior and remaining limits.
+
+Acceptance: a new developer can install the language, run ordinary standalone
+programs, perform the four specified effect families, and serve the minimal
+HTTP response; the full suite and CI are green and the one-bridge claim has an
+explicit evidence map.
