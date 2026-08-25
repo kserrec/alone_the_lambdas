@@ -418,11 +418,17 @@ absorbers, laziness, currying, and reader output. The milestone acceptance
 suite composes Bool, List, Nat, Result, Char, String, and Error behavior in one
 strict typed flow and runs the same structural scan over the complete core.
 
-The structural purity tool scans all 16 production Racket modules for
-non-unary lambdas, host-style function definitions, forbidden host computation
-and literals, the absent `host` escape, and numbered arity-specific checker
-variants. Focused tests prove representative violations are rejected. The
-complete evidence map is [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
+The structural purity tool scans all 16 production Racket modules against an
+allowed grammar: the trusted language shell, project-only imports with
+validated selection or renaming, mechanical sugar, variables, unary lambdas,
+and unary application. It recursively validates reachable project imports,
+resolves local and imported project bindings, and permits only their explicit
+direct or renamed exports, rejecting host imports, unknown or re-exported host
+identifiers, unsupported export transformations, alternate module languages,
+host literals and forms, direct host definitions, syntax-shell rebinding, and
+numbered arity-specific checker variants. Focused tests pin each boundary. The
+complete evidence map is
+[docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 
 ## Planned boundary
 

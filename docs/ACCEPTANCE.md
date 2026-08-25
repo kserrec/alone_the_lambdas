@@ -12,7 +12,7 @@ raco make core/*.rkt readers/*.rkt
 ./run-all-tests.sh
 ```
 
-The result was 2,889 passing assertions across 18 test files, followed by a
+The result was 2,914 passing assertions across 18 test files, followed by a
 clean structural scan of all 16 production modules.
 
 ## Base specification criteria
@@ -32,13 +32,13 @@ clean structural scan of all 16 production modules.
 | Char uses binary payloads from 0 through 255. | [`chars-test.rkt`](../tests/chars-test.rkt) checks normalized payloads, both bounds, rejection of 256, constants, comparisons, and observation. |
 | String is a typed List of typed Char values. | [`strings-test.rkt`](../tests/strings-test.rkt) checks the representation, recursive Char invariant, proper tails, and invalid elements. |
 | String operations are lambda computations. | [`strings-test.rkt`](../tests/strings-test.rkt) covers every raw and strict algorithm; the purity scan checks [`strings.rkt`](../core/strings.rkt) under the same host-form ban as the rest of production. |
-| All core computation remains pure untyped lambda calculus. | [`check-purity.rkt`](../tooling/check-purity.rkt) scans every `core/*.rkt` file for non-unary lambdas, host literals and computational forms, explicit `host`, host-style function definitions, and arity-specific checkers. The command runs after every test file in [`run-all-tests.sh`](../run-all-tests.sh) and in CI. |
+| All core computation remains pure untyped lambda calculus. | [`check-purity.rkt`](../tooling/check-purity.rkt) scans every `core/*.rkt` file and its reachable project imports against the allowed production grammar, verifies the trusted language shell, resolves validated import selection/renaming plus explicit exports, and rejects non-unary application, host data/forms/definitions/re-exports, explicit `host`, syntax-shell rebinding, and arity-specific checkers. The command runs after every test file in [`run-all-tests.sh`](../run-all-tests.sh) and in CI. |
 
 ## Addenda and Phase 12 refinements
 
 | Refined requirement | Evidence |
 | --- | --- |
-| Production computation reduces to variables, unary lambda, and application after mechanical expansion. | [`macros-test.rkt`](../tests/macros-test.rkt) checks curried expansion; [`purity-test.rkt`](../tests/purity-test.rkt) proves multi-formal lambdas and representative host shortcuts are rejected. |
+| Production computation reduces to variables, unary lambda, and application after mechanical expansion. | [`macros-test.rkt`](../tests/macros-test.rkt) checks curried expansion; [`purity-test.rkt`](../tests/purity-test.rkt) proves zero-/multi-argument applications, multi-formal and multi-body lambdas, alternate module languages, transformed host imports/exports, inherited host re-exports, direct host aliases, unapproved Lazy Racket bindings, and module syntax rebinding are rejected while local lexical shadowing remains valid. |
 | Readers are a one-way observation boundary. | Structural check: reader modules may use host values and formatting, but no production module imports `readers/`; the dependency direction is recorded in [`ARCHITECTURE.md`](../ARCHITECTURE.md). |
 | Error frames contain structured function-name Strings. | [`function-names.rkt`](../core/function-names.rkt) contains pure typed constants; [`error-reader-test.rkt`](../tests/error-reader-test.rkt) verifies all 43 names, every corresponding strict mismatch boundary, and nested propagation. |
 | Diagnostics preserve structured data until observation. | [`error.rkt`](../readers/error.rkt) alone flattens roots and frames; its tests cover all root kinds, type names, raw fallback output, and causal order. |

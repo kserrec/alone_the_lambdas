@@ -120,9 +120,11 @@ precedence over conflicting examples in the base specification.
   the same one-way boundary.
 - `readers/error.rkt` renders structured roots and oldest-to-newest named
   frames without feeding diagnostic text back into computation.
-- `tooling/check-purity.rkt` rejects forbidden host computation, host data,
-  non-unary lambdas, explicit `host`, and arity-specific checker variants in
-  production modules.
+- `tooling/check-purity.rkt` admits only the trusted Lazy Racket shell,
+  project-only imports with validated selection or renaming, mechanical sugar,
+  variables, unary lambdas, and unary application. It also verifies that every
+  production identifier and export comes from a local binding or a recursively
+  validated project export.
 
 ## Development
 
@@ -140,7 +142,7 @@ racket tooling/check-purity.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The completed milestone currently has 2,889 assertions across 18 test
+green. The completed milestone currently has 2,914 assertions across 18 test
 files, plus the independent scan of all 16 production modules. GitHub Actions
 runs the same suite for pushes and pull requests.
 
