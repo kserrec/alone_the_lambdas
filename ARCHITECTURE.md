@@ -15,7 +15,9 @@ eligible bootstrap List operation onto it. Phase 7 adds tagged Bool values,
 strict checker-backed Boolean operations, and the canonical lazy typed
 conditional. Phase 8 adds the strict checker-backed Nat API without changing
 the raw binary algorithms. Phase 9 adds lambda-encoded Result values, strict
-Result operations, raw binary long division, and safe typed `DIV`.
+Result operations, raw binary long division, and safe typed `DIV`. Phase 10
+adds bounded binary Char values, strict construction, lambda-built constants,
+and a one-way host reader.
 
 ## Computational boundary
 
@@ -71,6 +73,9 @@ algorithm in `core/binary-nat.rkt` raw and reusable.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. Typed Nat
 depends on Result only for safe `DIV`, so Result itself remains independent of
 Nat and available to later data types.
+`core/chars.rkt` sits above raw binary Nat, Errors, Lists, objects, and the
+checker. Its reader depends on Char and Nat observation, while no production
+module depends on that reader.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -194,7 +199,8 @@ exists.
 
 Every Error is an Error-tagged object whose payload pairs one immutable root
 with a proper List of propagation frames. Root kinds are the small Church
-discriminants TypeMismatch, EmptyList, InvalidNat, and DivideByZero. A
+discriminants TypeMismatch, EmptyList, InvalidNat, DivideByZero, and
+InvalidChar. A
 TypeMismatch root additionally stores its argument position, expected runtime
 type, and actual runtime type. The other current roots need no extra details.
 
@@ -221,8 +227,26 @@ explicitly unwraps and uses its Error payload.
 
 ### Characters and strings
 
-`Char` contains a binary Nat constrained to 0 through 255. `String` is a
-List of Char values.
+`core/chars.rkt` represents Char as a Char-tagged object containing normalized
+raw Nat bits rather than a nested Nat object. Its pure upper bound is computed
+as `(16 × 16) − 1` with raw binary operations. `MAKE-CHAR` uses the generalized
+checker for its Nat argument, returns Char for values 0 through 255, and returns
+the canonical InvalidChar Error above that range.
+
+`CHAR-EQ`, `CHAR-LT`, `CHAR-LTE`, `CHAR-GT`, and `CHAR-GTE` use two-Char
+signatures through the same checker. They reuse raw binary Nat comparisons on
+unwrapped Char payloads and return tagged Bool values.
+
+The module defines every required upper- and lowercase letter, decimal digit,
+control constant, and named punctuation constant as a genuine lambda-built
+Char. Constants are derived from binary Nat values and unary successor chains;
+production code contains no host numbers or character literals.
+
+`readers/char.rkt` converts a completed Char payload to a host integer or
+display string. It renders TAB, LF, CR, and printable ASCII directly and uses
+`char:<integer>` for unsupported values. This observation is one-way and never
+feeds host characters back into production computation. String remains a
+planned List of Char values.
 
 ## Runtime typing
 
@@ -274,20 +298,21 @@ core/
   lists.rkt
   binary-nat.rkt
   result.rkt
+  chars.rkt
   typed-nat.rkt
   list-nat.rkt
   typecheck.rkt
   typed-logic.rkt
   # Later phases add the modules below.
-  chars.rkt
   strings.rkt
 readers/
+  char.rkt
 tests/
 tooling/
 run-all-tests.sh
 ```
 
-Thirteen production modules currently exist under `core/`; the remaining core
+Fourteen production modules currently exist under `core/`; the remaining core
 paths are planned in dependency order. New abstraction layers require a
 concrete need.
 
@@ -302,8 +327,8 @@ failures, Error bubbling, laziness, and every implemented raw helper. Binary
 Nat tests cover normalization, the typed constants, carries, borrows,
 saturating subtraction, multiplication, long division, quotient laws,
 comparisons, larger bit widths, currying, and applicable laziness.
-Nat-dependent List tests cover length,
-take, drop, boundary counts, proper tails, strict failures, Error absorption,
+Nat-dependent List tests cover length, take, drop, boundary counts, proper
+tails, strict failures, Error absorption,
 currying, and lazy base cases. Structured Error tests cover every kind, root
 metadata, the `NIL`/empty-Error knot, frame order, nested root preservation,
 canonical List failures, currying, and lazy field access. The generalized
@@ -322,7 +347,10 @@ and canonical exports. The Result suite covers Ok and Err representation,
 strict constructors and accessors, Error encapsulation, mismatch and incoming
 Error behavior, safe division results, quotient laws, exact absorber arity,
 zero-divisor laziness, explicit post-unwrap propagation, currying, and public
-exports. The structural purity tool scans
+exports. The Char suite covers every required constant, normalized raw-bit
+payloads, 0 and 255 acceptance, 256 rejection, InvalidChar roots, mismatch and
+incoming-Error behavior, reader output and fallbacks, currying, and reader
+isolation. The structural purity tool scans
 production Racket sources for non-unary lambdas, host-style function
 definitions, forbidden host computation, and host literal data. It will be
 hardened further as later production forms arrive.

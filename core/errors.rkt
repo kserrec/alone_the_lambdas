@@ -11,6 +11,7 @@
          empty-list-kind
          invalid-nat-kind
          divide-by-zero-kind
+         invalid-char-kind
          argument-position-one
          argument-position-two
          raw-error-kind-equal
@@ -37,12 +38,14 @@
          NIL
          empty-list-error
          invalid-nat-error
-         divide-by-zero-error)
+         divide-by-zero-error
+         invalid-char-error)
 
 (def type-mismatch-kind = church-zero)
 (def empty-list-kind = church-one)
 (def invalid-nat-kind = church-two)
 (def divide-by-zero-kind = church-three)
+(def invalid-char-kind = church-four)
 
 (def argument-position-one = church-one)
 (def argument-position-two = church-two)
@@ -159,3 +162,6 @@
 
 (def divide-by-zero-error =
   (raw-make-root-error divide-by-zero-kind))
+
+(def invalid-char-error =
+  (raw-make-root-error invalid-char-kind))

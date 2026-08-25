@@ -144,10 +144,12 @@ a bubbled Error.
 
 ## Phase 10 — Char
 
-- [ ] Implement Char as a tagged binary Nat constrained to 0 through 255.
-- [ ] Add the required character constants and operations.
-- [ ] Add a human-facing Char reader outside production computation.
-- [ ] Test boundaries, invalid values, comparisons, and reader output.
+Status: complete (2026-08-24)
+
+- [x] Implement Char as a tagged binary Nat constrained to 0 through 255.
+- [x] Add the required character constants and operations.
+- [x] Add a human-facing Char reader outside production computation.
+- [x] Test boundaries, invalid values, comparisons, and reader output.
 
 Acceptance: Char validation is lambda-calculus computation; only presentation
 uses host facilities.

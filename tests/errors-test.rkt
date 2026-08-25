@@ -69,7 +69,8 @@
   (list type-mismatch-kind
         empty-list-kind
         invalid-nat-kind
-        divide-by-zero-kind))
+        divide-by-zero-kind
+        invalid-char-kind))
 
 (for ([kind (in-list kinds)]
       [expected (in-naturals)])
@@ -109,6 +110,9 @@
 (check-true (error-value? divide-by-zero-error))
 (check-true (error-kind=? divide-by-zero-error
                          divide-by-zero-kind))
+(check-true (error-value? invalid-char-error))
+(check-true (error-kind=? invalid-char-error
+                         invalid-char-kind))
 (check-true
  (nil-value?
   (lazy-apply raw-error-frames
@@ -117,6 +121,10 @@
  (nil-value?
   (lazy-apply raw-error-frames
               divide-by-zero-error)))
+(check-true
+ (nil-value?
+  (lazy-apply raw-error-frames
+              invalid-char-error)))
 
 (define mismatch
   (apply3 raw-make-type-mismatch-error

@@ -5,7 +5,7 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 9 is complete. The repository now contains the raw lambda
+> **Status:** Phase 10 is complete. The repository now contains the raw lambda
 > foundation, all seven Church type tags, generic typed objects, explicit
 > Michaelson-style Lists, canonical binary Nat arithmetic, and structured
 > Error roots with propagation frames, plus one generalized curried runtime
@@ -14,7 +14,9 @@ variables, unary lambdas, and application.
 > on that foundation. The complete public Nat API now applies the same strict
 > checker to the raw algorithms. Lambda-encoded Result variants and safe Nat
 > division now distinguish expected divide-by-zero failure from contract
-> Error. See [PLAN.md](PLAN.md) for the ordered build.
+> Error. Binary-backed Char values, strict range validation, the required
+> lambda-built constants, and a one-way reader now complete the next public
+> data layer. See [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -82,6 +84,9 @@ precedence over conflicting examples in the base specification.
   comparison algorithms, including binary long division.
 - `core/result.rkt` provides lambda-encoded Ok and Err variants, strict
   constructors and access operations, and the explicit Error-as-data boundary.
+- `core/chars.rkt` provides strict `MAKE-CHAR` and comparisons, normalized
+  binary payloads limited to 0 through 255, and the required lambda-built
+  character constants.
 - `core/typed-nat.rkt` provides the checker-backed strict Nat API, including
   canonical `SUCC`, `ADD`, `SUB`, `MULT`, `DIV`, `EQ`, `LT`, `LTE`, `GT`,
   `GTE`, and `IS-ZERO` exports. `DIV` returns Result.
@@ -95,6 +100,8 @@ precedence over conflicting examples in the base specification.
 - `readers/list.rkt` traverses completed Lists for human-facing observation.
 - `readers/nat.rkt` observes completed Nat values as host bit lists or integers
   without entering production computation.
+- `readers/char.rkt` renders supported ASCII Char values and deterministic
+  numeric fallbacks at the same one-way boundary.
 - `tooling/check-purity.rkt` rejects forbidden host computation, host data,
   and non-unary lambdas in production modules.
 
