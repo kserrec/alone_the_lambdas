@@ -119,7 +119,8 @@
      details))
    1)
   (check-equal? (error-frames->host error)
-                '()))
+                (list
+                 (list position 3))))
 
 (define (check-bubbled error position)
   (check-true
@@ -319,7 +320,7 @@
  (error-kind=? nested-error
                type-mismatch-kind))
 (check-equal? (error-frames->host nested-error)
-              '((1 3)))
+              '((1 3) (1 3)))
 (check-equal?
  (type-tag->integer
   (lazy-apply

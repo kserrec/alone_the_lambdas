@@ -5,6 +5,7 @@
          "chars.rkt"
          "errors.rkt"
          "fix.rkt"
+         "function-names.rkt"
          "list-nat.rkt"
          "lists.rkt"
          "logic.rkt"
@@ -167,46 +168,55 @@
    ((raw-cons string-type) NIL)))
 
 (def typed-make-string =
-  (((make-typed-function raw-make-checked-string)
+  ((((make-typed-function raw-make-checked-string)
+     make-string-function-name)
     list-unary-signature)
    raw-keep-return))
 
 (def typed-string-empty? =
-  (((make-typed-function raw-string-empty?)
+  ((((make-typed-function raw-string-empty?)
+     string-empty-function-name)
     string-unary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-string-length =
-  (((make-typed-function raw-string-length)
+  ((((make-typed-function raw-string-length)
+     string-length-function-name)
     string-unary-signature)
    (raw-wrap-return nat-type)))
 
 (def typed-string-equal =
-  (((make-typed-function raw-string-equal)
+  ((((make-typed-function raw-string-equal)
+     string-eq-function-name)
     string-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-string-append =
-  (((make-typed-function raw-string-append)
+  ((((make-typed-function raw-string-append)
+     string-append-function-name)
     string-binary-signature)
    (raw-wrap-return string-type)))
 
 (def typed-string-head =
-  (((make-typed-function raw-string-head)
+  ((((make-typed-function raw-string-head)
+     string-head-function-name)
     string-unary-signature)
    raw-keep-return))
 
 (def typed-string-tail =
-  (((make-typed-function raw-string-tail)
+  ((((make-typed-function raw-string-tail)
+     string-tail-function-name)
     string-unary-signature)
    raw-keep-return))
 
 (def typed-string-prefix? =
-  (((make-typed-function raw-string-prefix?)
+  ((((make-typed-function raw-string-prefix?)
+     string-prefix-function-name)
     string-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-string-contains? =
-  (((make-typed-function raw-string-contains?)
+  ((((make-typed-function raw-string-contains?)
+     string-contains-function-name)
     string-binary-signature)
    (raw-wrap-return bool-type)))

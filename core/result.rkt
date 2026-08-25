@@ -2,6 +2,7 @@
 
 (require "../macros/macros.rkt"
          "errors.rkt"
+         "function-names.rkt"
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
@@ -63,27 +64,35 @@
   (((raw-if
      ((raw-is-type error-type) error))
     (raw-make-err error))
-   (((raw-make-type-mismatch-error
-      argument-position-one)
-     error-type)
-    (raw-object-type error))))
+   ((((raw-bubble-error
+       (((raw-make-type-mismatch-error
+          argument-position-one)
+         error-type)
+        (raw-object-type error)))
+      make-err-function-name)
+     argument-position-one)
+    error-type)))
 
 (def typed-result-is-ok =
-  (((make-typed-function raw-result-is-ok)
+  ((((make-typed-function raw-result-is-ok)
+     is-ok-function-name)
     result-unary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-result-is-err =
-  (((make-typed-function raw-result-is-err)
+  ((((make-typed-function raw-result-is-err)
+     is-err-function-name)
     result-unary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-result-unwrap-ok =
-  (((make-typed-function raw-result-value)
+  ((((make-typed-function raw-result-value)
+     unwrap-ok-function-name)
     result-unary-signature)
    raw-keep-return))
 
 (def typed-result-unwrap-err =
-  (((make-typed-function raw-result-value)
+  ((((make-typed-function raw-result-value)
+     unwrap-err-function-name)
     result-unary-signature)
    raw-keep-return))

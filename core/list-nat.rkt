@@ -3,6 +3,7 @@
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
          "fix.rkt"
+         "function-names.rkt"
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
@@ -86,16 +87,19 @@
    (raw-list-object list-value)))
 
 (def typed-len =
-  (((make-typed-function raw-list-length-value)
+  ((((make-typed-function raw-list-length-value)
+     len-function-name)
     list-unary-signature)
    (raw-wrap-return nat-type)))
 
 (def typed-take =
-  (((make-typed-function raw-list-take-values)
+  ((((make-typed-function raw-list-take-values)
+     take-function-name)
     nat-list-signature)
    raw-keep-return))
 
 (def typed-drop =
-  (((make-typed-function raw-list-drop-values)
+  ((((make-typed-function raw-list-drop-values)
+     drop-function-name)
     nat-list-signature)
    raw-keep-return))

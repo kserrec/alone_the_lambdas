@@ -3,6 +3,7 @@
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
          "errors.rkt"
+         "function-names.rkt"
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
@@ -72,32 +73,38 @@
    ((raw-cons char-type) NIL)))
 
 (def typed-make-char =
-  (((make-typed-function raw-make-checked-char)
+  ((((make-typed-function raw-make-checked-char)
+     make-char-function-name)
     char-constructor-signature)
    raw-keep-return))
 
 (def typed-char-equal =
-  (((make-typed-function raw-nat-equal)
+  ((((make-typed-function raw-nat-equal)
+     char-eq-function-name)
     char-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-char-less =
-  (((make-typed-function raw-nat-less)
+  ((((make-typed-function raw-nat-less)
+     char-lt-function-name)
     char-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-char-less-equal =
-  (((make-typed-function raw-nat-less-equal)
+  ((((make-typed-function raw-nat-less-equal)
+     char-lte-function-name)
     char-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-char-greater =
-  (((make-typed-function raw-nat-greater)
+  ((((make-typed-function raw-nat-greater)
+     char-gt-function-name)
     char-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-char-greater-equal =
-  (((make-typed-function raw-nat-greater-equal)
+  ((((make-typed-function raw-nat-greater-equal)
+     char-gte-function-name)
     char-binary-signature)
    (raw-wrap-return bool-type)))
 

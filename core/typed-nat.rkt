@@ -3,6 +3,7 @@
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
          "errors.rkt"
+         "function-names.rkt"
          "lists.rkt"
          "logic.rkt"
          "result.rkt"
@@ -57,22 +58,26 @@
   (raw-wrap-return bool-type))
 
 (def typed-nat-succ =
-  (((make-typed-function raw-nat-succ)
+  ((((make-typed-function raw-nat-succ)
+     succ-function-name)
     nat-unary-signature)
    nat-return-policy))
 
 (def typed-nat-add =
-  (((make-typed-function raw-nat-add)
+  ((((make-typed-function raw-nat-add)
+     add-function-name)
     nat-binary-signature)
    nat-return-policy))
 
 (def typed-nat-sub =
-  (((make-typed-function raw-nat-sub)
+  ((((make-typed-function raw-nat-sub)
+     sub-function-name)
     nat-binary-signature)
    nat-return-policy))
 
 (def typed-nat-mult =
-  (((make-typed-function raw-nat-mult)
+  ((((make-typed-function raw-nat-mult)
+     mult-function-name)
     nat-binary-signature)
    nat-return-policy))
 
@@ -85,36 +90,43 @@
      ((raw-nat-div dividend) divisor)))))
 
 (def typed-nat-div =
-  (((make-typed-function raw-safe-nat-div)
+  ((((make-typed-function raw-safe-nat-div)
+     div-function-name)
     nat-binary-signature)
    raw-keep-return))
 
 (def typed-nat-equal =
-  (((make-typed-function raw-nat-equal)
+  ((((make-typed-function raw-nat-equal)
+     eq-function-name)
     nat-binary-signature)
    bool-return-policy))
 
 (def typed-nat-less =
-  (((make-typed-function raw-nat-less)
+  ((((make-typed-function raw-nat-less)
+     lt-function-name)
     nat-binary-signature)
    bool-return-policy))
 
 (def typed-nat-less-equal =
-  (((make-typed-function raw-nat-less-equal)
+  ((((make-typed-function raw-nat-less-equal)
+     lte-function-name)
     nat-binary-signature)
    bool-return-policy))
 
 (def typed-nat-greater =
-  (((make-typed-function raw-nat-greater)
+  ((((make-typed-function raw-nat-greater)
+     gt-function-name)
     nat-binary-signature)
    bool-return-policy))
 
 (def typed-nat-greater-equal =
-  (((make-typed-function raw-nat-greater-equal)
+  ((((make-typed-function raw-nat-greater-equal)
+     gte-function-name)
     nat-binary-signature)
    bool-return-policy))
 
 (def typed-nat-is-zero =
-  (((make-typed-function raw-nat-is-zero)
+  ((((make-typed-function raw-nat-is-zero)
+     is-zero-function-name)
     nat-unary-signature)
    bool-return-policy))

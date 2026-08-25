@@ -5,6 +5,7 @@
          racket/promise
          "../core/binary-nat.rkt"
          "../core/errors.rkt"
+         "../core/function-names.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
          "../core/objects.rkt"
@@ -14,6 +15,7 @@
          "../readers/list.rkt"
          "../readers/nat.rkt"
          "../readers/raw-boolean.rkt"
+         "../readers/string.rkt"
          "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
 
@@ -45,6 +47,11 @@
    (apply2 function first second)
    third))
 
+(define (apply4 function first second third fourth)
+  (lazy-apply
+   (apply3 function first second third)
+   fourth))
+
 (define (apply-all function arguments)
   (for/fold ([result function])
             ([argument (in-list arguments)])
@@ -58,8 +65,9 @@
    types))
 
 (define (checked raw-function signature return-policy)
-  (apply3 make-typed-function
+  (apply4 make-typed-function
           raw-function
+          and-function-name
           signature
           return-policy))
 
@@ -100,6 +108,15 @@
   (list->host-list
    (lazy-apply raw-error-frames error)
    frame->host))
+
+(define (error-frame-names->host error)
+  (list->host-list
+   (lazy-apply raw-error-frames error)
+   (lambda (frame)
+     (string-value->string
+      (lazy-apply
+       raw-error-frame-function-name
+       frame)))))
 
 (define true-object
   (apply2 raw-make-object bool-type raw-true))
@@ -274,7 +291,10 @@
      details))
    3)
   (check-equal? (error-frames->host failure)
-                '()))
+                (list
+                 (list (add1 wrong-index) 1)))
+  (check-equal? (error-frame-names->host failure)
+                '("AND")))
 
 (define failure-after-first
   (lazy-apply checked-five ZERO))
@@ -372,6 +392,8 @@
                invalid-nat-kind))
 (check-equal? (error-frames->host bubbled-at-four)
               '((4 1)))
+(check-equal? (error-frame-names->host bubbled-at-four)
+              '("AND"))
 (check-equal? (error-frames->host invalid-nat-error)
               '())
 
@@ -390,6 +412,14 @@
   (lazy-force
    (apply2 make-typed-function
            raw-identity
+           and-function-name)))
+ 1)
+(check-equal?
+ (procedure-arity
+  (lazy-force
+   (apply3 make-typed-function
+           raw-identity
+           and-function-name
            one-signature)))
  1)
 (check-equal?

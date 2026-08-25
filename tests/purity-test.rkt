@@ -25,6 +25,20 @@
                           when-true
                           when-false))
               '(forbidden-host-form))
+(check-equal? (kinds '(begin first
+                             second))
+              '(forbidden-host-form))
+(check-equal? (kinds '(string-ref value
+                                  index))
+              '(forbidden-host-form))
+(check-equal? (kinds '(host request))
+              '(forbidden-host-form))
+(check-equal? (kinds '(type-check2 value))
+              '(arity-specific-checker))
+(check-equal? (kinds '(make-typed-function-3 raw-function))
+              '(arity-specific-checker))
+(check-equal? (kinds '(make-typed-function raw-function))
+              '())
 (check-equal? (kinds '((lambda (value)
                          value)
                        argument))

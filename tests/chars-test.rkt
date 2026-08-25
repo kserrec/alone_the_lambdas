@@ -132,7 +132,8 @@
      details))
    1)
   (check-equal? (error-frames->host error)
-                '()))
+                (list
+                 (list position expected-type))))
 
 (define (check-bubbled error position expected-type)
   (check-true

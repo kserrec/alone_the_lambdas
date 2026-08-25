@@ -104,7 +104,8 @@
      details))
    3)
   (check-equal? (error-frames->host error)
-                '()))
+                (list
+                 (list position 1))))
 
 (check-bool #t TRUE)
 (check-bool #f FALSE)

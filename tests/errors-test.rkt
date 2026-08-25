@@ -5,6 +5,7 @@
          racket/promise
          "../core/binary-nat.rkt"
          "../core/errors.rkt"
+         "../core/function-names.rkt"
          "../core/list-nat.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
@@ -13,6 +14,7 @@
          "../readers/bool.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
+         "../readers/string.rkt"
          "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
 
@@ -25,6 +27,11 @@
   (lazy-apply
    (apply2 function first second)
    third))
+
+(define (apply4 function first second third fourth)
+  (lazy-apply
+   (apply3 function first second third)
+   fourth))
 
 (define (error-value? value)
   (raw-boolean->boolean
@@ -64,6 +71,17 @@
   (list->host-list
    (lazy-apply raw-error-frames error)
    frame->host))
+
+(define (frame-name->host frame)
+  (string-value->string
+   (lazy-apply
+    raw-error-frame-function-name
+    frame)))
+
+(define (error-frame-names->host error)
+  (list->host-list
+   (lazy-apply raw-error-frames error)
+   frame-name->host))
 
 (define kinds
   (list type-mismatch-kind
@@ -170,22 +188,27 @@
  1)
 
 (define first-frame
-  (apply2 raw-make-error-frame
+  (apply3 raw-make-error-frame
+          add-function-name
           argument-position-one
           nat-type))
 
 (check-equal? (frame->host first-frame)
               '(1 3))
+(check-equal? (frame-name->host first-frame)
+              "ADD")
 
 (define once-bubbled
-  (apply3 raw-bubble-error
+  (apply4 raw-bubble-error
           mismatch
+          add-function-name
           argument-position-one
           nat-type))
 
 (define twice-bubbled
-  (apply3 raw-bubble-error
+  (apply4 raw-bubble-error
           once-bubbled
+          string-length-function-name
           argument-position-two
           list-type))
 
@@ -199,6 +222,12 @@
               '((1 3)))
 (check-equal? (error-frames->host twice-bubbled)
               '((2 2) (1 3)))
+(check-equal? (error-frame-names->host mismatch)
+              '())
+(check-equal? (error-frame-names->host once-bubbled)
+              '("ADD"))
+(check-equal? (error-frame-names->host twice-bubbled)
+              '("STRING-LENGTH" "ADD"))
 
 (define twice-bubbled-details
   (lazy-apply
@@ -258,6 +287,11 @@
                 details))
    (fourth case)))
 
+(check-equal? (error-frame-names->host head-type-error)
+              '("HEAD"))
+(check-equal? (error-frame-names->host cons-tail-type-error)
+              '("cons"))
+
 (define nested-empty-error
   (lazy-apply
    typed-len
@@ -302,6 +336,16 @@
               '((1 3)))
 (check-equal? (error-frames->host take-list-propagation)
               '((2 2)))
+(check-equal? (error-frame-names->host cons-head-propagation)
+              '())
+(check-equal? (error-frame-names->host cons-tail-propagation)
+              '("cons"))
+(check-equal? (error-frame-names->host head-propagation)
+              '("HEAD"))
+(check-equal? (error-frame-names->host take-count-propagation)
+              '("TAKE"))
+(check-equal? (error-frame-names->host take-list-propagation)
+              '("TAKE"))
 
 (define lazy-root
   (apply2
@@ -345,6 +389,7 @@
                        raw-type-mismatch-argument-position
                        raw-type-mismatch-expected-type
                        raw-type-mismatch-actual-type
+                       raw-error-frame-function-name
                        raw-error-frame-argument-position
                        raw-error-frame-expected-type
                        raw-error-payload-root
@@ -360,7 +405,6 @@
 (for ([function (in-list
                  (list raw-error-kind-equal
                        raw-make-error-root
-                       raw-make-error-frame
                        raw-make-error-payload
                        raw-make-error
                        raw-add-error-frame))])
@@ -377,7 +421,7 @@
 (for ([function (in-list
                  (list raw-make-type-mismatch-details
                        raw-make-type-mismatch-error
-                       raw-bubble-error))])
+                       raw-make-error-frame))])
   (check-equal?
    (procedure-arity
     (lazy-force function))
@@ -392,3 +436,26 @@
     (lazy-force
      (apply2 function raw-false raw-false)))
    1))
+
+(check-equal?
+ (procedure-arity
+  (lazy-force raw-bubble-error))
+ 1)
+(check-equal?
+ (procedure-arity
+  (lazy-force
+   (lazy-apply raw-bubble-error raw-false)))
+ 1)
+(check-equal?
+ (procedure-arity
+  (lazy-force
+   (apply2 raw-bubble-error raw-false raw-false)))
+ 1)
+(check-equal?
+ (procedure-arity
+  (lazy-force
+   (apply3 raw-bubble-error
+           raw-false
+           raw-false
+           raw-false)))
+ 1)

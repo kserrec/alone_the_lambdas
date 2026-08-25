@@ -34,12 +34,25 @@
     match
     match-lambda
     case-lambda
+    begin
+    begin0
     apply
     values
     call/cc
     dynamic-wind
     delay
     force
+    host
+    eval
+    dynamic-require
+    system
+    process
+    open-input-file
+    open-output-file
+    call-with-input-file
+    call-with-output-file
+    display
+    printf
     +
     -
     *
@@ -63,6 +76,9 @@
     cons
     car
     cdr
+    member
+    memq
+    assoc
     map
     filter
     foldl
@@ -71,11 +87,21 @@
     reverse
     length
     vector
+    make-vector
+    vector-ref
     hash
+    make-hash
+    hash-ref
     set
     box
     set!
     set-box!
+    string
+    make-string
+    string-length
+    string-ref
+    string=?
+    char=?
     string-append
     substring
     regexp
@@ -109,6 +135,12 @@
   (and (list? formals)
        (= (length formals) 1)
        (symbol? (car formals))))
+
+(define (arity-specific-checker-name? datum)
+  (and (symbol? datum)
+       (regexp-match?
+        #px"^(type-check|make-typed-function)-?[0-9]+$"
+        (symbol->string datum))))
 
 (define (form-violations form)
   (define head
@@ -162,6 +194,10 @@
      (list
       (violation 'forbidden-host-datum
                  (format "~s" datum)))]
+    [(arity-specific-checker-name? datum)
+     (list
+      (violation 'arity-specific-checker
+                 (symbol->string datum)))]
     [else
      '()]))
 

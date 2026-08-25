@@ -19,7 +19,10 @@ Result operations, raw binary long division, and safe typed `DIV`. Phase 10
 adds bounded binary Char values, strict construction, lambda-built constants,
 and a one-way host reader. Phase 11 adds Char-List-backed String values,
 recursive invariant validation, the initial strict String algorithms, and a
-one-way String reader.
+one-way String reader. Phase 12 adds pure canonical String names to every
+strict Error boundary, renders structured diagnostics at the one-way reader
+boundary, hardens the production purity gate, and closes the milestone with
+criterion-level acceptance coverage.
 
 ## Computational boundary
 
@@ -37,6 +40,14 @@ ordinary application.
 Racket supplies only the enclosing module system, lazy evaluation, syntactic
 sugar, readers, tests, and development tooling. It must not decide
 object-language results or provide object-language representations.
+
+> Alone the Lambdas does not merely avoid using host libraries for major
+> algorithms. Its production computational terms are built exclusively from
+> unary lambda abstraction and application. Every multi-argument function is
+> represented by nested one-argument lambdas. Racket is used only to
+> host/evaluate the terms, provide mechanical syntactic sugar and module
+> tooling, test them, and observe completed values for humans. Until `host` is
+> deliberately introduced, no other computational escape hatch exists.
 
 ## Layers
 
@@ -81,6 +92,15 @@ module depends on that reader. `core/strings.rkt` sits above Char, List, raw
 List length, Errors, objects, and the checker. It reuses those raw layers
 directly, while `readers/string.rkt` remains outside the production dependency
 graph.
+
+Named Error frames would create a cycle if Errors depended on the full String
+module. `core/function-names.rkt` therefore builds only the representation it
+needs from lower object, pair, tag, and raw-logic layers. The
+`define-function-name` macro translates an identifier spelling into an
+expression made from those pure constructors. Racket computes syntax during
+mechanical expansion; every generated runtime value is still a tagged String
+containing a proper List of tagged Chars. Strict modules depend on these name
+constants, while Errors remain below String algorithms.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -196,9 +216,9 @@ division by zero returns Err containing the canonical DivideByZero Error.
 Unary operations use one Nat signature entry, and binary operations use two,
 so partial application, wrong-type failures, incoming-Error bubbling, and
 remaining-arity absorption all have the same behavior as other strict typed
-functions. Current Nat Error frames contain the canonical argument position
-and expected Nat type. Although String now exists, the specification
-deliberately defers textual function-name frames to Phase 12.
+functions. Every Nat boundary records its canonical function-name String,
+argument position, and expected Nat type when it creates or propagates an
+Error.
 
 ### Errors and results
 
@@ -210,12 +230,20 @@ invariant. A TypeMismatch root additionally stores its argument position,
 expected runtime type, and actual runtime type. The other current roots need
 no extra details.
 
-A frame pairs an argument position with the expected runtime type at the
-current boundary. `raw-bubble-error` reuses the exact root and prepends one
-frame, so the frame List is newest-first and root metadata never changes.
-Function names remain deliberately absent from the current two-field frames;
-Phase 12 adds canonical lambda String names and the Error reader.
-Language-level failures never use host exceptions or strings.
+A frame contains a canonical function-name String, argument position, and
+expected runtime type for the current boundary. `raw-bubble-error` reuses the
+exact root and prepends one frame, so the frame List is newest-first and root
+metadata never changes. Fresh TypeMismatch roots receive the same named frame
+as propagated Errors. Root Errors produced by a valid raw algorithm remain
+unframed until another strict boundary propagates them. The polymorphic
+`typed-cons` head and `make-ok` also preserve an incoming Error without adding
+a frame because neither position has an expected runtime type to record.
+
+`readers/error.rkt` reverses the stored frame List for causal display, renders
+the oldest mismatch frame with its actual type, and then prints each later
+boundary as an arrow. Function names remain structured String values inside
+the Error; only the reader flattens them to diagnostic text. Language-level
+failures never use host exceptions or strings.
 
 `core/result.rkt` represents Result as a Result-tagged object whose payload
 pairs a raw Boolean discriminator with a payload. True identifies Ok; false
@@ -274,14 +302,15 @@ operation participates in equality, append, prefix, or substring search.
 
 ## Runtime typing
 
-`make-typed-function` accepts a raw curried function, an Alone the Lambdas List
-of expected type tags, and one unary return policy. It constructs strict typed
-functions of arbitrary arity by:
+`make-typed-function` accepts, in order, a raw curried function, a canonical
+function-name String, an Alone the Lambdas List of expected type tags, and one
+unary return policy. It constructs strict typed functions of arbitrary arity
+by:
 
 - validating one argument per application;
-- bubbling an existing Error with the current expected type and Church-encoded
-  argument position;
-- creating a structured Error for a wrong runtime type;
+- bubbling an existing Error with the current function name, expected type,
+  and Church-encoded argument position;
+- creating and framing a structured Error for a wrong runtime type;
 - unwrapping a valid argument and partially applying the raw function;
 - preserving remaining arity with one unary absorbing continuation per
   unconsumed signature entry after an early failure; and
@@ -289,11 +318,12 @@ functions of arbitrary arity by:
   that is already typed.
 
 The empty signature also supports a zero-argument raw value. No host arity
-counting or arity-specific checker variant exists. `typed-if` is the specified
-custom polymorphic exception: it reuses the same Error construction and
-framing primitives while preserving two untyped branch positions itself.
-`typed-make-ok` is likewise polymorphic, while `typed-make-err` intentionally
-accepts Error as data instead of invoking the checker's normal Error bubbling.
+counting or arity-specific checker variant exists. The purity gate explicitly
+rejects numbered checker names. `typed-if` is the specified custom polymorphic
+exception: it reuses the same named Error construction and framing primitives
+while preserving two untyped branch positions itself. `typed-make-ok` is
+likewise polymorphic, while `typed-make-err` intentionally accepts Error as
+data instead of invoking the checker's normal Error bubbling.
 
 ## Naming
 
@@ -319,6 +349,7 @@ core/
   objects.rkt
   fix.rkt
   errors.rkt
+  function-names.rkt
   lists.rkt
   binary-nat.rkt
   result.rkt
@@ -330,13 +361,14 @@ core/
   strings.rkt
 readers/
   char.rkt
+  error.rkt
   string.rkt
 tests/
 tooling/
 run-all-tests.sh
 ```
 
-Fifteen production modules currently exist under `core/`. New abstraction
+Sixteen production modules currently exist under `core/`. New abstraction
 layers require a concrete need.
 
 ## Verification boundary
@@ -351,10 +383,13 @@ Nat tests cover normalization, the typed constants, carries, borrows,
 saturating subtraction, multiplication, long division, quotient laws,
 comparisons, larger bit widths, currying, and applicable laziness.
 Nat-dependent List tests cover length, take, drop, boundary counts, proper
-tails, strict failures, Error absorption,
-currying, and lazy base cases. Structured Error tests cover every kind, root
+tails, strict failures, Error absorption, currying, and lazy base cases.
+Structured Error tests cover every kind, root
 metadata, the `NIL`/empty-Error knot, frame order, nested root preservation,
-canonical List failures, currying, and lazy field access. The generalized
+canonical function-name Strings, List failures, currying, and lazy field
+access. The Error reader suite exercises all 43 named strict boundaries, all
+seven rendered type tags, every current root kind, and nested causal output.
+The generalized
 checker suite covers lambda List signatures and zero-, one-, two-, three-, and
 five-argument functions; valid partial application; every five-argument
 mismatch position; incoming Error framing; raw and already-typed return
@@ -377,10 +412,15 @@ isolation. The String suite covers representation, recursive Char validation,
 InvalidString roots, raw and strict operations, canonical binary length,
 empty partial-operation errors, List/Char interaction, prefix and substring
 boundaries, mismatch and incoming-Error propagation, exact binary-operation
-absorbers, laziness, currying, and reader output. The structural purity tool
-scans production Racket sources for non-unary lambdas, host-style function
-definitions, forbidden host computation, and host literal data. It will be
-hardened further as later production forms arrive.
+absorbers, laziness, currying, and reader output. The milestone acceptance
+suite composes Bool, List, Nat, Result, Char, String, and Error behavior in one
+strict typed flow and runs the same structural scan over the complete core.
+
+The structural purity tool scans all 16 production Racket modules for
+non-unary lambdas, host-style function definitions, forbidden host computation
+and literals, the absent `host` escape, and numbered arity-specific checker
+variants. Focused tests prove representative violations are rejected. The
+complete evidence map is [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 
 ## Deferred boundary
 

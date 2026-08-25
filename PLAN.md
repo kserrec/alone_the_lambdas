@@ -169,10 +169,12 @@ not host strings.
 
 ## Phase 12 — Error frames, documentation, and purity hardening
 
-- [ ] Complete canonical String-related function names in Error frames.
-- [ ] Add the Error reader and finish reader diagnostics.
-- [ ] Run repository-wide forbidden-form and unary-lambda validation.
-- [ ] Complete specification acceptance tests and synchronize all
+Status: complete (2026-08-24)
+
+- [x] Complete canonical String-related function names in Error frames.
+- [x] Add the Error reader and finish reader diagnostics.
+- [x] Run repository-wide forbidden-form and unary-lambda validation.
+- [x] Complete specification acceptance tests and synchronize all
   documentation with the implementation.
 
 Acceptance: every completion criterion in the three specifications is covered
@@ -181,6 +183,6 @@ green.
 
 ## Deferred milestone
 
-After this plan is complete, design the standalone public language surface and
-the single explicit `host` boundary described by the specifications. Neither
-belongs in the current milestone.
+The first core milestone is complete. Next, design the standalone public
+language surface and the single explicit `host` boundary described by the
+specifications. Neither belongs in the completed core milestone.

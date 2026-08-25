@@ -2,6 +2,7 @@
 
 (require "../macros/macros.rkt"
          "errors.rkt"
+         "function-names.rkt"
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
@@ -38,22 +39,26 @@
    ((raw-cons bool-type) NIL)))
 
 (def typed-not =
-  (((make-typed-function raw-not)
+  ((((make-typed-function raw-not)
+     not-function-name)
     bool-unary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-and =
-  (((make-typed-function raw-and)
+  ((((make-typed-function raw-and)
+     and-function-name)
     bool-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-or =
-  (((make-typed-function raw-or)
+  ((((make-typed-function raw-or)
+     or-function-name)
     bool-binary-signature)
    (raw-wrap-return bool-type)))
 
 (def typed-xor =
-  (((make-typed-function raw-xor)
+  ((((make-typed-function raw-xor)
+     xor-function-name)
     bool-binary-signature)
    (raw-wrap-return bool-type)))
 
@@ -64,7 +69,8 @@
   (((raw-if
      ((raw-is-type error-type) condition))
     (raw-ignore-if-branches
-     (((raw-bubble-error condition)
+     ((((raw-bubble-error condition)
+        if-function-name)
        argument-position-one)
       bool-type)))
    (((raw-if
@@ -72,7 +78,11 @@
      (raw-if
       (raw-object-value condition)))
     (raw-ignore-if-branches
-     (((raw-make-type-mismatch-error
-        argument-position-one)
-       bool-type)
-      (raw-object-type condition))))))
+     ((((raw-bubble-error
+         (((raw-make-type-mismatch-error
+            argument-position-one)
+           bool-type)
+          (raw-object-type condition)))
+        if-function-name)
+       argument-position-one)
+      bool-type)))))

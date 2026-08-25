@@ -3,6 +3,7 @@
 (require "../macros/macros.rkt"
          "errors.rkt"
          "fix.rkt"
+         "function-names.rkt"
          "logic.rkt"
          "objects.rkt"
          "pair.rkt"
@@ -62,27 +63,35 @@
       ((raw-is-type list-type) tail))
      ((raw-cons value) tail))
     (((raw-if
-       ((raw-is-type error-type) tail))
-      (((raw-bubble-error tail)
+      ((raw-is-type error-type) tail))
+      ((((raw-bubble-error tail)
+         cons-function-name)
         argument-position-two)
        list-type))
-     (((raw-make-type-mismatch-error
-        argument-position-two)
-       list-type)
-      (raw-object-type tail))))))
+     ((((raw-bubble-error
+         (((raw-make-type-mismatch-error
+            argument-position-two)
+           list-type)
+          (raw-object-type tail)))
+        cons-function-name)
+       argument-position-two)
+      list-type)))))
 
 (def typed-head =
-  (((make-typed-function raw-list-payload-head)
+  ((((make-typed-function raw-list-payload-head)
+     head-function-name)
     list-unary-signature)
    raw-keep-return))
 
 (def typed-tail =
-  (((make-typed-function raw-list-payload-tail)
+  ((((make-typed-function raw-list-payload-tail)
+     tail-function-name)
     list-unary-signature)
    raw-keep-return))
 
 (def typed-is-nil =
-  (((make-typed-function raw-list-payload-is-nil)
+  ((((make-typed-function raw-list-payload-is-nil)
+     is-nil-function-name)
     list-unary-signature)
    (raw-wrap-return bool-type)))
 

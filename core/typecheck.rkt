@@ -44,7 +44,7 @@
     remaining-types)
    failure))
 
-(def raw-make-typed-function-step recur raw-function expected-types return-policy argument-position =
+(def raw-make-typed-function-step recur raw-function function-name expected-types return-policy argument-position =
   (((raw-if
      (raw-signature-is-empty expected-types))
     (return-policy raw-function))
@@ -54,28 +54,35 @@
        (lambda-let remaining-types =
          (raw-signature-tail expected-types)
          (((raw-if
-            ((raw-is-type error-type) argument))
+           ((raw-is-type error-type) argument))
            ((raw-absorb-error remaining-types)
-            (((raw-bubble-error argument)
+            ((((raw-bubble-error argument)
+               function-name)
               argument-position)
              expected-type)))
           (((raw-if
              ((raw-is-type expected-type) argument))
-            ((((recur
-                (raw-function
-                 (raw-object-value argument)))
+            (((((recur
+                 (raw-function
+                  (raw-object-value argument)))
+                function-name)
                remaining-types)
               return-policy)
              (church-succ argument-position)))
            ((raw-absorb-error remaining-types)
-            (((raw-make-type-mismatch-error
-               argument-position)
-              expected-type)
-             (raw-object-type argument))))))))))
+            ((((raw-bubble-error
+                (((raw-make-type-mismatch-error
+                   argument-position)
+                  expected-type)
+                 (raw-object-type argument)))
+               function-name)
+              argument-position)
+             expected-type)))))))))
 
-(def make-typed-function raw-function expected-types return-policy =
-  (((((raw-fix raw-make-typed-function-step)
-      raw-function)
+(def make-typed-function raw-function function-name expected-types return-policy =
+  ((((((raw-fix raw-make-typed-function-step)
+       raw-function)
+      function-name)
      expected-types)
     return-policy)
    argument-position-one))

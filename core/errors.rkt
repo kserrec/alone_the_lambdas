@@ -24,6 +24,7 @@
          raw-type-mismatch-expected-type
          raw-type-mismatch-actual-type
          raw-make-error-frame
+         raw-error-frame-function-name
          raw-error-frame-argument-position
          raw-error-frame-expected-type
          raw-make-error-payload
@@ -80,14 +81,20 @@
   (raw-second
    (raw-second details)))
 
-(def raw-make-error-frame argument-position expected-type =
-  ((raw-pair argument-position) expected-type))
+(def raw-make-error-frame function-name argument-position expected-type =
+  ((raw-pair function-name)
+   ((raw-pair argument-position) expected-type)))
 
-(def raw-error-frame-argument-position frame =
+(def raw-error-frame-function-name frame =
   (raw-first frame))
 
+(def raw-error-frame-argument-position frame =
+  (raw-first
+   (raw-second frame)))
+
 (def raw-error-frame-expected-type frame =
-  (raw-second frame))
+  (raw-second
+   (raw-second frame)))
 
 (def raw-make-error-payload root frames =
   ((raw-pair root) frames))
@@ -155,9 +162,10 @@
    ((raw-error-list-cons frame)
     (raw-error-frames error))))
 
-(def raw-bubble-error error argument-position expected-type =
+(def raw-bubble-error error function-name argument-position expected-type =
   ((raw-add-error-frame error)
-   ((raw-make-error-frame argument-position)
+   (((raw-make-error-frame function-name)
+     argument-position)
     expected-type)))
 
 (def invalid-nat-error =

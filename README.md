@@ -5,20 +5,15 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 11 is complete. The repository now contains the raw lambda
-> foundation, all seven Church type tags, generic typed objects, explicit
-> Michaelson-style Lists, canonical binary Nat arithmetic, and structured
-> Error roots with propagation frames, plus one generalized curried runtime
-> checker for strict typed functions of any arity. Tagged Boolean constants,
-> strict Boolean operations, and the canonical lazy typed `if` are now built
-> on that foundation. The complete public Nat API now applies the same strict
-> checker to the raw algorithms. Lambda-encoded Result variants and safe Nat
-> division now distinguish expected divide-by-zero failure from contract
-> Error. Binary-backed Char values, strict range validation, and the required
-> lambda-built constants support typed Strings backed by proper Char Lists.
-> Strict String construction, traversal, equality, append, prefix, substring
-> search, canonical binary length, and one-way rendering now complete the
-> public data foundation. See [PLAN.md](PLAN.md) for the ordered build.
+> **Status:** The first core-language milestone is complete. Its lambda-only
+> foundation now includes all seven tagged data types, explicit Lists,
+> scalable binary Nat arithmetic, strict Bool and Nat operations, Result,
+> Char, String, and one generalized curried runtime checker. Structured Errors
+> preserve their root cause and accumulate canonical function-name Strings in
+> propagation frames; a one-way reader renders those frames as human-facing
+> diagnostics. The full acceptance suite and structural purity gate are
+> green. See [PLAN.md](PLAN.md) for the completed build order and
+> [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
 
 ## Commitments
 
@@ -52,6 +47,8 @@ precedence over conflicting examples in the base specification.
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) records the language boundary, planned
   layers, representations, and dependency direction.
+- [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) maps every first-milestone
+  completion criterion to executable or structural evidence.
 - [PLAN.md](PLAN.md) divides the first milestone into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -60,7 +57,9 @@ precedence over conflicting examples in the base specification.
 
 - `macros/lazy-with-macros.rkt` provides the minimal Lazy Racket module shell.
 - `macros/macros.rkt` provides arbitrary-arity curried `def` and the internal
-  `lambda-let` sugar that will later be exported publicly as `let`.
+  `lambda-let` sugar that will later be exported publicly as `let`. It also
+  mechanically expands identifier spellings into pure String terms for Error
+  frame names.
 - `core/pair.rkt` provides lambda-encoded pairs and selectors.
 - `core/logic.rkt` provides raw Boolean selectors and lambda-based Boolean
   operations, including lazy `raw-if`.
@@ -70,11 +69,13 @@ precedence over conflicting examples in the base specification.
 - `core/fix.rkt` provides the pure fixed-point term used by recursive raw
   algorithms.
 - `core/errors.rkt` provides structured Error roots and metadata, canonical
-  root Errors, newest-first propagation frames, and the lazy `NIL`/empty-Error
-  representation knot.
+  root Errors, newest-first named propagation frames, and the lazy
+  `NIL`/empty-Error representation knot.
+- `core/function-names.rkt` provides the canonical typed String constants used
+  to identify strict operation boundaries without introducing host strings.
 - `core/typecheck.rkt` provides the single generalized progressive checker,
-  signature-driven Error absorbers, and raw-result or already-typed-result
-  finalizers.
+  named signature-driven Error absorbers, and raw-result or
+  already-typed-result finalizers.
 - `core/typed-logic.rkt` provides tagged `TRUE` and `FALSE`, checker-backed
   strict Boolean operations, and the polymorphic lazy `typed-if` with its
   canonical `if` export.
@@ -109,8 +110,11 @@ precedence over conflicting examples in the base specification.
   numeric fallbacks at the same one-way boundary.
 - `readers/string.rkt` renders a completed lambda String to a host string at
   the same one-way boundary.
+- `readers/error.rkt` renders structured roots and oldest-to-newest named
+  frames without feeding diagnostic text back into computation.
 - `tooling/check-purity.rkt` rejects forbidden host computation, host data,
-  and non-unary lambdas in production modules.
+  non-unary lambdas, explicit `host`, and arity-specific checker variants in
+  production modules.
 
 ## Development
 
@@ -128,7 +132,9 @@ racket tooling/check-purity.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. GitHub Actions runs the same suite for pushes and pull requests.
+green. The completed milestone currently has 2,889 assertions across 18 test
+files, plus the independent scan of all 16 production modules. GitHub Actions
+runs the same suite for pushes and pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.
