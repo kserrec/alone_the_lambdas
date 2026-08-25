@@ -22,7 +22,9 @@ recursive invariant validation, the initial strict String algorithms, and a
 one-way String reader. Phase 12 adds pure canonical String names to every
 strict Error boundary, renders structured diagnostics at the one-way reader
 boundary, hardens the production purity gate, and closes the milestone with
-criterion-level acceptance coverage.
+criterion-level acceptance coverage. Phase 13 fixes the proposed host request
+protocol, trust boundary, module split, and future purity classifications in a
+design document; no production interop code exists yet.
 
 ## Computational boundary
 
@@ -427,5 +429,9 @@ complete evidence map is [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 The completed core contains no `host` form. Phases 13 through 20 in
 [PLAN.md](PLAN.md) design and then introduce exactly one explicit host
 boundary, ordinary lambda effect wrappers, a minimal lambda-built HTTP server,
-and the standalone language surface. Phase 13 is an approval gate because the
-three specifications deliberately leave the request protocol undefined.
+and the standalone language surface. The proposed protocol and its full
+process-level filesystem/network authority are recorded in
+[docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 13 is
+complete as design work, but Phase 14 remains blocked pending explicit
+approval because the three specifications deliberately leave that protocol
+undefined.

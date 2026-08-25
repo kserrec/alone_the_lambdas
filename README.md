@@ -12,7 +12,10 @@ variables, unary lambdas, and application.
 > preserve their root cause and accumulate canonical function-name Strings in
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
-> green. See [PLAN.md](PLAN.md) for the completed core build and the planned
+> green. The Phase 13
+> [host-boundary design](docs/design/host-boundary.md) is complete and awaits
+> explicit approval; no production host implementation exists. See
+> [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
 
@@ -51,7 +54,10 @@ precedence over conflicting examples in the base specification.
   layers, representations, and dependency direction.
 - [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) maps every first-milestone
   completion criterion to executable or structural evidence.
-- [PLAN.md](PLAN.md) divides the first milestone into ordered, testable phases.
+- [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
+  proposed second-milestone protocol, authority, and purity classifications;
+  implementation remains blocked pending approval.
+- [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
 

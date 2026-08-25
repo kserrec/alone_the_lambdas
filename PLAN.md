@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: planned
+Status: design approval pending
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -213,24 +213,30 @@ The following constraints apply throughout:
 
 ## Phase 13 — Host contract and trust boundary
 
-- [ ] Write `docs/design/host-boundary.md` with the exact request and response
+Status: complete (2026-08-24; approval pending)
+
+- [x] Write `docs/design/host-boundary.md` with the exact request and response
   algebra for `stdout`, file access, and the complete blocking TCP lifecycle.
-- [ ] Fix the lambda encodings for operation identity, argument Lists, typed
+- [x] Fix the lambda encodings for operation identity, argument Lists, typed
   acknowledgements, expected I/O failures, and opaque resource handles.
-- [ ] Define handle ownership and cleanup, blocking behavior, path and byte
+- [x] Define handle ownership and cleanup, blocking behavior, path and byte
   semantics, and the authority granted to a running program.
-- [ ] Define the dependency split between pure `effects/`, the single trusted
+- [x] Define the dependency split between pure `effects/`, the single trusted
   `runtime/` bridge, and the future `lang/` surface, including deterministic
   fake-host testing.
-- [ ] Specify the purity-checker classifications and the narrow project-rule
+- [x] Specify the purity-checker classifications and the narrow project-rule
   changes that become valid only after this design is approved.
-- [ ] Record which Lazy Racket and macro-shell patterns remain reusable from
+- [x] Record which Lazy Racket and macro-shell patterns remain reusable from
   `all_the_lambdas`; do not import its underscore names, coercive layers, or
   superseded representations.
 
 Acceptance: every later phase can implement against one unambiguous protocol;
 no production interop code exists yet; the design is presented for explicit
 approval before Phase 14.
+
+Approval: pending. Phase 14 remains blocked until the design receives the
+explicit approval recorded in
+[docs/design/host-boundary.md](docs/design/host-boundary.md).
 
 ## Phase 14 — Single `host` bridge and `stdout`
 
@@ -255,7 +261,7 @@ bridge, and repository checks prove no second escape hatch exists.
   protocol.
 - [ ] Encode file contents as String byte values using Char 0 through 255; do
   not route language computation through the existing human-facing readers.
-- [ ] Map missing paths, denied access, invalid byte data, and other expected
+- [ ] Map missing paths, denied access, invalid path text, and other expected
   operating-system failures to the approved Result Err representation.
 - [ ] Test round trips, empty and non-ASCII byte content, replacement
   semantics, cleanup, contract Errors, and fake-host request structure in
@@ -318,9 +324,10 @@ computation.
 - [ ] Export canonical `lambda`, `def`, `let`, strict typed `if`, proper typed
   `cons`, the completed data API, effect wrappers, and the single explicit
   `host`; hide internal raw bindings and Racket collision workarounds.
-- [ ] Mechanically lower only nonnegative Nat literals and byte-range String
-  literals into the existing pure representations; reject unsupported datum
-  forms during expansion and add no general parser.
+- [ ] Mechanically lower only nonnegative Nat literals and UTF-8 String
+  literals into the existing pure representations, with one Char per encoded
+  byte; reject unsupported datum forms during expansion and add no general
+  parser.
 - [ ] Add package metadata and fresh-install tests for canonical names,
   currying, branch laziness, literals, module isolation, and runnable programs.
 
