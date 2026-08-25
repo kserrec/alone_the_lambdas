@@ -70,7 +70,8 @@
         empty-list-kind
         invalid-nat-kind
         divide-by-zero-kind
-        invalid-char-kind))
+        invalid-char-kind
+        invalid-string-kind))
 
 (for ([kind (in-list kinds)]
       [expected (in-naturals)])
@@ -113,6 +114,9 @@
 (check-true (error-value? invalid-char-error))
 (check-true (error-kind=? invalid-char-error
                          invalid-char-kind))
+(check-true (error-value? invalid-string-error))
+(check-true (error-kind=? invalid-string-error
+                         invalid-string-kind))
 (check-true
  (nil-value?
   (lazy-apply raw-error-frames
@@ -125,6 +129,10 @@
  (nil-value?
   (lazy-apply raw-error-frames
               invalid-char-error)))
+(check-true
+ (nil-value?
+  (lazy-apply raw-error-frames
+              invalid-string-error)))
 
 (define mismatch
   (apply3 raw-make-type-mismatch-error

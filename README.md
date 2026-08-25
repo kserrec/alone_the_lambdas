@@ -5,7 +5,7 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** Phase 10 is complete. The repository now contains the raw lambda
+> **Status:** Phase 11 is complete. The repository now contains the raw lambda
 > foundation, all seven Church type tags, generic typed objects, explicit
 > Michaelson-style Lists, canonical binary Nat arithmetic, and structured
 > Error roots with propagation frames, plus one generalized curried runtime
@@ -14,9 +14,11 @@ variables, unary lambdas, and application.
 > on that foundation. The complete public Nat API now applies the same strict
 > checker to the raw algorithms. Lambda-encoded Result variants and safe Nat
 > division now distinguish expected divide-by-zero failure from contract
-> Error. Binary-backed Char values, strict range validation, the required
-> lambda-built constants, and a one-way reader now complete the next public
-> data layer. See [PLAN.md](PLAN.md) for the ordered build.
+> Error. Binary-backed Char values, strict range validation, and the required
+> lambda-built constants support typed Strings backed by proper Char Lists.
+> Strict String construction, traversal, equality, append, prefix, substring
+> search, canonical binary length, and one-way rendering now complete the
+> public data foundation. See [PLAN.md](PLAN.md) for the ordered build.
 
 ## Commitments
 
@@ -92,6 +94,9 @@ precedence over conflicting examples in the base specification.
   `GTE`, and `IS-ZERO` exports. `DIV` returns Result.
 - `core/list-nat.rkt` provides raw List length, take, and drop algorithms plus
   checker-backed strict operations using canonical Nat values.
+- `core/strings.rkt` provides the strict `MAKE-STRING` invariant boundary,
+  `EMPTY-STRING`, and the complete initial String operation set over lambda
+  Lists and Chars.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -102,6 +107,8 @@ precedence over conflicting examples in the base specification.
   without entering production computation.
 - `readers/char.rkt` renders supported ASCII Char values and deterministic
   numeric fallbacks at the same one-way boundary.
+- `readers/string.rkt` renders a completed lambda String to a host string at
+  the same one-way boundary.
 - `tooling/check-purity.rkt` rejects forbidden host computation, host data,
   and non-unary lambdas in production modules.
 

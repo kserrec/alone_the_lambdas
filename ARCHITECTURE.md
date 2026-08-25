@@ -17,7 +17,9 @@ conditional. Phase 8 adds the strict checker-backed Nat API without changing
 the raw binary algorithms. Phase 9 adds lambda-encoded Result values, strict
 Result operations, raw binary long division, and safe typed `DIV`. Phase 10
 adds bounded binary Char values, strict construction, lambda-built constants,
-and a one-way host reader.
+and a one-way host reader. Phase 11 adds Char-List-backed String values,
+recursive invariant validation, the initial strict String algorithms, and a
+one-way String reader.
 
 ## Computational boundary
 
@@ -75,7 +77,10 @@ depends on Result only for safe `DIV`, so Result itself remains independent of
 Nat and available to later data types.
 `core/chars.rkt` sits above raw binary Nat, Errors, Lists, objects, and the
 checker. Its reader depends on Char and Nat observation, while no production
-module depends on that reader.
+module depends on that reader. `core/strings.rkt` sits above Char, List, raw
+List length, Errors, objects, and the checker. It reuses those raw layers
+directly, while `readers/string.rkt` remains outside the production dependency
+graph.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -192,24 +197,25 @@ Unary operations use one Nat signature entry, and binary operations use two,
 so partial application, wrong-type failures, incoming-Error bubbling, and
 remaining-arity absorption all have the same behavior as other strict typed
 functions. Current Nat Error frames contain the canonical argument position
-and expected Nat type. Textual function names remain deferred until String
-exists.
+and expected Nat type. Although String now exists, the specification
+deliberately defers textual function-name frames to Phase 12.
 
 ### Errors and results
 
 Every Error is an Error-tagged object whose payload pairs one immutable root
 with a proper List of propagation frames. Root kinds are the small Church
 discriminants TypeMismatch, EmptyList, InvalidNat, DivideByZero, and
-InvalidChar. A
-TypeMismatch root additionally stores its argument position, expected runtime
-type, and actual runtime type. The other current roots need no extra details.
+InvalidChar, plus InvalidString for a List that violates the String element
+invariant. A TypeMismatch root additionally stores its argument position,
+expected runtime type, and actual runtime type. The other current roots need
+no extra details.
 
 A frame pairs an argument position with the expected runtime type at the
 current boundary. `raw-bubble-error` reuses the exact root and prepends one
 frame, so the frame List is newest-first and root metadata never changes.
-Function names remain absent until canonical String exists in Phase 11; Phase
-12 adds those names and the Error reader. Language-level failures never use
-host exceptions or strings.
+Function names remain deliberately absent from the current two-field frames;
+Phase 12 adds canonical lambda String names and the Error reader.
+Language-level failures never use host exceptions or strings.
 
 `core/result.rkt` represents Result as a Result-tagged object whose payload
 pairs a raw Boolean discriminator with a payload. True identifies Ok; false
@@ -245,8 +251,26 @@ production code contains no host numbers or character literals.
 `readers/char.rkt` converts a completed Char payload to a host integer or
 display string. It renders TAB, LF, CR, and printable ASCII directly and uses
 `char:<integer>` for unsupported values. This observation is one-way and never
-feeds host characters back into production computation. String remains a
-planned List of Char values.
+feeds host characters back into production computation.
+
+`core/strings.rkt` represents String as a String-tagged object whose payload is
+the canonical List object containing typed Char elements. `EMPTY-STRING` uses
+`NIL`. `MAKE-STRING` strictly requires a List and recursively checks every
+element's Char tag using lambda computation; a well-typed List containing any
+non-Char element returns the canonical InvalidString Error.
+
+`STRING-EMPTY?`, `STRING-LENGTH`, `STRING-EQ`, `STRING-APPEND`,
+`STRING-HEAD`, `STRING-TAIL`, `STRING-PREFIX?`, and `STRING-CONTAINS?` all use
+the generalized checker. The raw algorithms traverse List structure and
+compare Char binary payloads directly. Length reuses the canonical raw binary
+List counter and returns Nat. Head returns Char; tail returns String; either
+partial operation returns EmptyList Error on the empty String. Prefix and
+contains take the searched String first and the candidate prefix or substring
+second; an empty candidate succeeds.
+
+`readers/string.rkt` traverses the completed Char List and joins the Char
+reader's host output. No production module imports it, and no host string
+operation participates in equality, append, prefix, or substring search.
 
 ## Runtime typing
 
@@ -303,18 +327,17 @@ core/
   list-nat.rkt
   typecheck.rkt
   typed-logic.rkt
-  # Later phases add the modules below.
   strings.rkt
 readers/
   char.rkt
+  string.rkt
 tests/
 tooling/
 run-all-tests.sh
 ```
 
-Fourteen production modules currently exist under `core/`; the remaining core
-paths are planned in dependency order. New abstraction layers require a
-concrete need.
+Fifteen production modules currently exist under `core/`. New abstraction
+layers require a concrete need.
 
 ## Verification boundary
 
@@ -350,8 +373,12 @@ zero-divisor laziness, explicit post-unwrap propagation, currying, and public
 exports. The Char suite covers every required constant, normalized raw-bit
 payloads, 0 and 255 acceptance, 256 rejection, InvalidChar roots, mismatch and
 incoming-Error behavior, reader output and fallbacks, currying, and reader
-isolation. The structural purity tool scans
-production Racket sources for non-unary lambdas, host-style function
+isolation. The String suite covers representation, recursive Char validation,
+InvalidString roots, raw and strict operations, canonical binary length,
+empty partial-operation errors, List/Char interaction, prefix and substring
+boundaries, mismatch and incoming-Error propagation, exact binary-operation
+absorbers, laziness, currying, and reader output. The structural purity tool
+scans production Racket sources for non-unary lambdas, host-style function
 definitions, forbidden host computation, and host literal data. It will be
 hardened further as later production forms arrive.
 

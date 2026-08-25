@@ -156,10 +156,12 @@ uses host facilities.
 
 ## Phase 11 — String
 
-- [ ] Implement String as a typed List of Char values.
-- [ ] Implement construction and the specified initial String algorithms.
-- [ ] Return String length through the specified typed result.
-- [ ] Add a human-facing String reader and comprehensive List/Char interaction
+Status: complete (2026-08-24)
+
+- [x] Implement String as a typed List of Char values.
+- [x] Implement construction and the specified initial String algorithms.
+- [x] Return String length through the specified typed result.
+- [x] Add a human-facing String reader and comprehensive List/Char interaction
   tests.
 
 Acceptance: String algorithms operate on lambda-encoded List and Char values,
