@@ -185,12 +185,15 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: design approval pending
+Status: host direction approved; detailed design approval pending
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
 contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
+Kyle approved the high-level use of the single `host` boundary in Alone the
+Lambdas on 2026-08-27; the detailed request, codec, authority, and runtime
+contract remains pending approval.
 
 The following constraints apply throughout:
 
@@ -213,7 +216,7 @@ The following constraints apply throughout:
 
 ## Phase 13 — Host contract and trust boundary
 
-Status: complete (2026-08-24; approval pending)
+Status: complete (revised 2026-08-27; detailed approval pending)
 
 - [x] Write `docs/design/host-boundary.md` with the exact request and response
   algebra for `stdout`, file access, and the complete blocking TCP lifecycle.
@@ -221,9 +224,12 @@ Status: complete (2026-08-24; approval pending)
   acknowledgements, expected I/O failures, and opaque resource handles.
 - [x] Define handle ownership and cleanup, blocking behavior, path and byte
   semantics, and the authority granted to a running program.
-- [x] Define the dependency split between pure `effects/`, the single trusted
-  `runtime/` bridge, and the future `lang/` surface, including deterministic
-  fake-host testing.
+- [x] Define the dependency split between pure `effects/`, the sole exported
+  `runtime/host.rkt` bridge, its separately classified `runtime/codec.rkt`,
+  and the future `lang/` surface, including deterministic fake-host testing.
+- [x] Isolate exact object-language-to-Racket and Racket-to-object-language
+  conversion from effects; define canonicality, codec prohibitions, dependency
+  enforcement, and direct round-trip coverage.
 - [x] Specify the purity-checker classifications and the narrow project-rule
   changes that become valid only after this design is approved.
 - [x] Record which Lazy Racket and macro-shell patterns remain reusable from
@@ -234,7 +240,8 @@ Acceptance: every later phase can implement against one unambiguous protocol;
 no production interop code exists yet; the design is presented for explicit
 approval before Phase 14.
 
-Approval: pending. Phase 14 remains blocked until the design receives the
+High-level `host` direction: approved 2026-08-27. Detailed contract approval:
+pending. Phase 14 remains blocked until the revised design receives the
 explicit approval recorded in
 [docs/design/host-boundary.md](docs/design/host-boundary.md).
 
@@ -242,15 +249,19 @@ explicit approval recorded in
 
 - [ ] Apply the approved rule and architecture changes without weakening the
   completed core boundary.
-- [ ] Implement one unary `host` binding and one closed dispatcher inside the
-  designated trusted runtime module.
+- [ ] Implement `runtime/codec.rkt` with only the exact Char/String/List and
+  Result/Error conversions required by stdout; prove byte round trips,
+  canonical output, malformed-value rejection, and absence of effects.
+- [ ] Implement one unary `host` binding and one closed dispatcher in
+  `runtime/host.rkt`, the only production importer of the codec and the only
+  language-visible privileged binding.
 - [ ] Implement the pure `stdout` request constructor and wrapper, with typed
   success and expected-failure results.
 - [ ] Add a deterministic fake dispatcher plus real output-capture tests for
   request validation, result encoding, failure mapping, and laziness.
-- [ ] Make the purity tool reject privileged definitions and Racket effects
-  everywhere except the one trusted bridge, while scanning `core/` with no
-  new exceptions.
+- [ ] Make the purity tool enforce the distinct codec and effect-module
+  allowlists, reject every unapproved importer or privileged definition, and
+  scan `core/` with no new exceptions.
 
 Acceptance: a lambda String reaches standard output only through the single
 bridge, and repository checks prove no second escape hatch exists.
@@ -263,6 +274,8 @@ bridge, and repository checks prove no second escape hatch exists.
   not route language computation through the existing human-facing readers.
 - [ ] Map missing paths, denied access, invalid path text, and other expected
   operating-system failures to the approved Result Err representation.
+- [ ] Reuse the verified byte-exact String codec without importing the
+  human-facing readers; keep UTF-8 path interpretation in the host operation.
 - [ ] Test round trips, empty and non-ASCII byte content, replacement
   semantics, cleanup, contract Errors, and fake-host request structure in
   isolated temporary directories.
@@ -274,6 +287,8 @@ and all filesystem access is confined to the trusted dispatcher.
 
 - [ ] Add the approved connect, listen, accept, read, write, and close host
   operations and their pure lambda wrappers.
+- [ ] Extend `runtime/codec.rkt` only with canonical Nat/integer conversions
+  and returned List shapes required for port bounds and opaque handles.
 - [ ] Keep ports and connections in a runtime-owned handle registry; expose
   only the approved lambda-encoded opaque handles.
 - [ ] Make close behavior and failure cleanup deterministic, including stale

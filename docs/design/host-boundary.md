@@ -1,17 +1,26 @@
 # Host boundary design
 
-Status: proposed; explicit approval required before implementation
+Status: proposed; host direction approved, detailed contract approval required
+before implementation
 
-Date: 2026-08-24
+Date: 2026-08-27
 
 This document fixes the contract for the second milestone's single privileged
 outside-world boundary. It is subordinate to the three canonical
 [specifications](../specifications/README.md). Until approved, it authorizes no
 production interop code and no relaxation of `AGENTS.md`.
 
+Kyle approved using the single `host` boundary in Alone the Lambdas on
+2026-08-27. That settles the high-level language direction. The concrete
+request, codec, authority, and runtime contract below remains the separate
+implementation approval gate.
+
 ## Decision summary
 
 - The public boundary is exactly one unary function: `host`.
+- Exact object-language-to-Racket and Racket-to-object-language conversion is
+  isolated in `runtime/codec.rkt`; it is trusted conversion code but has no
+  operating-system effects, registry, or language-visible export.
 - `host` accepts one canonical proper List request.
 - A non-List argument or incoming Error follows the existing strict Error
   rules. A malformed List request returns InvalidHostRequest Error. A valid
@@ -49,9 +58,12 @@ dispatcher. A schema-valid request crosses the privileged boundary and
 returns one canonical Result. The dispatcher defensively validates the decoded
 shape again, but it never broadens the public contract.
 
-The trusted implementation may have private Racket helpers. It exports only
-the one `host` value and exposes no generic callback, evaluator, namespace,
-port, or dispatcher handle.
+The trusted implementation is split by capability. `runtime/codec.rkt`
+performs only exact representation conversion. `runtime/host.rkt` imports
+that codec, performs the closed dispatch and approved effects, and exports
+only the one `host` value. Neither module exposes a generic callback,
+evaluator, namespace, port, dispatcher handle, or codec through the Alone the
+Lambdas language surface.
 
 ## Request encoding
 
@@ -126,11 +138,12 @@ Every schema-valid request returns Result:
 - Err contains a canonical HostFailure Error.
 
 Two new Error kinds use the permitted tiny Church metadata namespace without
-changing the closed type-tag table:
+changing the closed type-tag table (kind 6 is the core's
+WRONG-RESULT-VARIANT):
 
 ```text
-6  INVALID-HOST-REQUEST
-7  HOST-FAILURE
+7  INVALID-HOST-REQUEST
+8  HOST-FAILURE
 ```
 
 Both kinds use the existing Error-root shape. Their `details` field is exactly
@@ -180,6 +193,51 @@ Malformed direct `host` calls are contract failures and therefore bare Error,
 not Result Err. A valid request rejected by the operating system is expected
 external failure and therefore Result Err. This preserves the existing
 Error-versus-Result distinction.
+
+## Boundary codecs
+
+Request construction is not boundary conversion. `effects/protocol.rkt` and
+the public wrappers construct and validate lambda-encoded requests using pure
+object-language computation. Only a schema-valid request reaches the trusted
+runtime.
+
+Here, codec means exact representation conversion, not compression or text
+encoding. `runtime/codec.rkt` is the one deterministic bidirectional
+conversion module. It may force already-validated lazy object-language
+values, inspect their canonical lambda representations, and use Racket
+control flow, exact nonnegative integers, immutable byte strings, and
+temporary private collections solely to translate representations. Each
+implementation phase may add only the conversions needed by the operations
+implemented in that phase:
+
+- object-language Char and String values to exact host bytes and exact host
+  bytes back to canonical object-language Char and String values;
+- object-language Nat values to exact host integers and exact nonnegative host
+  integers back to normalized object-language Nat values when TCP handles and
+  bounds are added;
+- the proper Lists, typed acknowledgements, Result values, and Error values
+  needed to return the closed response algebra.
+
+Object-language-to-host decoding defensively checks the expected tag, proper
+List shape, Char range, and normalized Nat representation even though pure
+protocol validation has already run. A conversion failure returns the
+applicable InvalidHostRequest reason without dispatching an effect.
+Host-to-object-language encoding always constructs canonical values: zero is
+`[0]`, positive Nats have no leading zeroes, every Char is 0 through 255, every
+List has a List tail, and no Racket value is captured inside the returned
+lambda term.
+
+The codec does not interpret paths or hostnames, dispatch operations, perform
+stdout/file/TCP access, normalize operating-system exceptions, mutate the
+handle registry, implement object-language algorithms, or format values for
+people. It does not import any reader. Raw stdout, file, and TCP content
+remains bytes; only `runtime/host.rkt` applies the separately specified UTF-8
+rule when a decoded byte sequence is used as a path or network name.
+
+The codec is internal trusted infrastructure, not a second object-language
+primitive. Only `runtime/host.rkt` may import it in production. Tests may
+import it directly to prove exact round trips, canonical output,
+malformed-value rejection, and absence of effects.
 
 ## Byte, path, and file semantics
 
@@ -280,8 +338,8 @@ libraries.
 
 ## Modules and dependency direction
 
-The approved implementation will add only demonstrated files within these
-layers:
+The implementation, once approved, will add only demonstrated files within
+these layers:
 
 ```text
 core/                 unchanged pure data and computation
@@ -289,7 +347,8 @@ effects/protocol.rkt  pure request validation, constants, and Error data
 effects/stdout.rkt    pure injected-host wrapper
 effects/files.rkt     pure injected-host wrappers
 effects/tcp.rkt       pure injected-host wrappers
-runtime/host.rkt      the only trusted Racket effect bridge and registry
+runtime/codec.rkt     trusted exact conversion; no operating-system effects
+runtime/host.rkt      sole language host binding, dispatcher, effects, registry
 lang/                 future standalone reader, expander, and facade
 ```
 
@@ -297,14 +356,18 @@ Dependencies are one-way:
 
 ```text
 core <- effects <- lang
-core + effects/protocol <- runtime/host <- lang
+core <- runtime/codec <- runtime/host <- lang
+core <- effects/protocol <- runtime/host
 ```
 
 `core/` never imports upward. `effects/` never imports `runtime/`; it receives
-one host function as an ordinary lambda argument. `runtime/host.rkt` may force
-and translate canonical values solely to execute the closed protocol and
-construct canonical return values. Human-facing readers remain outside the
-computational dependency graph and are not reused as bidirectional codecs.
+one host function as an ordinary lambda argument. `runtime/codec.rkt` imports
+only the core representations and the narrowly allowed Racket facilities
+needed for exact conversion. No production module except `runtime/host.rkt`
+may import the codec. The host module imports the codec and protocol, performs
+the approved effects, and constructs responses through the codec. Human-facing
+readers remain outside the computational dependency graph and are not reused
+as bidirectional codecs.
 
 ## Purity classifications
 
@@ -315,7 +378,8 @@ classes:
 | --- | --- | --- |
 | `core/` | none | Existing absolute unary-lambda/application scan; `host` remains forbidden |
 | `effects/` | invocation of its injected unary host argument only | Same pure-form scan plus no Racket effect imports or definitions |
-| `runtime/host.rkt` | only the approved byte/file/TCP operations, conversion, exception normalization, and private registry state | Exact-path trusted-boundary scan, import allowlist, one exported `host`, and forbidden eval/process/FFI/environment capabilities |
+| `runtime/codec.rkt` | deterministic canonical conversion between object-language values and private host bytes/integers/collections | Exact-path conversion scan, narrow import allowlist, no I/O or network imports, no mutation or registry, no reader imports, and no language-visible export |
+| `runtime/host.rkt` | only the approved byte/file/TCP operations, UTF-8 interpretation, exception normalization, and private registry state | Exact-path effect scan, import allowlist, sole exported `host`, sole production codec importer, and forbidden eval/process/FFI/environment capabilities |
 | `lang/` | mechanical expansion and import/export wiring | No OS operations; one import of production `host`; literal expansion produces pure terms |
 | `macros/` | mechanical syntax translation | Existing macro classification |
 | `readers/` | one-way human observation | Must not enter core/effect computation |
@@ -324,10 +388,16 @@ classes:
 Repository checks must prove:
 
 - exactly one production module defines and exports `host`;
-- no other production module imports Racket filesystem, TCP, process, eval,
-  dynamic-loading, environment, or FFI facilities;
+- no production module except `runtime/host.rkt` imports the codec or Racket
+  filesystem/TCP facilities;
+- the codec imports no effects, readers, filesystem, TCP, process, eval,
+  dynamic-loading, environment, FFI, or mutation facilities;
+- no production module imports process, eval, dynamic-loading, environment,
+  or FFI facilities;
 - every pure production lambda is unary after mechanical expansion;
 - every wrapper's fake-host trace contains only its canonical request;
+- every implemented codec direction has exact round-trip, canonicality, and
+  malformed-value coverage;
 - `core/` retains zero exceptions and all existing acceptance evidence.
 
 Approval changes only the deliberate `host` exception. It does not authorize
@@ -339,6 +409,9 @@ checking, Result control flow, or other ordinary language behavior.
 Each implementation phase must have both deterministic and real-boundary
 coverage:
 
+- codec: all 256 byte/Char values, empty and embedded-zero Strings,
+  representative Nat boundaries when added, canonical output, malformed input,
+  and proof that conversion itself performs no effect;
 - fake host: exact request shape, no call after contract Error, result
   propagation, failure propagation, branch laziness, and call count;
 - stdout: byte capture and flush-visible completion;
@@ -402,8 +475,11 @@ These are implementation feasibility facts, not object-language semantics.
 
 Approval accepts the request schemas, Result/Error split, byte and path rules,
 destructive replacement behavior of `write-file`, process-level authority,
-blocking TCP lifecycle, purity classifications, and standalone literal policy
-defined above.
+blocking TCP lifecycle, separated codec/host trust boundary, purity
+classifications, and standalone literal policy defined above.
+
+Kyle approved the high-level use of `host` on 2026-08-27. That approval does
+not by itself approve these detailed implementation boundaries.
 
 Until Kyle explicitly replies:
 
