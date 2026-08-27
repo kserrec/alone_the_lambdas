@@ -13,15 +13,16 @@ variables, unary lambdas, and application.
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
 > green. The approved Phase 13
-> [host-boundary design](docs/design/host-boundary.md) now has four implemented
+> [host-boundary design](docs/design/host-boundary.md) now has five implemented
 > slices: Phase 14 adds exact String-byte conversion, one unary `host`, and
 > pure injected-host `stdout`; Phase 15 adds pure `read-file`/`write-file`
 > wrappers and byte-exact whole-file effects; Phase 16 adds pure blocking TCP
 > wrappers, canonical Nat/host-integer conversion, and a private listener and
 > connection registry inside that same closed host; Phase 17 adds pure HTTP/1.1
 > request parsing and deterministic response rendering without changing the
-> host. A separate structural gate enforces the boundary. The minimal
-> TCP-composed HTTP server is the next unstarted phase. See
+> host; Phase 18 adds pure path routing, one-connection serving, and a blocking
+> sequential HTTP loop over the same TCP wrappers. A separate structural gate
+> enforces the boundary. The standalone `#lang` surface is the next phase. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -65,8 +66,8 @@ precedence over conflicting examples in the base specification.
   phases to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
   approved second-milestone protocol, authority, codecs, and purity
-  classifications; Phases 14 through 17 implement its `stdout`, file, TCP,
-  and pure HTTP-message slices.
+  classifications; Phases 14 through 18 implement its `stdout`, file, TCP,
+  and pure HTTP-message/server slices.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -134,6 +135,10 @@ precedence over conflicting examples in the base specification.
 - `effects/http-response.rkt` separately provides the pure deterministic
   renderer for 200, 400, 404, and 500 responses with byte-accurate decimal
   content lengths and connection-close framing.
+- `effects/http-server.rkt` composes only the pure HTTP modules and injected-
+  host TCP wrappers. It provides a unary path handler factory, one-connection
+  serving over a caller-owned listener, and a blocking sequential loop that
+  closes every accepted connection.
 - `runtime/codec.rkt` performs exact deterministic conversion between lambda
   Lists/Chars/Strings/Nats/Results and private host bytes, integers, and
   temporary collections, with no operating-system effects or mutation.
@@ -166,9 +171,10 @@ precedence over conflicting examples in the base specification.
   imported from a project module that passes the same scan. The two `macros/`
   files and the Racket installation are its semantic trusted base.
 - `tooling/check-boundaries.rkt` separately pins the two mechanical macro
-  modules, admits only pure effect and HTTP-message modules, deterministic
-  codec conversion, the exact sole-host import/export path, and Phase 16's closed stdout,
-  whole-file, and five-binding `racket/tcp` capability set. It rejects wrapped
+  modules, admits only pure effect and HTTP-message/server modules,
+  deterministic codec conversion, the exact sole-host import/export path, and
+  the unchanged closed stdout, whole-file, and five-binding `racket/tcp`
+  capability set. It rejects wrapped
   privileged imports, every second production filesystem/TCP importer,
   authorizes imports before reading their exports, validates every project-root
   and production-path component before discovery, rejects symlinks without
@@ -197,7 +203,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 3,995 assertions across 27 test files,
+green. The repository currently has 4,136 assertions across 28 test files,
 plus the independent expanded scan of all 16 core modules and the production
 boundary-classification gate. GitHub Actions runs the same suite for pushes
 and pull requests.

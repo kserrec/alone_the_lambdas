@@ -35,7 +35,10 @@ conversion, a private monotonic listener/connection registry, complete writes,
 bounded reads, explicit close, and loopback-only integration coverage. Phase
 17 adds a pure minimal HTTP/1.1 request parser, lambda-computed response
 rendering, byte-accurate decimal content lengths, and focused protocol/purity
-coverage without extending the host.
+coverage without extending the host. Phase 18 composes those message functions
+with the injected-host TCP wrappers into one-connection serving and a blocking
+sequential loop, with routing and status/body selection performed by an
+ordinary unary lambda handler.
 
 ## Computational boundary
 
@@ -114,8 +117,9 @@ directly, while `readers/string.rkt` remains outside the production dependency
 graph.
 
 `effects/protocol.rkt`, `effects/stdout.rkt`, `effects/files.rkt`,
-`effects/tcp.rkt`, `effects/http.rkt`, and `effects/http-response.rkt` remain
-ordinary lambda computation. The host protocol validates
+`effects/tcp.rkt`, `effects/http.rkt`, `effects/http-response.rkt`, and
+`effects/http-server.rkt` remain ordinary lambda computation. The host
+protocol validates
 canonical flat requests, exact arity, types, and TCP bounds before invoking
 its injected strict dispatcher; the wrapper modules construct only the closed
 stdout, whole-file, and six-operation blocking TCP request algebra. The HTTP
@@ -128,6 +132,14 @@ These line and framing choices follow
 [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html); methods, target forms,
 versions, bodies, pipelining, and statuses outside the deliberately stated
 subset return Result Err rather than expanding into a general HTTP framework.
+The server accepts a caller-owned listener handle, accumulates bounded TCP
+reads until the parser resolves a request, passes the target String to a unary
+handler, writes only a validated Ok response String, and closes every accepted
+connection. Its single-path handler factory compares targets and selects the
+explicit status/body branch in the lambda layer; `make-http-serve-one` handles
+one connection and `make-http-server` repeats successful connections
+sequentially until a Result Err or Error. The listener remains caller-owned so
+ephemeral bound-port discovery and explicit lifetime management stay visible.
 None imports `runtime/`. The trusted `runtime/codec.rkt` converts exact
 List/Char/String/Nat shapes to private immutable bytes and integers and
 constructs canonical response values without effects or mutation.
@@ -439,6 +451,7 @@ effects/
   tcp.rkt
   http.rkt
   http-response.rkt
+  http-server.rkt
 runtime/
   codec.rkt
   host.rkt
@@ -458,8 +471,8 @@ tooling/
 run-all-tests.sh
 ```
 
-Sixteen zero-exception production modules remain under `core/`; Phase 17 has
-six pure effect modules, two separately pinned mechanical macro modules, and
+Sixteen zero-exception production modules remain under `core/`; Phase 18 has
+seven pure effect modules, two separately pinned mechanical macro modules, and
 two separately classified runtime boundary modules. `lang/` remains absent
 until Phase 19 supplies and tests its classification. New abstraction layers
 require a concrete need.
@@ -577,15 +590,18 @@ behavior; four fixed status lines; empty, text, and arbitrary-byte bodies;
 single- and multi-digit decimal content lengths; connection-close framing; and
 deterministic byte output. The separate boundary suite proves that host String,
 regex, arithmetic, and HTTP-library helpers remain unavailable to this pure
-module class.
+module class. HTTP server tests add exact TCP-only fake traces across success,
+fragmentation, failures, cleanup, and two serial connections. A test-side
+external HTTP client reaches the real loopback listener and receives the
+lambda handler's selected response; production imports no HTTP client or
+threading facility.
 
 ## Implemented and planned boundary
 
-The completed core still contains no `host` form. Phases 13 through 17 in
+The completed core still contains no `host` form. Phases 13 through 18 in
 [PLAN.md](PLAN.md) approved and implemented exactly one explicit boundary plus
 ordinary lambda wrappers for stdout, whole-file access, blocking TCP, and a
-pure HTTP message layer. The approved
+pure HTTP message and sequential-server layer. The approved
 protocol and its full process-level filesystem/network authority are recorded
-in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 18 is the
-next unfinished phase and composes TCP with the pure HTTP messages into the
-minimal sequential server; the standalone language surface remains later.
+in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 19 is the
+next unfinished phase and adds the standalone language surface.

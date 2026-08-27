@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: implementation in progress; Phase 17 complete
+Status: implementation in progress; Phase 18 complete
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,8 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phases 14 through 17 are complete and Phase
-18 is the next unfinished phase.
+2026-08-27. The gate is satisfied; Phases 14 through 18 are complete and Phase
+19 is the next unfinished phase.
 
 The following constraints apply throughout:
 
@@ -376,19 +376,38 @@ pure effect module.
 
 ## Phase 18 — Minimal lambda-built HTTP server
 
-- [ ] Compose the TCP wrappers and pure HTTP message layer into a blocking,
+Status: complete (2026-08-27)
+
+- [x] Compose the TCP wrappers and pure HTTP message layer into a blocking,
   sequential server with an ordinary lambda request handler.
-- [ ] Support the minimal useful subset: one request per connection, GET
+- [x] Support the minimal useful subset: one request per connection, GET
   routing by path, explicit status/body output, and connection close.
-- [ ] Preserve expected network and parse failures as Result values and close
+- [x] Preserve expected network and parse failures as Result values and close
   acquired handles on every completed path.
-- [ ] Add a real loopback acceptance test driven by a test-side external HTTP
+- [x] Add a real loopback acceptance test driven by a test-side external HTTP
   client, plus deterministic fake-host traces proving the only effects are the
   documented TCP requests.
 
 Acceptance: an external client receives the response selected by a lambda
 handler, and neither parsing, routing, nor response construction uses host
 computation.
+
+Completion evidence: 4,136 assertions across 28 test files, the unchanged
+expanded purity scan over all 16 `core/` modules, and the Phase 18 boundary
+gate passed on 2026-08-27. `effects/http-server.rkt` adds a strict pure
+single-path handler factory, a one-connection operation over a caller-owned
+listener, and a blocking sequential loop. The handler maps the parsed target
+String to a Result containing complete response bytes; route comparison,
+status/body selection, and rendering remain lambda computation. Every
+accepted connection is closed after success, parse failure, EOF, handler
+failure, or network failure; an earlier failure remains primary if cleanup
+also fails. The 141 focused assertions cover unary partial application,
+strict contracts, selected-branch laziness, fragmented reads, malformed and
+incomplete requests, accept/read/write/close failures, handler Errors and
+invalid results, force-once serving, exact TCP-only traces, two serial
+connections, and a real ephemeral-loopback request from test-side
+`net/http-client`. Listener ownership remains explicit: the caller that
+obtains a listener through `tcp-listen` closes it after serving.
 
 ## Phase 19 — Standalone `#lang` surface
 

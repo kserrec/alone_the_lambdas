@@ -37,6 +37,10 @@ Phase 17 was verified on 2026-08-27 with `./run-all-tests.sh`: 3,995 passing
 assertions across 27 test files, the unchanged clean 16-module expanded core
 scan, and the pure HTTP-aware effects/runtime boundary scan.
 
+Phase 18 was verified on 2026-08-27 with `./run-all-tests.sh`: 4,136 passing
+assertions across 28 test files, the unchanged clean 16-module expanded core
+scan, and the pure HTTP-server-aware effects/runtime boundary scan.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -105,11 +109,20 @@ scan, and the pure HTTP-aware effects/runtime boundary scan.
 | Response bytes and lengths are built entirely in the lambda layer. | [`http-response.rkt`](../effects/http-response.rkt) isolates response construction from parsing. [`http-test.rkt`](../tests/http-test.rkt) proves exact 200, 400, 404, and 500 status lines, `Content-Length` values at zero and across the 9-to-10 decimal boundary, `Connection: close`, the empty header terminator, byte-exact text and 0/128/255 bodies, deterministic repeated rendering, unsupported-status Result Err, strict contracts, and early-Error absorption. |
 | The pure HTTP classification is enforced rather than asserted. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) discovers both HTTP modules automatically under the same closed unary-lambda/application class as every effect module. [`boundary-check-test.rkt`](../tests/boundary-check-test.rkt) contains direct rejection probes for Racket `string-length`, `regexp-match?`, `+`, and `net/http-client`/`http-sendrecv`; the independent expanded core scan remains exactly 16 zero-exception modules. |
 
+## Phase 18 minimal-HTTP-server evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Routing and response selection remain ordinary lambda computation. | [`http-server.rkt`](../effects/http-server.rkt) defines a strict six-position `make-http-path-handler`; applying its path, matched status/body, and fallback status/body produces a unary `String -> Result String` handler. [`http-server-test.rkt`](../tests/http-server-test.rkt) proves exact matched and fallback responses, selected-branch laziness when the other status is unsupported, strict contracts, incoming-Error absorption, and the dedicated invariant Error for an invalid handler result. |
+| One request is handled per connection with deterministic cleanup. | `make-http-serve-one` accepts a caller-owned listener and per-read maximum, accumulates lambda String chunks, invokes the Phase 17 parser and handler, writes one complete response, and closes its accepted connection on every completed success or failure path. Focused fake-host cases prove malformed input, incomplete EOF, accept/read/write/close failures, handler Err/Error behavior, primary-failure preservation when cleanup also fails, and force-once execution. |
+| The blocking server is sequential and uses only documented TCP effects. | `make-http-server` repeats successful one-connection operations with the pure fixed point and stops at the first Error or Result Err. A deterministic two-connection trace is exactly accept/read/write/close, accept/read/write/close, then the terminating accept failure; no listener close is hidden because the caller owns that handle. The project boundary scan automatically classifies the new module as a pure effect module and rejects runtime, HTTP-library, host String, arithmetic, mutation, control-flow, and non-unary shortcuts. |
+| A real external HTTP client receives the lambda-selected response. | [`http-server-test.rkt`](../tests/http-server-test.rkt) obtains an ephemeral `127.0.0.1` listener through the real host, runs one blocking serve operation with test-only concurrency, and uses test-side `net/http-client` to request `/lambda`. It verifies the exact 200 status, `Content-Length`, `Connection: close`, body, successful connection cleanup, and explicit caller cleanup of the listener without contacting any external service. |
+
 ## What this milestone does not claim
 
 The repository now contains the verified core plus the explicit stdout,
 whole-file, and blocking-TCP slices of the approved host boundary, plus pure
-HTTP request parsing and response rendering. It does not yet provide an HTTP
-server, the standalone `#lang`, literal syntax, or a command-line runner.
-Those features remain ordered future phases and must preserve both the core
-purity proof and the boundary classifications.
+HTTP request parsing, response rendering, routing, and a blocking sequential
+server. It does not yet provide the standalone `#lang`, literal syntax, or a
+command-line runner. Those features remain ordered future phases and must
+preserve both the core purity proof and the boundary classifications.

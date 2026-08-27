@@ -89,10 +89,9 @@ design.
 - Never use Graphify in this repository or create or update `graphify-out/`.
   Inspect the repository directly for codebase, architecture, and project
   questions.
-- Do not build deferred features beyond the completed phase: the HTTP server,
-  standalone language surface, parser beyond approved Lisp
-  syntax, optimizer, compiler, records, JSON, or unrelated standard-library
-  breadth.
+- Do not build deferred features beyond the completed phase: the standalone
+  language surface, parser beyond approved Lisp syntax, optimizer, compiler,
+  records, JSON, or unrelated standard-library breadth.
 
 ## Tests and verification
 

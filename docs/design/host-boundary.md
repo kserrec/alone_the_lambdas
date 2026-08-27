@@ -1,6 +1,6 @@
 # Host boundary design
 
-Status: approved 2026-08-27; Phase 17 pure HTTP messages implemented
+Status: approved 2026-08-27; Phase 18 minimal HTTP server implemented
 
 Date: 2026-08-27
 
@@ -12,9 +12,10 @@ closed implementation described here and no broader relaxation of
 
 Kyle approved using the single `host` boundary in Alone the Lambdas and then
 approved this concrete request, codec, authority, and runtime contract on
-2026-08-27. Phases 14 through 17 subsequently implemented the approved codec
+2026-08-27. Phases 14 through 18 subsequently implemented the approved codec
 split, sole host bridge, `stdout`, whole-file operations, and complete blocking
-TCP lifecycle, followed by pure HTTP parsing and rendering outside the host.
+TCP lifecycle, followed by pure HTTP parsing, rendering, routing, and
+sequential serving outside the host.
 
 ## Decision summary
 
@@ -353,6 +354,7 @@ effects/files.rkt     pure injected-host wrappers
 effects/tcp.rkt       pure injected-host wrappers
 effects/http.rkt      pure HTTP request parsing and shared message constants
 effects/http-response.rkt  pure HTTP response rendering
+effects/http-server.rkt  pure routing and sequential TCP/HTTP composition
 runtime/codec.rkt     trusted exact conversion; no operating-system effects
 runtime/host.rkt      sole language host binding, dispatcher, effects, registry
 lang/                 future standalone reader, expander, and facade
@@ -381,8 +383,9 @@ Phase 14 updated tooling and project rules to enforce these distinct classes;
 Phase 15 extended the host's exact capability vocabulary for whole-file read
 and replacement, Phase 16 admitted only the five `racket/tcp` bindings needed
 for the approved lifecycle while adding a project-wide sole-importer check,
-and Phase 17 added pure HTTP messages under the unchanged `effects/` class.
-The other classifications remain unchanged:
+Phase 17 added pure HTTP messages under the unchanged `effects/` class, and
+Phase 18 added only pure TCP/HTTP composition under that same class. The other
+classifications remain unchanged:
 
 | Class | Allowed boundary | Required check |
 | --- | --- | --- |
@@ -515,5 +518,12 @@ incremental GET request parsing into target Strings, distinct Result Err
 outcomes, fixed response status and header rendering, lambda-computed decimal
 content lengths, exact binary bodies, and explicit boundary regressions that
 reject host String, regex, arithmetic, and HTTP-library helpers. It added no
-host operation or authority. The broader approval record above still controls
-the unimplemented HTTP server and standalone phases.
+host operation or authority. Phase 18 then composed those pure message
+functions with the existing injected-host TCP wrappers: a strict single-path
+handler selects explicit statuses and bodies, one-connection serving closes
+every accepted connection on completed paths, and the blocking server repeats
+that operation sequentially over a caller-owned listener. Deterministic fakes
+prove exact TCP-only traces, while a test-side external HTTP client proves the
+real ephemeral-loopback response. Phase 18 likewise added no host operation,
+authority, runtime import, production thread, or HTTP library. The broader
+approval record above still controls the unimplemented standalone phases.
