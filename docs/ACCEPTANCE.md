@@ -1,9 +1,10 @@
-# Core milestone acceptance
+# Acceptance evidence
 
-This document maps every first-milestone completion criterion to observed
+This document maps every completed core and effects requirement to observed
 evidence in the repository. The authoritative requirements remain the three
-[specifications](specifications/README.md); this is their verification index,
-not a replacement.
+[specifications](specifications/README.md) and the approved
+[host-boundary design](design/host-boundary.md); this is their verification
+index, not a replacement.
 
 Verified on 2026-08-26 with:
 
@@ -18,6 +19,10 @@ clean structural scan of all 16 production modules.
 Phase 14 was verified on 2026-08-27 with `./run-all-tests.sh`: 3,151 passing
 assertions across 22 test files, the same clean 16-module core scan, and a
 clean effects/codec/host boundary scan.
+
+Phase 15 was verified on 2026-08-27 with `./run-all-tests.sh`: 3,307 passing
+assertions across 24 test files, the unchanged clean 16-module core scan, and
+the extended effects/codec/host boundary scan.
 
 ## Base specification criteria
 
@@ -54,15 +59,24 @@ clean effects/codec/host boundary scan.
 | Requirement | Evidence |
 | --- | --- |
 | Exact byte conversion is isolated from effects. | [`codec-test.rkt`](../tests/codec-test.rkt) covers all 256 byte values, empty and embedded-zero Strings, immutable output, source-byte copying, canonical List/Char/String construction, malformed tags/tails/elements, leading-zero and out-of-range Char rejection, and canonical Ok/Err construction. [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) rejects codec I/O, mutation, registries, readers, runtime dependencies, unknown strict-module identifiers, and unauthorized exports. |
-| `host` is one unary, closed privileged bridge. | [`host-test.rkt`](../tests/host-test.rkt) checks unary arity, the strict outer List contract, every stdout schema failure, defensive codec rejection, canonical InvalidHostRequest/HostFailure details, incoming Error propagation, and cached force-once behavior. The boundary checker requires the sole `host` definition/export, its protocol and codec imports, and rejects every second codec importer or host surface. |
+| `host` is one unary, closed privileged bridge. | [`host-test.rkt`](../tests/host-test.rkt) checks unary arity, the strict outer List contract, every implemented stdout/file schema failure, defensive codec rejection, canonical InvalidHostRequest/HostFailure details, incoming Error propagation, and cached force-once behavior. The boundary checker requires the sole `host` definition/export, its protocol and codec imports, and rejects every second codec importer or host surface. |
 | `stdout` remains ordinary lambda computation. | [`stdout-test.rkt`](../tests/stdout-test.rkt) proves the exact `["stdout", bytes]` request, strict String rejection before dispatch, deterministic fake-host traces, unchanged Result propagation, unary shape, and lazy single dispatch. The boundary checker allowlists every effect identifier/import/export and rejects host data, non-unary forms, runtime imports, and unknown Lazy Racket bindings. |
 | Real stdout is byte-exact and expected failure is Result Err. | [`host-test.rkt`](../tests/host-test.rkt) captures empty, embedded-zero, and byte-255 output with no newline, observes output only after forcing, proves repeat forcing does not write twice, proves an unselected host branch performs no effect, and maps a closed output port to `Err HostFailure("stdout", "io-failure")`. |
 | The completed core boundary is unchanged. | [`check-purity.rkt`](../tooling/check-purity.rkt) still performs its zero-exception expanded scan over exactly 16 `core/` modules. [`run-all-tests.sh`](../run-all-tests.sh) runs that gate and the new boundary-classification gate independently. |
 
+## Phase 15 file-effects evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| File wrappers remain ordinary lambda computation. | [`files-test.rkt`](../tests/files-test.rkt) proves the exact `["read-file", path]` and `["write-file", path, bytes]` requests, unary curried shape, no fake-host call during construction or partial application, force-once dispatch, unchanged Result propagation, strict String contracts at both positions, and exact remaining-arity absorption after an early Error. [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) scans `effects/files.rkt` under the same pure-form and closed-import rules as the other effect modules. |
+| File contents cross as byte-exact String values. | [`file-host-test.rkt`](../tests/file-host-test.rkt) writes and reads empty content plus bytes 0, 128, and 255, proves complete round trips without a reader, and proves a fresh shorter write truncates and replaces an existing longer file. It also verifies relative UTF-8 and absolute paths inside a temporary directory and removes that directory after the test. |
+| Paths and expected filesystem failures have closed Result codes. | [`file-host-test.rkt`](../tests/file-host-test.rkt) proves real missing-parent and missing-file mapping, invalid UTF-8 as `invalid-text`, a decoded NUL path as `invalid-path`, a directory read as fallback `io-failure`, deterministic permission/resource/timeout errno categories, and Racket's explicit out-of-memory category. Both read and write permission failures carry their own canonical operation String; no exception text, path, or errno enters the Error. |
+| Filesystem authority is confined to the sole host. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) permits only the exact `file->bytes` import and replacement-output capability in `runtime/host.rkt`; it still rejects file access in the codec and effects, broad `racket/file` imports, deletion, directory operations, every second codec importer, and every second `host` surface. [`boundary-check-test.rkt`](../tests/boundary-check-test.rkt) proves those denials. |
+
 ## What this milestone does not claim
 
-The repository now contains the verified core plus the explicit Phase 14
-`stdout` boundary. It does not yet provide the standalone `#lang`, literal
-syntax, command-line runner, file effects, networking, or later pure HTTP
-layers. Those features remain ordered future phases and must preserve both the
-core purity proof and the new boundary classifications.
+The repository now contains the verified core plus the explicit stdout and
+whole-file slices of the approved host boundary. It does not yet provide the
+standalone `#lang`, literal syntax, command-line runner, networking, or later
+pure HTTP layers. Those features remain ordered future phases and must
+preserve both the core purity proof and the boundary classifications.

@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: implementation in progress; Phase 14 complete
+Status: implementation in progress; Phase 15 complete
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,8 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phase 14 is complete and Phase 15 is the
-next unfinished phase.
+2026-08-27. The gate is satisfied; Phases 14 and 15 are complete and Phase 16
+is the next unfinished phase.
 
 The following constraints apply throughout:
 
@@ -274,24 +274,30 @@ gate all passed on 2026-08-27.
 
 ## Phase 15 — File effects
 
-Status: next; not started
+Status: complete (2026-08-27)
 
-- [ ] Add pure `read-file` and `write-file` wrappers over the approved request
+- [x] Add pure `read-file` and `write-file` wrappers over the approved request
   protocol.
-- [ ] Encode file contents as String byte values using Char 0 through 255; do
+- [x] Encode file contents as String byte values using Char 0 through 255; do
   not route language computation through the existing human-facing readers.
-- [ ] Map missing paths, denied access, invalid path text, and other expected
+- [x] Map missing paths, denied access, invalid path text, and other expected
   operating-system failures to the approved Result Err representation.
-- [ ] Reuse the verified byte-exact String codec without importing the
+- [x] Reuse the verified byte-exact String codec without importing the
   human-facing readers; keep UTF-8 path interpretation in the host operation.
-- [ ] Test round trips, empty and non-ASCII byte content, replacement
+- [x] Test round trips, empty and non-ASCII byte content, replacement
   semantics, cleanup, contract Errors, and fake-host request structure in
   isolated temporary directories.
 
 Acceptance: a lambda program can write and recover identical byte content,
 and all filesystem access is confined to the trusted dispatcher.
 
+Completion evidence: 3,307 assertions across 24 test files, the unchanged
+purity scan over 16 `core/` modules, and the Phase 15 effects/runtime boundary
+gate all passed on 2026-08-27.
+
 ## Phase 16 — Blocking TCP effects
+
+Status: next; not started
 
 - [ ] Add the approved connect, listen, accept, read, write, and close host
   operations and their pure lambda wrappers.

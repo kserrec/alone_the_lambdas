@@ -160,6 +160,14 @@
     (kinds (file-boundary-violations codec 'codec root))
     '(forbidden-codec-capability))
 
+   ;; File conversion remains privileged even after the host gains the
+   ;; approved read-file operation.
+   (write-datum codec
+                (codec-datum '(define leak (file->bytes "path"))))
+   (check-equal?
+    (kinds (file-boundary-violations codec 'codec root))
+    '(forbidden-codec-capability))
+
    (write-datum codec
                 (codec-datum
                  '(define (mutate value)
@@ -199,6 +207,28 @@
    (check-equal?
     (kinds (file-boundary-violations host-file 'host root))
     '(forbidden-host-capability))
+
+   ;; Phase 15 approves read and replacement only. Deletion and broad
+   ;; racket/file imports remain outside the closed host capability set.
+   (write-datum host-file
+                (host-datum '(provide host) '(delete-file request)))
+   (check-equal?
+    (kinds (file-boundary-violations host-file 'host root))
+    '(forbidden-host-capability))
+
+   (write-datum
+    host-file
+    '(module host racket/base
+       (#%module-begin
+        (require (only-in racket/file file->bytes directory-list)
+                 (only-in "../effects/protocol.rkt" bridge)
+                 (only-in "codec.rkt" object-ok))
+        (provide host)
+        (define (host request) request))))
+   (define broad-file-findings
+     (kinds (file-boundary-violations host-file 'host root)))
+   (check-not-false (member 'disallowed-host-import broad-file-findings))
+   (check-not-false (member 'forbidden-host-capability broad-file-findings))
 
    ;; The exact runtime vocabularies reject capabilities not covered by a
    ;; finite blacklist, including a clock from racket/base.

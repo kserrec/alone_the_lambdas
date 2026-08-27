@@ -1,12 +1,12 @@
 #lang racket/base
 
-;; Structural gate for the deliberately nonuniform Phase 14 production tree.
+;; Structural gate for the deliberately nonuniform Phase 15 production tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
 ;; checker adds the approved classes without weakening that proof:
 ;;
 ;;   effects/             pure source forms and closed project imports
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
-;;   runtime/host.rkt     sole host export and the Phase 14 stdout allowlist
+;;   runtime/host.rkt     sole host export and the Phase 15 effect allowlist
 
 (require racket/file
          racket/list
@@ -47,7 +47,7 @@
 (define forbidden-host-capabilities
   '(read read-byte read-bytes read-line write write-byte display print printf
     open-input-file open-output-file call-with-input-file
-    call-with-output-file file->bytes file->string
+    file->string
     directory-list make-directory make-directory* delete-directory
     delete-directory/files delete-file rename-file-or-directory copy-file
     tcp-connect tcp-listen tcp-accept tcp-close udp-open-socket
@@ -59,7 +59,7 @@
 ;; Exact source vocabularies make the implicit racket/base import explicit.
 ;; Adding even an otherwise unknown identifier to either trusted runtime file
 ;; requires a deliberate update here in the same phase that approves it.
-(define phase14-codec-vocabulary
+(define phase15-codec-vocabulary
   '(#%module-begin * + <= > NIL and apply argument bit bits bits-value
     boolean? byte->object-char bytes bytes->immutable-bytes
     bytes->object-string bytes? car cdr char char-type chars codec
@@ -79,20 +79,28 @@
     struct-out tail total true-marker unless value values with-handlers
     wrong-type zero?))
 
-(define phase14-host-vocabulary
-  '(#%module-begin = EMPTY-STRING NIL argument bytes->object-string bytes=?
-    cadr car case codec-failure-reason codec-failure? cond
-    current-output-port decoded-request define dispatch-request else
-    exn:fail? failure first flush-output force function host if
-    invalid-codec-request invalid-request io-failure-code lambda lazy-apply
-    lazy-apply2 length make-host-bridge make-host-failure
-    make-invalid-host-request module not object-err object-list->host-list
-    object-ok object-string->bytes only-in operation operation-bytes
-    operation-value out-of-range out-of-range-reason output payload
-    perform-stdout provide racket/base racket/promise reason reason->object
-    request require second stdout-failure stdout-operation
-    unknown-operation-reason with-handlers write-bytes wrong-arity-reason
-    wrong-type-reason))
+(define phase15-host-vocabulary
+  '(#%module-begin = EMPTY-STRING NIL and argument bytes->object-string
+    bytes->string/utf-8 bytes=? cadr caddr call-with-output-file car case cdr
+    code codec-failure-reason codec-failure? cond current-output-port
+    decode-path decoded-request define dispatch-one-string dispatch-request
+    dispatch-two-strings domain else eq? errno errno-in? exn:fail:contract?
+    exn:fail:filesystem:errno-errno exn:fail:filesystem:errno? exn:fail?
+    exn:fail:out-of-memory? failure file->bytes file-failure
+    filesystem-failure-code first
+    flush-output force function host host-failure if invalid-codec-request
+    invalid-path-code invalid-request invalid-text-code io-failure-code lambda
+    lazy-apply lazy-apply2 length let make-host-bridge make-host-failure
+    make-invalid-host-request memv module not not-found-code null? numbers
+    object-err object-list->host-list object-ok object-string->bytes only-in
+    operation operation-bytes operation-value or out-of-range
+    out-of-range-reason output pair? path path-payload payload performer
+    perform-read-file perform-stdout perform-write-file permission-denied-code
+    posix provide quote racket/base racket/file racket/promise
+    read-file-operation reason reason->object request require
+    resource-exhausted-code second stdout-operation string? timed-out-code
+    truncate/replace unknown-operation-reason windows with-handlers write-bytes
+    write-file-operation wrong-arity-reason wrong-type-reason))
 
 (define expected-codec-provide
   '(provide (struct-out codec-failure)
@@ -283,6 +291,9 @@
   (define base (require-spec-base spec))
   (cond
     [(eq? base 'racket/promise) (eq? spec 'racket/promise)]
+    [(eq? base 'racket/file)
+     (and (only-in-spec? spec)
+          (equal? (only-in-identifiers spec) '(file->bytes)))]
     [(string? base)
      (define target (resolve-relative source-path base))
      (define allowed
@@ -634,10 +645,10 @@
    (file-boundary-violations codec 'codec root)
    (file-boundary-violations host 'host root)
    (strict-vocabulary-violations codec
-                                 phase14-codec-vocabulary
+                                 phase15-codec-vocabulary
                                  'unapproved-codec-identifier)
    (strict-vocabulary-violations host
-                                 phase14-host-vocabulary
+                                 phase15-host-vocabulary
                                  'unapproved-host-identifier)
    (for/list ([path (in-list runtime-files)]
               #:unless (member path (list codec host) equal?))

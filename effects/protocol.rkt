@@ -21,11 +21,21 @@
          host-failure-kind
          host-function-name
          stdout-function-name
+         read-file-function-name
+         write-file-function-name
          stdout-operation
+         read-file-operation
+         write-file-operation
          unknown-operation-reason
          wrong-arity-reason
          wrong-type-reason
          out-of-range-reason
+         not-found-code
+         permission-denied-code
+         invalid-path-code
+         invalid-text-code
+         resource-exhausted-code
+         timed-out-code
          io-failure-code
          make-invalid-host-request
          make-host-failure
@@ -55,13 +65,23 @@
 
 (define-function-name host-function-name host)
 (define-function-name stdout-function-name stdout)
+(define-function-name read-file-function-name read-file)
+(define-function-name write-file-function-name write-file)
 (define-function-name stdout-operation stdout)
+(define-function-name read-file-operation read-file)
+(define-function-name write-file-operation write-file)
 
 (define-function-name unknown-operation-reason unknown-operation)
 (define-function-name wrong-arity-reason wrong-arity)
 (define-function-name wrong-type-reason wrong-type)
 (define-function-name out-of-range-reason out-of-range)
 
+(define-function-name not-found-code not-found)
+(define-function-name permission-denied-code permission-denied)
+(define-function-name invalid-path-code invalid-path)
+(define-function-name invalid-text-code invalid-text)
+(define-function-name resource-exhausted-code resource-exhausted)
+(define-function-name timed-out-code timed-out)
 (define-function-name io-failure-code io-failure)
 
 (def raw-make-host-protocol-error kind operation detail =
@@ -89,7 +109,7 @@
 (def raw-invalid-request operation reason =
   ((make-invalid-host-request operation) reason))
 
-(def raw-dispatch-stdout dispatcher request operation arguments =
+(def raw-dispatch-one-string dispatcher request operation arguments =
   (((raw-if
      ((raw-is-type list-type) arguments))
     (((raw-if
@@ -116,17 +136,76 @@
    ((raw-invalid-request operation)
     wrong-type-reason)))
 
+(def raw-dispatch-two-strings dispatcher request operation arguments =
+  (((raw-if
+     ((raw-is-type list-type) arguments))
+    (((raw-if
+       (raw-list-is-nil arguments))
+      ((raw-invalid-request operation)
+       wrong-arity-reason))
+     (lambda-let first =
+       (raw-list-head arguments)
+       (((raw-if
+          ((raw-is-type string-type) first))
+         (lambda-let remaining =
+           (raw-list-tail arguments)
+           (((raw-if
+              ((raw-is-type list-type) remaining))
+             (((raw-if
+                (raw-list-is-nil remaining))
+               ((raw-invalid-request operation)
+                wrong-arity-reason))
+              (lambda-let second =
+                (raw-list-head remaining)
+                (((raw-if
+                   ((raw-is-type string-type) second))
+                  (lambda-let trailing =
+                    (raw-list-tail remaining)
+                    (((raw-if
+                       ((raw-is-type list-type) trailing))
+                      (((raw-if
+                         (raw-list-is-nil trailing))
+                        (dispatcher request))
+                       ((raw-invalid-request operation)
+                        wrong-arity-reason)))
+                     ((raw-invalid-request operation)
+                      wrong-type-reason))))
+                 ((raw-invalid-request operation)
+                  wrong-type-reason)))))
+            ((raw-invalid-request operation)
+             wrong-type-reason))))
+        ((raw-invalid-request operation)
+         wrong-type-reason)))))
+   ((raw-invalid-request operation)
+    wrong-type-reason)))
+
 (def raw-dispatch-known-operation dispatcher request operation arguments =
   (((raw-if
      ((raw-string-equal
        (raw-string-value operation))
       (raw-string-value stdout-operation)))
-    ((((raw-dispatch-stdout dispatcher)
+    ((((raw-dispatch-one-string dispatcher)
        request)
       operation)
      arguments))
-   ((raw-invalid-request operation)
-    unknown-operation-reason)))
+   (((raw-if
+      ((raw-string-equal
+        (raw-string-value operation))
+       (raw-string-value read-file-operation)))
+     ((((raw-dispatch-one-string dispatcher)
+        request)
+       operation)
+      arguments))
+    (((raw-if
+       ((raw-string-equal
+         (raw-string-value operation))
+        (raw-string-value write-file-operation)))
+      ((((raw-dispatch-two-strings dispatcher)
+         request)
+        operation)
+       arguments))
+     ((raw-invalid-request operation)
+      unknown-operation-reason)))))
 
 (def raw-validate-host-request dispatcher request =
   (((raw-if

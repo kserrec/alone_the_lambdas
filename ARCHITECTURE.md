@@ -27,6 +27,9 @@ protocol, trust boundary, module split, and future purity classifications in a
 design document. Phase 14 implements the first approved slice: deterministic
 String-byte conversion, pure stdout request construction, one unary `host`,
 raw stdout output, and structural enforcement of the new boundary classes.
+Phase 15 extends that same closed boundary with pure `read-file` and
+`write-file` wrappers, UTF-8 path interpretation inside the host, byte-exact
+whole-file reads and replacement writes, and closed external-failure mapping.
 
 ## Computational boundary
 
@@ -104,16 +107,19 @@ List length, Errors, objects, and the checker. It reuses those raw layers
 directly, while `readers/string.rkt` remains outside the production dependency
 graph.
 
-`effects/protocol.rkt` and `effects/stdout.rkt` remain ordinary lambda
-computation. The protocol validates canonical flat requests before invoking
-its injected strict dispatcher; the stdout layer validates one String and
-constructs `["stdout", bytes]`. Neither imports `runtime/`. The trusted
+`effects/protocol.rkt`, `effects/stdout.rkt`, and `effects/files.rkt` remain
+ordinary lambda computation. The protocol validates canonical flat requests
+before invoking its injected strict dispatcher; the wrapper modules validate
+String arguments and construct `["stdout", bytes]`, `["read-file", path]`,
+or `["write-file", path, bytes]`. None imports `runtime/`. The trusted
 `runtime/codec.rkt` converts exact List/Char/String shapes to immutable bytes
 and constructs canonical response values without effects or mutation.
 `runtime/host.rkt` alone imports that codec and alone defines and exports
-`host`; its Phase 14 dispatcher writes and flushes raw bytes to the current
-stdout port. Expected output failure becomes Result Err HostFailure, while
-malformed direct requests remain bare InvalidHostRequest Error values.
+`host`; its Phase 15 dispatcher writes and flushes raw bytes to the current
+stdout port, interprets path bytes as UTF-8, and performs complete file reads
+and truncating replacement writes. Expected external failures become Result
+Err HostFailure values with closed codes, while malformed direct requests
+remain bare InvalidHostRequest Error values.
 
 Named Error frames would create a cycle if Errors depended on the full String
 module. `core/errors.rkt` therefore owns the raw List cell constructor
@@ -410,6 +416,7 @@ core/
 effects/
   protocol.rkt
   stdout.rkt
+  files.rkt
 runtime/
   codec.rkt
   host.rkt
@@ -429,8 +436,8 @@ tooling/
 run-all-tests.sh
 ```
 
-Sixteen zero-exception production modules remain under `core/`; Phase 14 adds
-two pure effect modules and the two separately classified runtime boundary
+Sixteen zero-exception production modules remain under `core/`; Phase 15 has
+three pure effect modules and two separately classified runtime boundary
 modules. New abstraction layers require a concrete need.
 
 ## Verification boundary
@@ -514,15 +521,20 @@ copying, acknowledgements, and Err encoding. Stdout tests prove exact fake-host
 requests, strict argument rejection, Result propagation, and force-once
 laziness. Real-host tests prove byte-exact output and flushing completion,
 malformed request rejection before effects, canonical success, stable failure
-mapping, unselected-branch laziness, and cached forcing.
+mapping, unselected-branch laziness, and cached forcing. File-wrapper tests
+prove exact request shapes, strict curried contracts, early-Error absorption,
+fake-host isolation, and force-once dispatch. Isolated real-file tests prove
+empty and arbitrary-byte round trips, relative and absolute UTF-8 paths,
+truncating replacement, cleanup, cached writes, and the approved missing,
+permission, invalid-text, invalid-path, resource, timeout, and fallback codes.
 
 ## Implemented and planned boundary
 
-The completed core still contains no `host` form. Phases 13 and 14 in
+The completed core still contains no `host` form. Phases 13 through 15 in
 [PLAN.md](PLAN.md) approved and implemented exactly one explicit boundary plus
-the first ordinary lambda effect wrapper. The approved protocol and its full
-process-level filesystem/network authority are recorded in
-[docs/design/host-boundary.md](docs/design/host-boundary.md). Only stdout is
-implemented today; Phase 15 is the next unfinished phase and adds the approved
-file operations. TCP, pure HTTP, and the standalone language surface remain
-later phases.
+ordinary lambda wrappers for stdout and whole-file access. The approved
+protocol and its full process-level filesystem/network authority are recorded
+in [docs/design/host-boundary.md](docs/design/host-boundary.md). Stdout and
+file effects are implemented today; Phase 16 is the next unfinished phase and
+adds blocking TCP. Pure HTTP and the standalone language surface remain later
+phases.

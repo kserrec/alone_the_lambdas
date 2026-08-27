@@ -196,6 +196,80 @@
  #"stdout"
  #"wrong-arity")
 
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list read-file-operation))))
+ #"read-file"
+ #"wrong-arity")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list read-file-operation TRUE))))
+ #"read-file"
+ #"wrong-type")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list read-file-operation
+                     (bytes->object-string #"path")
+                     TRUE))))
+ #"read-file"
+ #"wrong-arity")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list write-file-operation))))
+ #"write-file"
+ #"wrong-arity")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list write-file-operation
+                     (bytes->object-string #"path")))))
+ #"write-file"
+ #"wrong-arity")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list write-file-operation
+                     TRUE
+                     (bytes->object-string #"bytes")))))
+ #"write-file"
+ #"wrong-type")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list write-file-operation
+                     (bytes->object-string #"path")
+                     TRUE))))
+ #"write-file"
+ #"wrong-type")
+
+(check-invalid-request
+ (lazy-force
+  (lazy-apply host
+              (host-list->object-list
+               (list write-file-operation
+                     (bytes->object-string #"path")
+                     (bytes->object-string #"bytes")
+                     TRUE))))
+ #"write-file"
+ #"wrong-arity")
+
 ;; A forged String tag passes the pure schema type test, then the defensive
 ;; codec rejects its non-Char element before stdout is touched.
 (define malformed-string

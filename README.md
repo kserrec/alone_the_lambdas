@@ -13,10 +13,12 @@ variables, unary lambdas, and application.
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
 > green. The approved Phase 13
-> [host-boundary design](docs/design/host-boundary.md) now has its first
-> implementation slice: Phase 14 adds exact String-byte conversion, one unary
-> `host`, and pure injected-host `stdout`, guarded by a separate structural
-> boundary gate. File and TCP effects remain unimplemented. See
+> [host-boundary design](docs/design/host-boundary.md) now has two implemented
+> slices: Phase 14 adds exact String-byte conversion, one unary `host`, and
+> pure injected-host `stdout`; Phase 15 adds pure `read-file`/`write-file`
+> wrappers and byte-exact whole-file effects inside that same closed host.
+> A separate structural gate enforces the boundary. TCP effects remain
+> unimplemented. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -56,11 +58,11 @@ precedence over conflicting examples in the base specification.
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) records the language boundary, planned
   layers, representations, and dependency direction.
-- [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) maps every first-milestone
-  completion criterion to executable or structural evidence.
+- [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) maps the completed core and effects
+  phases to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
   approved second-milestone protocol, authority, codecs, and purity
-  classifications; Phase 14 implements its `stdout` slice.
+  classifications; Phases 14 and 15 implement its `stdout` and file slices.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -118,12 +120,15 @@ precedence over conflicting examples in the base specification.
   builder for the sole host bridge.
 - `effects/stdout.rkt` provides the pure typed request constructor and unary
   injected-host `stdout` wrapper.
+- `effects/files.rkt` provides pure typed request constructors and curried
+  injected-host `read-file` and `write-file` wrappers.
 - `runtime/codec.rkt` performs exact deterministic conversion between lambda
   Lists/Chars/Strings/Results and private host bytes/collections, with no
   operating-system effects or mutation.
-- `runtime/host.rkt` alone defines and exports `host`; its Phase 14 dispatcher
-  accepts only the approved `stdout` request, writes and flushes raw bytes,
-  and returns canonical Result/Error values.
+- `runtime/host.rkt` alone defines and exports `host`; its Phase 15 dispatcher
+  accepts only the approved `stdout`, `read-file`, and `write-file` requests,
+  performs byte-exact output and whole-file access, normalizes failures, and
+  returns canonical Result/Error values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -149,7 +154,7 @@ precedence over conflicting examples in the base specification.
   Racket installation are its trusted base.
 - `tooling/check-boundaries.rkt` separately admits only pure effect modules,
   deterministic codec conversion, the exact sole-host import/export path,
-  and Phase 14's closed stdout capability set.
+  and Phase 15's closed stdout/read/replacement capability set.
 
 ## Development
 
@@ -173,7 +178,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 3,151 assertions across 22 test files,
+green. The repository currently has 3,307 assertions across 24 test files,
 plus the independent scan of all 16 core modules and the effects/runtime
 boundary gate. GitHub Actions runs the same suite for pushes and pull
 requests.

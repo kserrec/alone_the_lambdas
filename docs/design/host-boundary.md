@@ -1,6 +1,6 @@
 # Host boundary design
 
-Status: approved 2026-08-27; Phase 14 stdout boundary implemented
+Status: approved 2026-08-27; Phase 15 file boundary implemented
 
 Date: 2026-08-27
 
@@ -12,9 +12,9 @@ closed implementation described here and no broader relaxation of
 
 Kyle approved using the single `host` boundary in Alone the Lambdas and then
 approved this concrete request, codec, authority, and runtime contract on
-2026-08-27. Phase 14 subsequently implemented the approved codec split, sole
-host bridge, and `stdout` operation. File and TCP operations remain planned
-for Phases 15 and 16.
+2026-08-27. Phases 14 and 15 subsequently implemented the approved codec
+split, sole host bridge, `stdout`, and whole-file operations. TCP remains
+planned for Phase 16.
 
 ## Decision summary
 
@@ -372,8 +372,9 @@ as bidirectional codecs.
 
 ## Purity classifications
 
-Phase 14 must update tooling and project rules to enforce these distinct
-classes:
+Phase 14 updated tooling and project rules to enforce these distinct classes;
+Phase 15 extended the host's exact capability vocabulary for whole-file read
+and replacement without changing the other classifications:
 
 | Class | Allowed boundary | Required check |
 | --- | --- | --- |
@@ -488,5 +489,8 @@ Approve the Phase 13 host-boundary design.
 
 Phase 14 executed the approved first slice on 2026-08-27: exact String-byte
 conversion, the sole unary `host`, pure injected-host `stdout`, real output,
-and the separate structural boundary gate. The broader approval record above
-still controls the unimplemented file, TCP, and standalone phases.
+and the separate structural boundary gate. Phase 15 executed the approved file
+slice on 2026-08-27: pure injected-host wrappers, byte-exact whole-file reads
+and replacement writes, UTF-8 path interpretation, closed Result Err mapping,
+and isolated temporary-directory tests. The broader approval record above
+still controls the unimplemented TCP and standalone phases.
