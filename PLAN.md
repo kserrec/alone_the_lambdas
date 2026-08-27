@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: implementation in progress; Phase 16 complete
+Status: implementation in progress; Phase 17 complete
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,8 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phases 14 through 16 are complete and Phase
-17 is the next unfinished phase.
+2026-08-27. The gate is satisfied; Phases 14 through 17 are complete and Phase
+18 is the next unfinished phase.
 
 The following constraints apply throughout:
 
@@ -340,21 +340,39 @@ filesystem or TCP importer.
 
 ## Phase 17 — Pure HTTP messages
 
-Status: next; not started
+Status: complete (2026-08-27)
 
-- [ ] Implement only the String and List helpers demonstrably required for a
+- [x] Implement only the String and List helpers demonstrably required for a
   minimal HTTP/1.1 request and response path.
-- [ ] Parse a request line and header terminator into existing lambda values;
+- [x] Parse a request line and header terminator into existing lambda values;
   reject malformed or unsupported input through Result rather than host
   exceptions.
-- [ ] Build status lines, required response headers, byte-accurate content
+- [x] Build status lines, required response headers, byte-accurate content
   length, and response bodies entirely in lambda computation.
-- [ ] Cover fragmented input, CRLF boundaries, empty bodies, malformed
+- [x] Cover fragmented input, CRLF boundaries, empty bodies, malformed
   requests, and deterministic response formatting with pure focused tests.
 
 Acceptance: representative HTTP bytes parse and render correctly while the
 production purity scan rejects Racket String, regex, arithmetic, and HTTP
 helpers from the implementation.
+
+Completion evidence: 3,995 assertions across 27 test files, the unchanged
+expanded purity scan over all 16 `core/` modules, and the Phase 17 boundary
+gate passed on 2026-08-27. `effects/http.rkt` parses the deliberately small
+HTTP/1.1 subset into an Ok target String: exact `GET`, an origin-form target,
+exact `HTTP/1.1`, CRLF-delimited field lines, exactly one case-insensitive
+`Host` field, one header section, and no body or pipelined bytes. Incomplete,
+malformed, and unsupported requests are distinct Result Err values.
+`effects/http-response.rkt` separately renders only 200, 400, 404, and 500
+responses with canonical
+reason phrases, decimal byte-accurate `Content-Length`, `Connection: close`,
+the empty header terminator, and the exact body bytes; an unsupported status
+is its own Result Err. The 146 focused assertions cover fragmented terminator
+boundaries, valid and invalid header names/values, binary and empty bodies,
+single- and multi-digit lengths, deterministic output, strict contracts,
+Error bubbling, and remaining-arity absorption. Boundary regressions reject
+host String, regex, arithmetic, and `net/http-client` shortcuts from every
+pure effect module.
 
 ## Phase 18 — Minimal lambda-built HTTP server
 

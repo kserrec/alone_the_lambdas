@@ -33,6 +33,10 @@ Phase 16 was verified on 2026-08-27 with `./run-all-tests.sh`: 3,845 passing
 assertions across 26 test files, the unchanged clean 16-module expanded core
 scan, and the blocking-TCP effects/runtime boundary scan.
 
+Phase 17 was verified on 2026-08-27 with `./run-all-tests.sh`: 3,995 passing
+assertions across 27 test files, the unchanged clean 16-module expanded core
+scan, and the pure HTTP-aware effects/runtime boundary scan.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -92,10 +96,20 @@ scan, and the blocking-TCP effects/runtime boundary scan.
 | TCP failures have a closed, nonleaking Result vocabulary. | [`tcp-host-test.rkt`](../tests/tcp-host-test.rkt) deterministically exercises permission, address-in-use, refused, reset, broken-pipe, unreachable, resource, timeout, name-resolution, invalid-text, invalid-handle, wrong-handle-kind, and generic I/O categories without contacting an external service. It also proves malformed schema, representation, arity, type, and range failures remain bare InvalidHostRequest Errors and that no exception text, hostname, errno, port, socket, or host collection crosses the boundary. |
 | TCP authority remains confined to the sole host. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) permits exactly `tcp-accept`, `tcp-addresses`, `tcp-close`, `tcp-connect`, and `tcp-listen` from `racket/tcp` in `runtime/host.rkt`; all UDP, process, eval, dynamic-loading, environment, FFI, and production-thread capabilities remain closed. Its project-wide scan rejects any second production `racket/file` or `racket/tcp` importer, including wrapped imports and core modules. [`boundary-check-test.rkt`](../tests/boundary-check-test.rkt) proves the exact allowlist, broad-import rejection, codec denial, and sole-importer rule. |
 
+## Phase 17 pure-HTTP evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Request parsing remains lambda computation and has a closed useful subset. | [`http-test.rkt`](../tests/http-test.rkt) proves exact GET and HTTP/1.1 validation, visible-byte origin-form target extraction as an existing String, case-insensitive exactly-once Host handling, token-valid field names, permitted field-value bytes, additional field lines, strict String contracts, incoming-Error bubbling, and a unary public shape. [`http.rkt`](../effects/http.rkt) imports no runtime, reader, host String, regex, arithmetic, or HTTP library. |
+| Fragmentation and invalid input remain expected Result values. | [`http-test.rkt`](../tests/http-test.rkt) reparses accumulated lambda Strings across request-line and final-terminator CRLF splits; every unfinished prefix is Err IncompleteHttpRequest. Complete bad line endings, missing/duplicate Host fields, invalid field lines, empty targets, bodies, and pipelined bytes are Err MalformedHttpRequest; unsupported methods, versions, and target forms are Err UnsupportedHttpRequest. None uses a host exception. |
+| Response bytes and lengths are built entirely in the lambda layer. | [`http-response.rkt`](../effects/http-response.rkt) isolates response construction from parsing. [`http-test.rkt`](../tests/http-test.rkt) proves exact 200, 400, 404, and 500 status lines, `Content-Length` values at zero and across the 9-to-10 decimal boundary, `Connection: close`, the empty header terminator, byte-exact text and 0/128/255 bodies, deterministic repeated rendering, unsupported-status Result Err, strict contracts, and early-Error absorption. |
+| The pure HTTP classification is enforced rather than asserted. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) discovers both HTTP modules automatically under the same closed unary-lambda/application class as every effect module. [`boundary-check-test.rkt`](../tests/boundary-check-test.rkt) contains direct rejection probes for Racket `string-length`, `regexp-match?`, `+`, and `net/http-client`/`http-sendrecv`; the independent expanded core scan remains exactly 16 zero-exception modules. |
+
 ## What this milestone does not claim
 
 The repository now contains the verified core plus the explicit stdout,
-whole-file, and blocking-TCP slices of the approved host boundary. It does not
-yet provide pure HTTP messages, an HTTP server, the standalone `#lang`, literal
-syntax, or a command-line runner. Those features remain ordered future phases
-and must preserve both the core purity proof and the boundary classifications.
+whole-file, and blocking-TCP slices of the approved host boundary, plus pure
+HTTP request parsing and response rendering. It does not yet provide an HTTP
+server, the standalone `#lang`, literal syntax, or a command-line runner.
+Those features remain ordered future phases and must preserve both the core
+purity proof and the boundary classifications.

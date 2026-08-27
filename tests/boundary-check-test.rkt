@@ -183,7 +183,47 @@
         (provide use)
         (def use value =
           (current-seconds value))))
+   '(unapproved-effect-identifier))
+
+   ;; Phase 17 HTTP computation remains in the same closed pure class. Host
+   ;; String, regex, arithmetic, and HTTP-library helpers are each rejected.
+   (check-effect
+    '(module example "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../macros/macros.rkt")
+        (provide use)
+        (def use value =
+          (string-length value))))
     '(unapproved-effect-identifier))
+
+   (check-effect
+    '(module example "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../macros/macros.rkt")
+        (provide use)
+        (def use value =
+          (regexp-match? value))))
+    '(unapproved-effect-identifier))
+
+   (check-effect
+    '(module example "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../macros/macros.rkt")
+        (provide use)
+        (def use value =
+          (+ value))))
+    '(unapproved-effect-identifier))
+
+   (check-effect
+    '(module example "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../macros/macros.rkt"
+                 net/http-client)
+        (provide use)
+        (def use value =
+          (http-sendrecv value))))
+    '(disallowed-effect-import
+      unapproved-effect-identifier))
 
    (check-effect
     '(module example "../macros/lazy-with-macros.rkt"

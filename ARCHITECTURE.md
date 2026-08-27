@@ -32,7 +32,10 @@ Phase 15 extends that same closed boundary with pure `read-file` and
 whole-file reads and replacement writes, and closed external-failure mapping.
 Phase 16 adds pure blocking TCP request wrappers, canonical Nat/host-integer
 conversion, a private monotonic listener/connection registry, complete writes,
-bounded reads, explicit close, and loopback-only integration coverage.
+bounded reads, explicit close, and loopback-only integration coverage. Phase
+17 adds a pure minimal HTTP/1.1 request parser, lambda-computed response
+rendering, byte-accurate decimal content lengths, and focused protocol/purity
+coverage without extending the host.
 
 ## Computational boundary
 
@@ -72,7 +75,7 @@ representation.
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
 | Public data | List, Nat, Error, Result, Char, and String |
-| Pure effects | Lambda request validation and wrappers over an injected unary host |
+| Pure effects | Lambda request validation, protocol computation, and wrappers over an injected unary host |
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
@@ -110,12 +113,22 @@ List length, Errors, objects, and the checker. It reuses those raw layers
 directly, while `readers/string.rkt` remains outside the production dependency
 graph.
 
-`effects/protocol.rkt`, `effects/stdout.rkt`, `effects/files.rkt`, and
-`effects/tcp.rkt` remain ordinary lambda computation. The protocol validates
+`effects/protocol.rkt`, `effects/stdout.rkt`, `effects/files.rkt`,
+`effects/tcp.rkt`, `effects/http.rkt`, and `effects/http-response.rkt` remain
+ordinary lambda computation. The host protocol validates
 canonical flat requests, exact arity, types, and TCP bounds before invoking
 its injected strict dispatcher; the wrapper modules construct only the closed
-stdout, whole-file, and six-operation blocking TCP request algebra. None
-imports `runtime/`. The trusted `runtime/codec.rkt` converts exact
+stdout, whole-file, and six-operation blocking TCP request algebra. The HTTP
+message modules instead parse and render lambda Strings directly: the strict
+parser returns the origin-form target for exact GET/HTTP/1.1 requests with one
+Host field, while the separately analyzable renderer owns the four supported
+status phrases,
+`Content-Length`, `Connection: close`, CRLF framing, and body concatenation.
+These line and framing choices follow
+[RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html); methods, target forms,
+versions, bodies, pipelining, and statuses outside the deliberately stated
+subset return Result Err rather than expanding into a general HTTP framework.
+None imports `runtime/`. The trusted `runtime/codec.rkt` converts exact
 List/Char/String/Nat shapes to private immutable bytes and integers and
 constructs canonical response values without effects or mutation.
 `runtime/host.rkt` alone imports that codec and alone defines and exports
@@ -424,6 +437,8 @@ effects/
   stdout.rkt
   files.rkt
   tcp.rkt
+  http.rkt
+  http-response.rkt
 runtime/
   codec.rkt
   host.rkt
@@ -443,8 +458,8 @@ tooling/
 run-all-tests.sh
 ```
 
-Sixteen zero-exception production modules remain under `core/`; Phase 16 has
-four pure effect modules, two separately pinned mechanical macro modules, and
+Sixteen zero-exception production modules remain under `core/`; Phase 17 has
+six pure effect modules, two separately pinned mechanical macro modules, and
 two separately classified runtime boundary modules. `lang/` remains absent
 until Phase 19 supplies and tests its classification. New abstraction layers
 require a concrete need.
@@ -555,13 +570,22 @@ writes; valid empty writes; EOF; wrong, fabricated, and stale handles; closed
 failure codes; Racket custodian closure; and explicit cleanup. Production TCP
 remains blocking and contains no thread or async surface; concurrency appears
 only in the test harness where a peer must act during a blocking call.
+HTTP message tests prove incremental incomplete Results across split CRLF
+boundaries; exact GET, origin-form, HTTP/1.1, header, and case-insensitive Host
+validation; distinct malformed and unsupported Results; strict contract Error
+behavior; four fixed status lines; empty, text, and arbitrary-byte bodies;
+single- and multi-digit decimal content lengths; connection-close framing; and
+deterministic byte output. The separate boundary suite proves that host String,
+regex, arithmetic, and HTTP-library helpers remain unavailable to this pure
+module class.
 
 ## Implemented and planned boundary
 
-The completed core still contains no `host` form. Phases 13 through 16 in
+The completed core still contains no `host` form. Phases 13 through 17 in
 [PLAN.md](PLAN.md) approved and implemented exactly one explicit boundary plus
-ordinary lambda wrappers for stdout, whole-file access, and blocking TCP. The approved
+ordinary lambda wrappers for stdout, whole-file access, blocking TCP, and a
+pure HTTP message layer. The approved
 protocol and its full process-level filesystem/network authority are recorded
-in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 17 is the
-next unfinished phase and adds pure HTTP message parsing and rendering; the
-HTTP server and standalone language surface remain later phases.
+in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 18 is the
+next unfinished phase and composes TCP with the pure HTTP messages into the
+minimal sequential server; the standalone language surface remains later.

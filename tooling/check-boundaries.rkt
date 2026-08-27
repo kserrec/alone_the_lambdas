@@ -1,10 +1,10 @@
 #lang racket/base
 
-;; Structural gate for the deliberately nonuniform Phase 16 production tree.
+;; Structural gate for the deliberately nonuniform Phase 17 production tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
 ;; checker adds the approved classes without weakening that proof:
 ;;
-;;   effects/             pure source forms and closed project imports
+;;   effects/             pure source forms, including HTTP message logic
 ;;   macros/              the two exact mechanical expansion modules
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
 ;;   runtime/host.rkt     sole host export and the Phase 16 effect allowlist
@@ -940,7 +940,7 @@
   (cond
     [(null? findings)
      (printf
-      "Boundary check passed: pure effects, mechanical macros, isolated codec, sole host.\n")]
+      "Boundary check passed: pure effects and HTTP, mechanical macros, isolated codec, sole host.\n")]
     [else
      (for ([finding (in-list findings)])
        (eprintf "~a: ~a: ~a\n"
