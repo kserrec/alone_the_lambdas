@@ -13,12 +13,13 @@ variables, unary lambdas, and application.
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
 > green. The approved Phase 13
-> [host-boundary design](docs/design/host-boundary.md) now has two implemented
+> [host-boundary design](docs/design/host-boundary.md) now has three implemented
 > slices: Phase 14 adds exact String-byte conversion, one unary `host`, and
 > pure injected-host `stdout`; Phase 15 adds pure `read-file`/`write-file`
-> wrappers and byte-exact whole-file effects inside that same closed host.
-> A separate structural gate enforces the boundary. TCP effects remain
-> unimplemented. See
+> wrappers and byte-exact whole-file effects; Phase 16 adds pure blocking TCP
+> wrappers, canonical Nat/host-integer conversion, and a private listener and
+> connection registry inside that same closed host. A separate structural gate
+> enforces the boundary. Pure HTTP messages are the next unstarted phase. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -62,7 +63,8 @@ precedence over conflicting examples in the base specification.
   phases to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
   approved second-milestone protocol, authority, codecs, and purity
-  classifications; Phases 14 and 15 implement its `stdout` and file slices.
+  classifications; Phases 14 through 16 implement its `stdout`, file, and TCP
+  slices.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -122,13 +124,17 @@ precedence over conflicting examples in the base specification.
   injected-host `stdout` wrapper.
 - `effects/files.rkt` provides pure typed request constructors and curried
   injected-host `read-file` and `write-file` wrappers.
+- `effects/tcp.rkt` provides pure typed request constructors and curried
+  injected-host wrappers for blocking connect, listen, accept, read, write,
+  and close.
 - `runtime/codec.rkt` performs exact deterministic conversion between lambda
-  Lists/Chars/Strings/Results and private host bytes/collections, with no
-  operating-system effects or mutation.
-- `runtime/host.rkt` alone defines and exports `host`; its Phase 15 dispatcher
-  accepts only the approved `stdout`, `read-file`, and `write-file` requests,
-  performs byte-exact output and whole-file access, normalizes failures, and
-  returns canonical Result/Error values.
+  Lists/Chars/Strings/Nats/Results and private host bytes, integers, and
+  temporary collections, with no operating-system effects or mutation.
+- `runtime/host.rkt` alone defines and exports `host`; its Phase 16 dispatcher
+  accepts only the approved stdout, whole-file, and six blocking TCP requests,
+  owns the private monotonic handle registry, normalizes external failures,
+  and returns canonical Result/Error values without exposing ports or host
+  collections.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -154,8 +160,9 @@ precedence over conflicting examples in the base specification.
   files and the Racket installation are its semantic trusted base.
 - `tooling/check-boundaries.rkt` separately pins the two mechanical macro
   modules, admits only pure effect modules, deterministic codec conversion,
-  the exact sole-host import/export path, and Phase 15's closed
-  stdout/read/truncation capability set. It rejects wrapped privileged imports,
+  the exact sole-host import/export path, and Phase 16's closed stdout,
+  whole-file, and five-binding `racket/tcp` capability set. It rejects wrapped
+  privileged imports, every second production filesystem/TCP importer,
   authorizes imports before reading their exports, validates every project-root
   and production-path component before discovery, rejects symlinks without
   traversing their targets, rejects additional macro modules, and rejects any
@@ -183,7 +190,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 3,345 assertions across 24 test files,
+green. The repository currently has 3,845 assertions across 26 test files,
 plus the independent expanded scan of all 16 core modules and the production
 boundary-classification gate. GitHub Actions runs the same suite for pushes
 and pull requests.

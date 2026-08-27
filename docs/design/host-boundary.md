@@ -1,6 +1,6 @@
 # Host boundary design
 
-Status: approved 2026-08-27; Phase 15 file boundary implemented
+Status: approved 2026-08-27; Phase 16 blocking TCP boundary implemented
 
 Date: 2026-08-27
 
@@ -12,9 +12,9 @@ closed implementation described here and no broader relaxation of
 
 Kyle approved using the single `host` boundary in Alone the Lambdas and then
 approved this concrete request, codec, authority, and runtime contract on
-2026-08-27. Phases 14 and 15 subsequently implemented the approved codec
-split, sole host bridge, `stdout`, and whole-file operations. TCP remains
-planned for Phase 16.
+2026-08-27. Phases 14 through 16 subsequently implemented the approved codec
+split, sole host bridge, `stdout`, whole-file operations, and complete blocking
+TCP lifecycle.
 
 ## Decision summary
 
@@ -289,9 +289,12 @@ or the reverse, returns `wrong-handle-kind`.
 `tcp-connect`, `tcp-listen`, and `tcp-accept` register a resource only after
 successful acquisition. `tcp-close` removes the entry and closes the complete
 listener or both sides of a connection. A second close returns
-`invalid-handle`. When the runtime shuts down, it closes every remaining
-registry entry. Acquired handles must also be closed on every wrapper/server
-path that has finished with them.
+`invalid-handle`. Racket assigns every acquired listener and connection port to
+the runtime's current custodian, so shutting that custodian down closes any
+remaining operating-system resources; normal wrapper and server paths must
+still call `tcp-close` as soon as they finish with a handle. A read or write
+failure removes and closes its connection before returning Err. A close
+failure still leaves the handle removed and therefore stale.
 
 The initial TCP surface is deliberately blocking. It has no timeout argument,
 half-close, readiness API, TLS, UDP, async, production threads, or
@@ -374,7 +377,9 @@ as bidirectional codecs.
 
 Phase 14 updated tooling and project rules to enforce these distinct classes;
 Phase 15 extended the host's exact capability vocabulary for whole-file read
-and replacement without changing the other classifications:
+and replacement, and Phase 16 admitted only the five `racket/tcp` bindings
+needed for the approved lifecycle while adding a project-wide sole-importer
+check. The other classifications remain unchanged:
 
 | Class | Allowed boundary | Required check |
 | --- | --- | --- |
@@ -497,5 +502,10 @@ conversion, the sole unary `host`, pure injected-host `stdout`, real output,
 and the separate structural boundary gate. Phase 15 executed the approved file
 slice on 2026-08-27: pure injected-host wrappers, byte-exact whole-file reads
 and replacement writes, UTF-8 path interpretation, closed Result Err mapping,
-and isolated temporary-directory tests. The broader approval record above
-still controls the unimplemented TCP and standalone phases.
+and isolated temporary-directory tests. Phase 16 executed the approved TCP
+slice on 2026-08-27: pure injected-host wrappers, canonical Nat conversion,
+private monotonic listener/connection handles, blocking bounded reads,
+all-bytes writes, explicit close and failure cleanup, closed network failure
+mapping, loopback-only integration tests, and exact sole-host TCP import
+enforcement. The broader approval record above still controls the unimplemented
+HTTP and standalone phases.

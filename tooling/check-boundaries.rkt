@@ -1,13 +1,13 @@
 #lang racket/base
 
-;; Structural gate for the deliberately nonuniform Phase 15 production tree.
+;; Structural gate for the deliberately nonuniform Phase 16 production tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
 ;; checker adds the approved classes without weakening that proof:
 ;;
 ;;   effects/             pure source forms and closed project imports
 ;;   macros/              the two exact mechanical expansion modules
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
-;;   runtime/host.rkt     sole host export and the Phase 15 effect allowlist
+;;   runtime/host.rkt     sole host export and the Phase 16 effect allowlist
 ;;   lang/                empty until its Phase 19 classification is approved
 
 (require racket/file
@@ -52,7 +52,7 @@
     file->string
     directory-list make-directory make-directory* delete-directory
     delete-directory/files delete-file rename-file-or-directory copy-file
-    tcp-connect tcp-listen tcp-accept tcp-close udp-open-socket
+    udp-open-socket
     system system* process process* subprocess shell-execute
     eval dynamic-require namespace-require make-base-namespace
     ffi-lib get-ffi-obj getenv putenv current-environment-variables
@@ -61,48 +61,75 @@
 ;; Exact source vocabularies make the implicit racket/base import explicit.
 ;; Adding even an otherwise unknown identifier to either trusted runtime file
 ;; requires a deliberate update here in the same phase that approves it.
-(define phase15-codec-vocabulary
+(define phase16-codec-vocabulary
   '(#%module-begin * + <= > NIL and apply argument bit bits bits-value
     boolean? byte->object-char bytes bytes->immutable-bytes
     bytes->object-string bytes? car cdr char char-type chars codec
     codec-failure codec-failure? codec-false codec-true cond cons decoded
-    define else eq? error-value exn:fail? expected failure false-marker first
+    define else eq? error-value exact-nonnegative-integer? exn:fail? expected
+    failure false-marker first
     first-codec-failure for/fold for/list force function
-    host-list->object-list if in-bytes in-list integer integer->raw-bits
+    host-list->object-list if in-bytes in-list integer integer->object-nat
+    integer->raw-bits
     lambda lazy-apply lazy-apply2 length let list list-type loop map memq
-    module nil? not null? object-char->byte object-err object-has-type?
-    object-list->host-list object-ok object-string->bytes odd? only-in ormap
+    module nat-type nil? not null? object-char->byte object-err
+    object-has-type? object-list->host-list object-nat->integer object-ok
+    object-string->bytes odd? only-in ormap
     out-of-range payload provide quote quotient racket/base racket/promise
-    raise-argument-error raw-bit->boolean raw-bits->byte
+    raise-argument-error raw-bit->boolean raw-bits->byte raw-bits->integer
     raw-boolean->boolean raw-char-value raw-cons raw-false raw-is-type
     raw-list-head raw-list-is-nil raw-list-tail raw-make-char raw-make-err
-    raw-make-ok raw-make-string raw-string-value raw-true reason remaining
-    require result reverse reversed second seen selected string-type struct
-    struct-out tail total true-marker unless value values with-handlers
-    wrong-type zero?))
+    raw-make-nat raw-make-ok raw-make-string raw-nat-value raw-string-value
+    raw-true reason remaining require result reverse reversed second seen
+    selected string-type struct struct-out tail total true-marker unless value
+    values with-handlers wrong-type zero?))
 
-(define phase15-host-vocabulary
-  '(#%module-begin = EMPTY-STRING NIL and argument bytes->object-string
-    bytes->string/utf-8 bytes=? cadr caddr call-with-output-file car case cdr
-    code codec-failure-reason codec-failure? cond current-output-port
-    decode-path decoded-request define dispatch-one-string dispatch-request
-    dispatch-two-strings domain else eq? errno errno-in? exn:fail:contract?
-    exn:fail:filesystem:errno-errno exn:fail:filesystem:errno? exn:fail?
-    exn:fail:out-of-memory? failure file->bytes file-failure
-    filesystem-failure-code first
-    flush-output force function host host-failure if invalid-codec-request
-    invalid-path-code invalid-request invalid-text-code io-failure-code lambda
-    lazy-apply lazy-apply2 length let make-host-bridge make-host-failure
-    make-invalid-host-request memv module not not-found-code null? numbers
-    object-err object-list->host-list object-ok object-string->bytes only-in
-    operation operation-bytes operation-value or out-of-range
-    out-of-range-reason output pair? path path-payload payload performer
-    perform-read-file perform-stdout perform-write-file permission-denied-code
-    posix provide quote racket/base racket/file racket/promise
-    read-file-operation reason reason->object request require
-    resource-exhausted-code second stdout-operation string? timed-out-code
-    truncate unknown-operation-reason windows with-handlers write-bytes
-    write-file-operation wrong-arity-reason wrong-type-reason))
+(define phase16-host-vocabulary
+  '(#%module-begin + < <= = > EMPTY-STRING NIL add1 address-in-use-code amount
+    and argument attempt-close backlog begin bound-port broken-pipe-code buffer
+    bytes-length bytes->object-string bytes->string/utf-8 bytes=? cadr caddr
+    cadddr call-with-output-file car case cdr cleanup-new-connection
+    cleanup-new-listener close-entry close-input-port close-output-port
+    close-procedure code codec-failure-reason codec-failure? cond connection
+    connection-entry connection-entry-input connection-entry-output
+    connection-entry? connection-handle connection-refused-code
+    connection-reset-code contract-code current-output-port decode-bounded-nat
+    decode-utf8
+    decoded decoded-request define define-values discard-entry!
+    dispatch-one-string dispatch-request dispatch-tcp-accept dispatch-tcp-close
+    dispatch-tcp-connect dispatch-tcp-listen dispatch-tcp-read
+    dispatch-tcp-write dispatch-two-strings domain else end eof-object? entry
+    eq? errno errno-in? exact-nonnegative-integer? exact-positive-integer?
+    exn:fail:contract? exn:fail:filesystem:errno-errno
+    exn:fail:filesystem:errno? exn:fail:network:errno-errno
+    exn:fail:network:errno? exn:fail? exn:fail:out-of-memory? expected? failure
+    file->bytes file-failure filesystem-failure-code first flush-output force
+    function gai handle handle-registry hash-ref hash-remove! hash-set! host
+    host-failure host-list->object-list if input integer->object-nat
+    invalid-codec-request invalid-handle-code invalid-path-code invalid-request
+    invalid-text-code io-failure-code lambda lazy-apply lazy-apply2 length let
+    let-values list listener listener-entry listener-entry-listener
+    listener-entry? local local-address local-payload lookup-entry loop
+    make-bytes make-hash make-host-bridge make-host-failure
+    make-invalid-host-request maximum memv minimum module
+    name-resolution-failed-code network-failure network-failure-code
+    network-unreachable-code next-handle not not-found-code null? numbers
+    object-err object-list->host-list object-nat->integer object-ok
+    object-string->bytes only-in operation operation-bytes operation-value or
+    out-of-range out-of-range-reason output output-failure pair? path
+    path-payload payload perform-read-file perform-stdout perform-tcp-accept
+    perform-tcp-close perform-tcp-connect perform-tcp-listen perform-tcp-read
+    perform-tcp-write perform-write-file performer permission-denied-code port
+    posix prior-failure provide quote racket/base racket/file racket/promise
+    racket/tcp read-bytes-avail! read-file-operation reason reason->object
+    register-entry! remote remote-address remote-payload remote-port request
+    require resource-exhausted-code second set! start stdout-operation string=?
+    string? struct subbytes tcp-accept tcp-accept-operation tcp-addresses
+    tcp-close tcp-close-operation tcp-connect tcp-connect-operation tcp-listen
+    tcp-listen-operation tcp-read-operation tcp-write-operation timed-out-code
+    truncate unknown-operation-reason value void when windows with-handlers
+    write-all-bytes write-bytes write-bytes-avail write-file-operation written
+    wrong-arity-reason wrong-handle-kind-code wrong-type-reason zero?))
 
 (define macro-vocabulary
   '(... = NIL _ and andmap argument arguments binding bit-expressions body
@@ -142,6 +169,8 @@
             host-list->object-list
             object-string->bytes
             bytes->object-string
+            object-nat->integer
+            integer->object-nat
             object-ok
             object-err))
 
@@ -406,6 +435,14 @@
     [(eq? base 'racket/file)
      (and (only-in-spec? spec)
           (equal? (only-in-identifiers spec) '(file->bytes)))]
+    [(eq? base 'racket/tcp)
+     (and (only-in-spec? spec)
+          (equal? (only-in-identifiers spec)
+                  '(tcp-accept
+                    tcp-addresses
+                    tcp-close
+                    tcp-connect
+                    tcp-listen)))]
     [(string? base)
      (define target (resolve-relative source-path base))
      (define allowed
@@ -785,6 +822,20 @@
            (violation source 'unauthorized-host-import spec))))
    files))
 
+(define (unauthorized-host-capability-imports files project-root host)
+  (append-map
+   (lambda (source)
+     (define info (read-module-info source project-root))
+     (if (or (not info) (equal? source host))
+         '()
+         (for*/list ([spec (in-list (module-require-specs info))]
+                     [base (in-list (or (require-spec-bases spec) '()))]
+                     #:when (memq base '(racket/file racket/tcp)))
+           (violation source
+                      'unauthorized-host-capability-import
+                      spec))))
+   files))
+
 (define (unclassified-require-specs files project-root)
   (append-map
    (lambda (source)
@@ -857,11 +908,11 @@
       (file-boundary-violations host 'host root)
       (strict-vocabulary-violations codec
                                     root
-                                    phase15-codec-vocabulary
+                                    phase16-codec-vocabulary
                                     'unapproved-codec-identifier)
       (strict-vocabulary-violations host
                                     root
-                                    phase15-host-vocabulary
+                                    phase16-host-vocabulary
                                     'unapproved-host-identifier)
       (strict-vocabulary-violations macro-definitions
                                     root
@@ -880,6 +931,7 @@
       (unclassified-require-specs production-files root)
       (unauthorized-codec-imports production-files root codec host)
       (unauthorized-host-imports production-files root host)
+      (unauthorized-host-capability-imports production-files root host)
       (unauthorized-host-surfaces production-files root host))]))
 
 (module+ main

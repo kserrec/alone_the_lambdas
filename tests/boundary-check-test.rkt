@@ -122,6 +122,8 @@
                     host-list->object-list
                     object-string->bytes
                     bytes->object-string
+                    object-nat->integer
+                    integer->object-nat
                     object-ok
                     object-err))))
       (write-datum
@@ -267,6 +269,8 @@
                   host-list->object-list
                   object-string->bytes
                   bytes->object-string
+                  object-nat->integer
+                  integer->object-nat
                   object-ok
                   object-err)
          ,extra)))
@@ -281,6 +285,13 @@
    ;; approved read-file operation.
    (write-datum codec
                 (codec-datum '(define leak (file->bytes "path"))))
+   (check-equal?
+    (kinds (file-boundary-violations codec 'codec root))
+    '(forbidden-codec-capability))
+
+   ;; Deterministic conversion never gains network authority.
+   (write-datum codec
+                (codec-datum '(define leak (tcp-connect "host" 80))))
    (check-equal?
     (kinds (file-boundary-violations codec 'codec root))
     '(forbidden-codec-capability))
@@ -313,6 +324,37 @@
    (check-equal? (file-boundary-violations host-file 'host root)
                  '())
 
+   ;; Phase 16 admits exactly the five TCP bindings used by the sole host.
+   (write-datum
+    host-file
+    '(module host racket/base
+       (#%module-begin
+        (require (only-in racket/tcp
+                          tcp-accept
+                          tcp-addresses
+                          tcp-close
+                          tcp-connect
+                          tcp-listen)
+                 (only-in "../effects/protocol.rkt" make-host-bridge)
+                 (only-in "codec.rkt" object-ok))
+        (provide host)
+        (define (host request) request))))
+   (check-equal? (file-boundary-violations host-file 'host root)
+                 '())
+
+   (write-datum
+    host-file
+    '(module host racket/base
+       (#%module-begin
+        (require racket/tcp
+                 (only-in "../effects/protocol.rkt" make-host-bridge)
+                 (only-in "codec.rkt" object-ok))
+        (provide host)
+        (define (host request) request))))
+   (check-equal?
+    (kinds (file-boundary-violations host-file 'host root))
+    '(disallowed-host-import))
+
    (write-datum host-file
                 (host-datum '(provide host leak) 'request))
    (check-equal?
@@ -325,8 +367,8 @@
     (kinds (file-boundary-violations host-file 'host root))
     '(forbidden-host-capability))
 
-   ;; Phase 15 approves read and replacement only. Deletion and broad
-   ;; racket/file imports remain outside the closed host capability set.
+   ;; Deletion and broad racket/file imports remain outside the closed host
+   ;; capability set.
    (write-datum host-file
                 (host-datum '(provide host) '(delete-file request)))
    (check-equal?
@@ -445,6 +487,24 @@
         (require (rename-in "../runtime/host.rkt" [host bridge]))
         (provide bridge))))
    (check-project-kind 'unauthorized-host-import)
+   (delete-file core-bridge)
+
+   ;; The sole-host rule is global: even a class not otherwise inspected by
+   ;; this checker cannot become a second filesystem or TCP importer.
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (only-in racket/tcp tcp-connect)))))
+   (check-project-kind 'unauthorized-host-capability-import)
+   (delete-file core-bridge)
+
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (only-in racket/file file->bytes)))))
+   (check-project-kind 'unauthorized-host-capability-import)
    (delete-file core-bridge)
 
    ;; A symlinked directory cannot disguise runtime code as an allowed core

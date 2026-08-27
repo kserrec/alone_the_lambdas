@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: implementation in progress; Phase 15 complete
+Status: implementation in progress; Phase 16 complete
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,8 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phases 14 and 15 are complete and Phase 16
-is the next unfinished phase.
+2026-08-27. The gate is satisfied; Phases 14 through 16 are complete and Phase
+17 is the next unfinished phase.
 
 The following constraints apply throughout:
 
@@ -311,24 +311,36 @@ unchanged.
 
 ## Phase 16 — Blocking TCP effects
 
-Status: next; not started
+Status: complete (2026-08-27)
 
-- [ ] Add the approved connect, listen, accept, read, write, and close host
+- [x] Add the approved connect, listen, accept, read, write, and close host
   operations and their pure lambda wrappers.
-- [ ] Extend `runtime/codec.rkt` only with canonical Nat/integer conversions
+- [x] Extend `runtime/codec.rkt` only with canonical Nat/integer conversions
   and returned List shapes required for port bounds and opaque handles.
-- [ ] Keep ports and connections in a runtime-owned handle registry; expose
+- [x] Keep ports and connections in a runtime-owned handle registry; expose
   only the approved lambda-encoded opaque handles.
-- [ ] Make close behavior and failure cleanup deterministic, including stale
+- [x] Make close behavior and failure cleanup deterministic, including stale
   handles, peer closure, partial writes, and read bounds.
-- [ ] Add fake-host protocol tests and real loopback integration tests with
+- [x] Add fake-host protocol tests and real loopback integration tests with
   test-only host concurrency where needed.
 
 Acceptance: a loopback client and server exchange lambda String bytes and
 release every resource, with no socket or host collection crossing into the
 object language.
 
+Completion evidence: 3,845 assertions across 26 test files, the unchanged
+expanded purity scan over 16 `core/` modules, and the Phase 16 boundary gate
+all passed on 2026-08-27. The TCP tests use only loopback and ephemeral ports;
+they cover canonical Nat conversion, pure request traces and contracts,
+blocking and bounded reads, complete byte writes, full-duplex transfer, EOF,
+wrong/stale handles, monotonic nonreuse, deterministic failure codes, Racket
+custodian closure, and explicit cleanup. The boundary gate admits exactly the
+host's five imported `racket/tcp` bindings and rejects every second production
+filesystem or TCP importer.
+
 ## Phase 17 — Pure HTTP messages
+
+Status: next; not started
 
 - [ ] Implement only the String and List helpers demonstrably required for a
   minimal HTTP/1.1 request and response path.

@@ -4,6 +4,9 @@
 ;; operating-system effect and is imported in production only by host.rkt.
 
 (require racket/promise
+         (only-in "../core/binary-nat.rkt"
+                  raw-make-nat
+                  raw-nat-value)
          (only-in "../core/chars.rkt"
                   raw-char-value
                   raw-make-char)
@@ -27,6 +30,7 @@
          (only-in "../core/tags.rkt"
                   char-type
                   list-type
+                  nat-type
                   string-type))
 
 (provide (struct-out codec-failure)
@@ -34,6 +38,8 @@
          host-list->object-list
          object-string->bytes
          bytes->object-string
+         object-nat->integer
+         integer->object-nat
          object-ok
          object-err)
 
@@ -110,7 +116,7 @@
                      (codec-failure 'wrong-type))])
     (raw-boolean->boolean value)))
 
-(define (raw-bits->byte bits-value)
+(define (raw-bits->integer bits-value)
   (define bits
     (object-list->host-list bits-value))
   (cond
@@ -126,17 +132,19 @@
        [(and (> (length decoded) 1)
              (not (car decoded)))
         (codec-failure 'out-of-range)]
-       [(> (length decoded) 8)
-        (codec-failure 'out-of-range)]
        [else
-        (define integer
-          (for/fold ([total 0])
-                    ([bit (in-list decoded)])
-            (+ (* total 2)
-               (if bit 1 0))))
-        (if (<= integer 255)
-            integer
-            (codec-failure 'out-of-range))])]))
+        (for/fold ([total 0])
+                  ([bit (in-list decoded)])
+          (+ (* total 2)
+             (if bit 1 0)))])]))
+
+(define (raw-bits->byte bits-value)
+  (define integer
+    (raw-bits->integer bits-value))
+  (cond
+    [(codec-failure? integer) integer]
+    [(<= integer 255) integer]
+    [else (codec-failure 'out-of-range)]))
 
 (define (object-char->byte value)
   (with-handlers ([exn:fail?
@@ -174,6 +182,15 @@
                     (bytes->immutable-bytes
                      (apply bytes decoded)))))))))
 
+(define (object-nat->integer value)
+  (with-handlers ([exn:fail?
+                   (lambda (failure)
+                     (codec-failure 'wrong-type))])
+    (if (object-has-type? nat-type value)
+        (raw-bits->integer
+         (lazy-apply raw-nat-value value))
+        (codec-failure 'wrong-type))))
+
 (define (integer->raw-bits integer)
   (define bits
     (if (zero? integer)
@@ -200,7 +217,15 @@
    raw-make-string
    (host-list->object-list
     (for/list ([integer (in-bytes value)])
-      (byte->object-char integer)))))
+              (byte->object-char integer)))))
+
+(define (integer->object-nat integer)
+  (unless (exact-nonnegative-integer? integer)
+    (raise-argument-error 'integer->object-nat
+                          "exact-nonnegative-integer?"
+                          integer))
+  (lazy-apply raw-make-nat
+              (integer->raw-bits integer)))
 
 (define (object-ok payload)
   (lazy-apply raw-make-ok payload))

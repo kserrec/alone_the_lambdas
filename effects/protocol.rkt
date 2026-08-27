@@ -1,12 +1,15 @@
 #lang s-exp "../macros/lazy-with-macros.rkt"
 
 (require "../macros/macros.rkt"
+         "../core/binary-nat.rkt"
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-error
                   raw-make-error-root)
+         "../core/fix.rkt"
          (only-in "../core/lists.rkt"
                   raw-cons
+                  raw-append
                   raw-list-head
                   raw-list-is-nil
                   raw-list-tail)
@@ -23,9 +26,21 @@
          stdout-function-name
          read-file-function-name
          write-file-function-name
+         tcp-connect-function-name
+         tcp-listen-function-name
+         tcp-accept-function-name
+         tcp-read-function-name
+         tcp-write-function-name
+         tcp-close-function-name
          stdout-operation
          read-file-operation
          write-file-operation
+         tcp-connect-operation
+         tcp-listen-operation
+         tcp-accept-operation
+         tcp-read-operation
+         tcp-write-operation
+         tcp-close-operation
          unknown-operation-reason
          wrong-arity-reason
          wrong-type-reason
@@ -34,6 +49,14 @@
          permission-denied-code
          invalid-path-code
          invalid-text-code
+         invalid-handle-code
+         wrong-handle-kind-code
+         address-in-use-code
+         connection-refused-code
+         connection-reset-code
+         broken-pipe-code
+         network-unreachable-code
+         name-resolution-failed-code
          resource-exhausted-code
          timed-out-code
          io-failure-code
@@ -60,9 +83,21 @@
 (define-function-name stdout-function-name stdout)
 (define-function-name read-file-function-name read-file)
 (define-function-name write-file-function-name write-file)
+(define-function-name tcp-connect-function-name tcp-connect)
+(define-function-name tcp-listen-function-name tcp-listen)
+(define-function-name tcp-accept-function-name tcp-accept)
+(define-function-name tcp-read-function-name tcp-read)
+(define-function-name tcp-write-function-name tcp-write)
+(define-function-name tcp-close-function-name tcp-close)
 (define-function-name stdout-operation stdout)
 (define-function-name read-file-operation read-file)
 (define-function-name write-file-operation write-file)
+(define-function-name tcp-connect-operation tcp-connect)
+(define-function-name tcp-listen-operation tcp-listen)
+(define-function-name tcp-accept-operation tcp-accept)
+(define-function-name tcp-read-operation tcp-read)
+(define-function-name tcp-write-operation tcp-write)
+(define-function-name tcp-close-operation tcp-close)
 
 (define-function-name unknown-operation-reason unknown-operation)
 (define-function-name wrong-arity-reason wrong-arity)
@@ -73,6 +108,14 @@
 (define-function-name permission-denied-code permission-denied)
 (define-function-name invalid-path-code invalid-path)
 (define-function-name invalid-text-code invalid-text)
+(define-function-name invalid-handle-code invalid-handle)
+(define-function-name wrong-handle-kind-code wrong-handle-kind)
+(define-function-name address-in-use-code address-in-use)
+(define-function-name connection-refused-code connection-refused)
+(define-function-name connection-reset-code connection-reset)
+(define-function-name broken-pipe-code broken-pipe)
+(define-function-name network-unreachable-code network-unreachable)
+(define-function-name name-resolution-failed-code name-resolution-failed)
 (define-function-name resource-exhausted-code resource-exhausted)
 (define-function-name timed-out-code timed-out)
 (define-function-name io-failure-code io-failure)
@@ -102,103 +145,324 @@
 (def raw-invalid-request operation reason =
   ((make-invalid-host-request operation) reason))
 
-(def raw-dispatch-one-string dispatcher request operation arguments =
+(def raw-four-true-bits =
+  ((raw-cons raw-true)
+   ((raw-cons raw-true)
+    ((raw-cons raw-true)
+     ((raw-cons raw-true) NIL)))))
+
+(def raw-eight-true-bits =
+  ((raw-append raw-four-true-bits)
+   raw-four-true-bits))
+
+(def raw-sixteen-true-bits =
+  ((raw-append raw-eight-true-bits)
+   raw-eight-true-bits))
+
+(def raw-four-false-bits =
+  ((raw-cons raw-false)
+   ((raw-cons raw-false)
+    ((raw-cons raw-false)
+     ((raw-cons raw-false) NIL)))))
+
+(def raw-eight-false-bits =
+  ((raw-append raw-four-false-bits)
+   raw-four-false-bits))
+
+(def raw-sixteen-false-bits =
+  ((raw-append raw-eight-false-bits)
+   raw-eight-false-bits))
+
+(def raw-port-maximum-bits =
+  raw-sixteen-true-bits)
+
+(def raw-read-maximum-bits =
+  ((raw-cons raw-true)
+   raw-sixteen-false-bits))
+
+(def raw-unconstrained-argument value =
+  raw-true)
+
+(def raw-nonempty-string-argument value =
+  (raw-not
+   (raw-list-is-nil
+    (raw-string-value value))))
+
+(def raw-nonzero-nat-argument value =
+  (raw-not
+   (raw-nat-is-zero
+    (raw-nat-value value))))
+
+(def raw-port-argument value =
+  ((raw-and
+    (raw-nonzero-nat-argument value))
+   ((raw-nat-less-equal
+     (raw-nat-value value))
+    raw-port-maximum-bits)))
+
+(def raw-listen-port-argument value =
+  ((raw-nat-less-equal
+    (raw-nat-value value))
+   raw-port-maximum-bits))
+
+(def raw-read-maximum-argument value =
+  ((raw-and
+    (raw-nonzero-nat-argument value))
+   ((raw-nat-less-equal
+     (raw-nat-value value))
+    raw-read-maximum-bits)))
+
+(def raw-bit-representation-valid bit =
+  (lambda-let selected =
+    ((bit list-type) nat-type)
+    ((raw-or
+      ((raw-tag-equal list-type) selected))
+     ((raw-tag-equal nat-type) selected))))
+
+(def raw-proper-bit-list-step recur value =
+  (((raw-if
+     ((raw-is-type list-type) value))
+    (((raw-if
+       (raw-list-is-nil value))
+      raw-true)
+     (((raw-if
+        (raw-bit-representation-valid
+         (raw-list-head value)))
+       (recur
+        (raw-list-tail value)))
+      raw-false)))
+   raw-false))
+
+(def raw-proper-bit-list value =
+  ((raw-fix raw-proper-bit-list-step) value))
+
+(def raw-normalized-bit-list value =
+  (((raw-if
+     (raw-list-is-nil value))
+    raw-false)
+   (((raw-if
+      (raw-list-is-nil
+       (raw-list-tail value)))
+     raw-true)
+    (raw-list-head value))))
+
+(def raw-char-representation-valid value =
+  (((raw-if
+     ((raw-is-type char-type) value))
+    (lambda-let bits =
+      (raw-object-value value)
+      (((raw-if
+         (raw-proper-bit-list bits))
+        (((raw-if
+           (raw-normalized-bit-list bits))
+          ((raw-nat-less-equal bits)
+           raw-eight-true-bits))
+         raw-false))
+       raw-false)))
+   raw-false))
+
+(def raw-proper-list-satisfying-step recur predicate value =
+  (((raw-if
+     ((raw-is-type list-type) value))
+    (((raw-if
+       (raw-list-is-nil value))
+      raw-true)
+     (((raw-if
+        (predicate
+         (raw-list-head value)))
+       ((recur predicate)
+        (raw-list-tail value)))
+      raw-false)))
+   raw-false))
+
+(def raw-proper-list-satisfying predicate value =
+  (((raw-fix raw-proper-list-satisfying-step)
+    predicate)
+   value))
+
+(def raw-string-representation-valid value =
+  ((raw-proper-list-satisfying
+    raw-char-representation-valid)
+   (raw-string-value value)))
+
+(def raw-nat-representation-valid value =
+  (raw-proper-bit-list
+   (raw-nat-value value)))
+
+(def raw-make-argument-rule expected-type representation-valid constraint =
+  ((raw-pair expected-type)
+   ((raw-pair representation-valid) constraint)))
+
+(def raw-string-rule =
+  (((raw-make-argument-rule string-type)
+    raw-string-representation-valid)
+   raw-unconstrained-argument))
+
+(def raw-nonempty-string-rule =
+  (((raw-make-argument-rule string-type)
+    raw-string-representation-valid)
+   raw-nonempty-string-argument))
+
+(def raw-handle-rule =
+  (((raw-make-argument-rule nat-type)
+    raw-nat-representation-valid)
+   raw-nonzero-nat-argument))
+
+(def raw-port-rule =
+  (((raw-make-argument-rule nat-type)
+    raw-nat-representation-valid)
+   raw-port-argument))
+
+(def raw-listen-port-rule =
+  (((raw-make-argument-rule nat-type)
+    raw-nat-representation-valid)
+   raw-listen-port-argument))
+
+(def raw-read-maximum-rule =
+  (((raw-make-argument-rule nat-type)
+    raw-nat-representation-valid)
+   raw-read-maximum-argument))
+
+(def raw-one-string-schema =
+  ((raw-cons raw-string-rule) NIL))
+
+(def raw-two-strings-schema =
+  ((raw-cons raw-string-rule)
+   ((raw-cons raw-string-rule) NIL)))
+
+(def raw-tcp-connect-schema =
+  ((raw-cons raw-nonempty-string-rule)
+   ((raw-cons raw-port-rule) NIL)))
+
+(def raw-tcp-listen-schema =
+  ((raw-cons raw-string-rule)
+   ((raw-cons raw-listen-port-rule)
+    ((raw-cons raw-port-rule) NIL))))
+
+(def raw-tcp-handle-schema =
+  ((raw-cons raw-handle-rule) NIL))
+
+(def raw-tcp-read-schema =
+  ((raw-cons raw-handle-rule)
+   ((raw-cons raw-read-maximum-rule) NIL)))
+
+(def raw-tcp-write-schema =
+  ((raw-cons raw-handle-rule)
+   ((raw-cons raw-string-rule) NIL)))
+
+(def raw-validate-request-arguments-step recur dispatcher request operation arguments rules =
   (((raw-if
      ((raw-is-type list-type) arguments))
     (((raw-if
-       (raw-list-is-nil arguments))
-      ((raw-invalid-request operation)
-       wrong-arity-reason))
-     (lambda-let bytes =
-       (raw-list-head arguments)
-       (((raw-if
-          ((raw-is-type string-type) bytes))
-         (lambda-let trailing =
-           (raw-list-tail arguments)
-           (((raw-if
-              ((raw-is-type list-type) trailing))
-             (((raw-if
-                (raw-list-is-nil trailing))
-               (dispatcher request))
-              ((raw-invalid-request operation)
-               wrong-arity-reason)))
-            ((raw-invalid-request operation)
-             wrong-type-reason))))
-        ((raw-invalid-request operation)
-         wrong-type-reason)))))
+       (raw-list-is-nil rules))
+      (((raw-if
+         (raw-list-is-nil arguments))
+        (dispatcher request))
+       ((raw-invalid-request operation)
+        wrong-arity-reason)))
+     (((raw-if
+        (raw-list-is-nil arguments))
+       ((raw-invalid-request operation)
+        wrong-arity-reason))
+      (lambda-let argument =
+        (raw-list-head arguments)
+        (lambda-let rule =
+          (raw-list-head rules)
+          (((raw-if
+             ((raw-is-type
+               (raw-first rule))
+              argument))
+            (lambda-let predicates =
+              (raw-second rule)
+              (((raw-if
+                 ((raw-first predicates) argument))
+                (((raw-if
+                   ((raw-second predicates) argument))
+                  (((((recur dispatcher)
+                      request)
+                     operation)
+                    (raw-list-tail arguments))
+                   (raw-list-tail rules)))
+                 ((raw-invalid-request operation)
+                  out-of-range-reason)))
+               ((raw-invalid-request operation)
+                wrong-type-reason))))
+           ((raw-invalid-request operation)
+            wrong-type-reason)))))))
    ((raw-invalid-request operation)
     wrong-type-reason)))
 
-(def raw-dispatch-two-strings dispatcher request operation arguments =
+(def raw-validate-request-arguments dispatcher request operation arguments rules =
+  ((((((raw-fix raw-validate-request-arguments-step)
+       dispatcher)
+      request)
+     operation)
+    arguments)
+   rules))
+
+(def raw-make-operation-entry operation schema =
+  ((raw-pair operation) schema))
+
+(def raw-operation-table =
+  ((raw-cons
+    ((raw-make-operation-entry stdout-operation)
+     raw-one-string-schema))
+   ((raw-cons
+     ((raw-make-operation-entry read-file-operation)
+      raw-one-string-schema))
+    ((raw-cons
+      ((raw-make-operation-entry write-file-operation)
+       raw-two-strings-schema))
+     ((raw-cons
+       ((raw-make-operation-entry tcp-connect-operation)
+        raw-tcp-connect-schema))
+      ((raw-cons
+        ((raw-make-operation-entry tcp-listen-operation)
+         raw-tcp-listen-schema))
+       ((raw-cons
+         ((raw-make-operation-entry tcp-accept-operation)
+          raw-tcp-handle-schema))
+        ((raw-cons
+          ((raw-make-operation-entry tcp-read-operation)
+           raw-tcp-read-schema))
+         ((raw-cons
+           ((raw-make-operation-entry tcp-write-operation)
+            raw-tcp-write-schema))
+          ((raw-cons
+            ((raw-make-operation-entry tcp-close-operation)
+             raw-tcp-handle-schema))
+           NIL))))))))))
+
+(def raw-dispatch-known-operation-step recur dispatcher request operation arguments entries =
   (((raw-if
-     ((raw-is-type list-type) arguments))
-    (((raw-if
-       (raw-list-is-nil arguments))
-      ((raw-invalid-request operation)
-       wrong-arity-reason))
-     (lambda-let first =
-       (raw-list-head arguments)
-       (((raw-if
-          ((raw-is-type string-type) first))
-         (lambda-let remaining =
-           (raw-list-tail arguments)
-           (((raw-if
-              ((raw-is-type list-type) remaining))
-             (((raw-if
-                (raw-list-is-nil remaining))
-               ((raw-invalid-request operation)
-                wrong-arity-reason))
-              (lambda-let second =
-                (raw-list-head remaining)
-                (((raw-if
-                   ((raw-is-type string-type) second))
-                  (lambda-let trailing =
-                    (raw-list-tail remaining)
-                    (((raw-if
-                       ((raw-is-type list-type) trailing))
-                      (((raw-if
-                         (raw-list-is-nil trailing))
-                        (dispatcher request))
-                       ((raw-invalid-request operation)
-                        wrong-arity-reason)))
-                     ((raw-invalid-request operation)
-                      wrong-type-reason))))
-                 ((raw-invalid-request operation)
-                  wrong-type-reason)))))
-            ((raw-invalid-request operation)
-             wrong-type-reason))))
-        ((raw-invalid-request operation)
-         wrong-type-reason)))))
-   ((raw-invalid-request operation)
-    wrong-type-reason)))
+     (raw-list-is-nil entries))
+    ((raw-invalid-request operation)
+     unknown-operation-reason))
+   (lambda-let entry =
+     (raw-list-head entries)
+     (((raw-if
+        ((raw-string-equal
+          (raw-string-value operation))
+         (raw-string-value
+          (raw-first entry))))
+       (((((raw-validate-request-arguments dispatcher)
+          request)
+         operation)
+        arguments)
+       (raw-second entry)))
+      (((((recur dispatcher)
+          request)
+         operation)
+        arguments)
+       (raw-list-tail entries))))))
 
 (def raw-dispatch-known-operation dispatcher request operation arguments =
-  (((raw-if
-     ((raw-string-equal
-       (raw-string-value operation))
-      (raw-string-value stdout-operation)))
-    ((((raw-dispatch-one-string dispatcher)
-       request)
-      operation)
-     arguments))
-   (((raw-if
-      ((raw-string-equal
-        (raw-string-value operation))
-       (raw-string-value read-file-operation)))
-     ((((raw-dispatch-one-string dispatcher)
-        request)
-       operation)
-      arguments))
-    (((raw-if
-       ((raw-string-equal
-         (raw-string-value operation))
-        (raw-string-value write-file-operation)))
-      ((((raw-dispatch-two-strings dispatcher)
-         request)
-        operation)
-       arguments))
-     ((raw-invalid-request operation)
-      unknown-operation-reason)))))
+  ((((((raw-fix raw-dispatch-known-operation-step)
+       dispatcher)
+      request)
+     operation)
+    arguments)
+   raw-operation-table))
 
 (def raw-validate-host-request dispatcher request =
   (((raw-if
@@ -209,16 +473,20 @@
      (raw-list-head request)
      (((raw-if
         ((raw-is-type string-type) operation))
-       (lambda-let arguments =
-         (raw-list-tail request)
-         (((raw-if
-            ((raw-is-type list-type) arguments))
-           ((((raw-dispatch-known-operation dispatcher)
-              request)
-             operation)
-            arguments))
-          ((raw-invalid-request operation)
-           wrong-type-reason))))
+       (((raw-if
+          (raw-string-representation-valid operation))
+         (lambda-let arguments =
+           (raw-list-tail request)
+           (((raw-if
+              ((raw-is-type list-type) arguments))
+             ((((raw-dispatch-known-operation dispatcher)
+                request)
+               operation)
+              arguments))
+            ((raw-invalid-request operation)
+             wrong-type-reason))))
+        ((raw-invalid-request EMPTY-STRING)
+         wrong-type-reason)))
       ((raw-invalid-request EMPTY-STRING)
        wrong-type-reason)))))
 

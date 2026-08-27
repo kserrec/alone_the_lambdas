@@ -270,12 +270,14 @@
  #"write-file"
  #"wrong-arity")
 
-;; A forged String tag passes the pure schema type test, then the defensive
-;; codec rejects its non-Char element before stdout is touched.
+;; The pure String representation check includes each Char's canonical bit
+;; payload, so a forged Char cannot touch stdout.
+(define malformed-char
+  (apply2 raw-make-object char-type TRUE))
 (define malformed-string
   (lazy-apply
    raw-make-string
-   (host-list->object-list (list TRUE))))
+   (host-list->object-list (list malformed-char))))
 (define untouched-output (open-output-bytes))
 (define malformed-result
   (parameterize ([current-output-port untouched-output])

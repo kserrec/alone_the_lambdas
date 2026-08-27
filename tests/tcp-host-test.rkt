@@ -1,0 +1,536 @@
+#lang racket/base
+
+(require rackunit
+         racket/promise
+         "../core/errors.rkt"
+         "../core/lists.rkt"
+         "../core/logic.rkt"
+         "../core/objects.rkt"
+         "../core/pair.rkt"
+         "../core/result.rkt"
+         "../core/strings.rkt"
+         "../core/tags.rkt"
+         (only-in "../core/typed-logic.rkt" TRUE)
+         "../effects/protocol.rkt"
+         "../effects/tcp.rkt"
+         "../readers/bool.rkt"
+         "../readers/raw-boolean.rkt"
+         "../readers/type-tag.rkt"
+         "../runtime/codec.rkt"
+         "../runtime/host.rkt"
+         "helpers/lazy.rkt")
+
+(define (apply2 function first second)
+  (lazy-apply (lazy-apply function first) second))
+
+(define (apply3 function first second third)
+  (lazy-apply (apply2 function first second) third))
+
+(define (typed-value? type value)
+  (raw-boolean->boolean
+   (apply2 raw-is-type type value)))
+
+(define (error-kind-integer error)
+  (type-tag->integer
+   (lazy-apply raw-error-root-kind
+               (lazy-apply raw-error-root error))))
+
+(define (error-detail-strings error)
+  (define details
+    (lazy-apply
+     raw-error-root-details
+     (lazy-apply raw-error-root error)))
+  (list
+   (object-string->bytes
+    (lazy-apply raw-first details))
+   (object-string->bytes
+    (lazy-apply raw-second details))))
+
+(define (check-invalid-request value operation reason)
+  (check-true (typed-value? error-type value))
+  (check-equal? (error-kind-integer value) 7)
+  (check-equal? (error-detail-strings value)
+                (list operation reason)))
+
+(define (check-host-failure value operation code)
+  (check-true (typed-value? result-type value))
+  (check-true (bool->boolean
+               (lazy-apply is-err value)))
+  (define error
+    (lazy-apply unwrap-err value))
+  (check-equal? (error-kind-integer error) 8)
+  (check-equal? (error-detail-strings error)
+                (list operation code)))
+
+(define (check-ok-nil value)
+  (check-true (typed-value? result-type value))
+  (check-true (bool->boolean
+               (lazy-apply is-ok value)))
+  (check-true (bool->boolean
+               (lazy-apply typed-is-nil
+                           (lazy-apply unwrap-ok value)))))
+
+(define (ok-nat value)
+  (check-true (typed-value? result-type value))
+  (check-true (bool->boolean
+               (lazy-apply is-ok value)))
+  (define payload
+    (lazy-apply unwrap-ok value))
+  (check-true (typed-value? nat-type payload))
+  (object-nat->integer payload))
+
+(define (ok-list value)
+  (check-true (typed-value? result-type value))
+  (check-true (bool->boolean
+               (lazy-apply is-ok value)))
+  (define payload
+    (lazy-apply unwrap-ok value))
+  (check-true (typed-value? list-type payload))
+  (object-list->host-list payload))
+
+(define (ok-bytes value)
+  (check-true (typed-value? result-type value))
+  (check-true (bool->boolean
+               (lazy-apply is-ok value)))
+  (object-string->bytes
+   (lazy-apply unwrap-ok value)))
+
+(define (object-request parts)
+  (host-list->object-list parts))
+
+(define (host-call request)
+  (lazy-apply host request))
+
+(define loopback
+  (bytes->object-string #"127.0.0.1"))
+(define empty-string
+  (bytes->object-string #""))
+
+(define tcp-connect-with-host
+  (lazy-apply make-tcp-connect host))
+(define tcp-listen-with-host
+  (lazy-apply make-tcp-listen host))
+(define tcp-accept-with-host
+  (lazy-apply make-tcp-accept host))
+(define tcp-read-with-host
+  (lazy-apply make-tcp-read host))
+(define tcp-write-with-host
+  (lazy-apply make-tcp-write host))
+(define tcp-close-with-host
+  (lazy-apply make-tcp-close host))
+
+(define (connect remote port)
+  (apply2 tcp-connect-with-host
+          remote
+          (integer->object-nat port)))
+
+(define (listen local port backlog)
+  (apply3 tcp-listen-with-host
+          local
+          (integer->object-nat port)
+          (integer->object-nat backlog)))
+
+(define (accept listener)
+  (lazy-apply tcp-accept-with-host
+              (integer->object-nat listener)))
+
+(define (read-some connection maximum)
+  (apply2 tcp-read-with-host
+          (integer->object-nat connection)
+          (integer->object-nat maximum)))
+
+(define (write-all connection payload)
+  (apply2 tcp-write-with-host
+          (integer->object-nat connection)
+          (bytes->object-string payload)))
+
+(define (close-handle connection)
+  (lazy-apply tcp-close-with-host
+              (integer->object-nat connection)))
+
+(define (network-errno-guard errno)
+  (make-security-guard
+   (current-security-guard)
+   (lambda (who path permissions)
+     (void))
+   (lambda (who host-name port mode)
+     (raise
+      (make-exn:fail:network:errno
+       "synthetic network failure"
+       (current-continuation-marks)
+       errno)))))
+
+(define out-of-memory-network-guard
+  (make-security-guard
+   (current-security-guard)
+   (lambda (who path permissions)
+     (void))
+   (lambda (who host-name port mode)
+     (raise
+      (make-exn:fail:out-of-memory
+       "synthetic resource exhaustion"
+       (current-continuation-marks))))))
+
+;; These deterministic failures occur before resource acquisition. Besides
+;; proving the closed error vocabulary, the first real listener below proves
+;; that none of them consumed a handle.
+(for ([case (in-list
+             (list
+              (list (cons 13 'posix) #"permission-denied")
+              (list (cons 111 'posix) #"connection-refused")
+              (list (cons 104 'posix) #"connection-reset")
+              (list (cons 32 'posix) #"broken-pipe")
+              (list (cons 101 'posix) #"network-unreachable")
+              (list (cons 24 'posix) #"resource-exhausted")
+              (list (cons 110 'posix) #"timed-out")
+              (list (cons -2 'gai) #"name-resolution-failed")))])
+  (parameterize ([current-security-guard
+                  (network-errno-guard (car case))])
+    (check-host-failure
+     (connect loopback 1)
+     #"tcp-connect"
+     (cadr case))))
+
+(parameterize ([current-security-guard
+                (network-errno-guard (cons 98 'posix))])
+  (check-host-failure
+   (listen loopback 0 1)
+   #"tcp-listen"
+   #"address-in-use"))
+
+(parameterize ([current-security-guard out-of-memory-network-guard])
+  (check-host-failure
+   (connect loopback 1)
+   #"tcp-connect"
+   #"resource-exhausted"))
+
+;; Pure schema failures are bare InvalidHostRequest Errors and cannot dispatch
+;; a network effect.
+(check-invalid-request
+ (host-call
+  (object-request (list tcp-connect-operation)))
+ #"tcp-connect"
+ #"wrong-arity")
+(check-invalid-request
+ (host-call
+  (object-request
+   (list tcp-connect-operation TRUE (integer->object-nat 80))))
+ #"tcp-connect"
+ #"wrong-type")
+(check-invalid-request
+ (apply2 tcp-connect-with-host
+         empty-string
+         (integer->object-nat 80))
+ #"tcp-connect"
+ #"out-of-range")
+(check-invalid-request
+ (connect loopback 0)
+ #"tcp-connect"
+ #"out-of-range")
+(check-invalid-request
+ (connect loopback 65536)
+ #"tcp-connect"
+ #"out-of-range")
+(check-invalid-request
+ (listen loopback 65536 1)
+ #"tcp-listen"
+ #"out-of-range")
+(check-invalid-request
+ (listen loopback 0 0)
+ #"tcp-listen"
+ #"out-of-range")
+(check-invalid-request
+ (listen loopback 0 65536)
+ #"tcp-listen"
+ #"out-of-range")
+(check-invalid-request
+ (accept 0)
+ #"tcp-accept"
+ #"out-of-range")
+(check-invalid-request
+ (read-some 1 0)
+ #"tcp-read"
+ #"out-of-range")
+(check-invalid-request
+ (read-some 1 65537)
+ #"tcp-read"
+ #"out-of-range")
+(check-invalid-request
+ (host-call
+  (object-request
+   (list tcp-close-operation
+         (integer->object-nat 1)
+         TRUE)))
+ #"tcp-close"
+ #"wrong-arity")
+
+;; A proper but nonnormalized Nat reaches the defensive codec and is rejected
+;; there. Malformed Nat/String containers are rejected earlier by the pure
+;; representation predicate. Neither path can dispatch an operating-system
+;; call.
+(define leading-zero-nat
+  (apply2 raw-make-object
+          nat-type
+          (host-list->object-list
+           (list raw-false raw-true))))
+(check-invalid-request
+ (host-call
+  (object-request
+   (list tcp-connect-operation loopback leading-zero-nat)))
+ #"tcp-connect"
+ #"out-of-range")
+
+(define malformed-nat
+  (apply2 raw-make-object nat-type TRUE))
+(check-invalid-request
+ (host-call
+  (object-request
+   (list tcp-connect-operation loopback malformed-nat)))
+ #"tcp-connect"
+ #"wrong-type")
+
+(define malformed-bit-nat
+  (apply2 raw-make-object
+          nat-type
+          (host-list->object-list (list TRUE))))
+(check-invalid-request
+ (host-call
+  (object-request
+   (list tcp-connect-operation loopback malformed-bit-nat)))
+ #"tcp-connect"
+ #"wrong-type")
+
+(define malformed-string
+  (lazy-apply raw-make-string TRUE))
+(check-invalid-request
+ (host-call
+  (object-request
+   (list tcp-connect-operation
+         malformed-string
+         (integer->object-nat 80))))
+ #"tcp-connect"
+ #"wrong-type")
+(check-invalid-request
+ (host-call
+  (object-request
+   (list malformed-string
+         loopback
+         (integer->object-nat 80))))
+ #""
+ #"wrong-type")
+
+;; Hostnames and interfaces alone use UTF-8 interpretation; wire data remains
+;; arbitrary bytes.
+(check-host-failure
+ (connect (bytes->object-string #"\377") 80)
+ #"tcp-connect"
+ #"invalid-text")
+(check-host-failure
+ (listen (bytes->object-string #"\377") 0 1)
+ #"tcp-listen"
+ #"invalid-text")
+
+(define open-handles '())
+(define active-threads '())
+
+(define (track! handle)
+  (set! open-handles (cons handle open-handles))
+  handle)
+
+(define (untrack! handle)
+  (set! open-handles (remove handle open-handles)))
+
+(define (close-tracked! handle)
+  (check-ok-nil (close-handle handle))
+  (untrack! handle))
+
+(define (start-worker thunk)
+  (define result (box #f))
+  (define started (make-channel))
+  (define worker
+    (thread
+     (lambda ()
+       (channel-put started 'started)
+       (set-box! result (thunk)))))
+  (set! active-threads (cons worker active-threads))
+  (channel-get started)
+  (values worker result))
+
+(define (finish-worker worker result)
+  (define completed
+    (sync/timeout 10 worker))
+  (check-not-false completed)
+  (when completed
+    (set! active-threads (remove worker active-threads)))
+  (and completed (unbox result)))
+
+(define (read-exactly connection amount maximum)
+  (let loop ([received #""])
+    (if (= (bytes-length received) amount)
+        received
+        (let ([chunk
+               (ok-bytes (read-some connection maximum))])
+          (check-true (positive? (bytes-length chunk)))
+          (check-true (<= (bytes-length chunk) maximum))
+          (check-true (<= (+ (bytes-length received)
+                             (bytes-length chunk))
+                          amount))
+          (loop (bytes-append received chunk))))))
+
+(dynamic-wind
+  void
+  (lambda ()
+    ;; Ephemeral loopback listen returns [handle, actual-port]. The handle is
+    ;; ONE because every prior rejected/synthetic request allocated nothing.
+    (define listener-result
+      (ok-list (listen loopback 0 8)))
+    (check-equal? (length listener-result) 2)
+    (define listener
+      (track! (object-nat->integer (car listener-result))))
+    (define bound-port
+      (object-nat->integer (cadr listener-result)))
+    (check-equal? listener 1)
+    (check-true (and (exact-positive-integer? bound-port)
+                     (<= bound-port 65535)))
+
+    (check-host-failure
+     (read-some listener 1)
+     #"tcp-read"
+     #"wrong-handle-kind")
+    (check-host-failure
+     (write-all listener #"")
+     #"tcp-write"
+     #"wrong-handle-kind")
+    (check-host-failure
+     (accept 999999)
+     #"tcp-accept"
+     #"invalid-handle")
+    (check-host-failure
+     (close-handle 999999)
+     #"tcp-close"
+     #"invalid-handle")
+
+    (define client
+      (track! (ok-nat (connect loopback bound-port))))
+    (define server
+      (track! (ok-nat (accept listener))))
+    (check-equal? client 2)
+    (check-equal? server 3)
+
+    (check-host-failure
+     (accept client)
+     #"tcp-accept"
+     #"wrong-handle-kind")
+
+    ;; A read remains blocked until a byte is written.
+    (define-values (blocking-worker blocking-result)
+      (start-worker
+       (lambda ()
+         (ok-bytes (read-some server 8)))))
+    (check-false (sync/timeout 0.05 blocking-worker))
+    (check-ok-nil (write-all client #"ab"))
+    (check-equal? (finish-worker blocking-worker blocking-result)
+                  #"ab")
+
+    ;; The maximum is a hard per-call bound. Multiple writes and reads preserve
+    ;; exact ordering without assuming TCP packet boundaries.
+    (check-ok-nil (write-all client #"cde"))
+    (check-ok-nil (write-all client #"fgh"))
+    (check-equal? (read-exactly server 6 2)
+                  #"cdefgh")
+
+    ;; A valid empty write emits no byte and does not unblock the peer.
+    (define-values (empty-worker empty-result)
+      (start-worker
+       (lambda ()
+         (ok-bytes (read-some server 1)))))
+    (check-false (sync/timeout 0.05 empty-worker))
+    (check-ok-nil (write-all client #""))
+    (check-false (sync/timeout 0.05 empty-worker))
+    (check-ok-nil (write-all client #"Z"))
+    (check-equal? (finish-worker empty-worker empty-result)
+                  #"Z")
+
+    ;; Complete-write acknowledgement means a concurrent reader can recover
+    ;; every byte, including zero and values above ASCII, across many reads.
+    (define complete-payload
+      (apply bytes
+             (for/list ([index (in-range 512)])
+               (modulo (* index 73) 256))))
+    (define-values (complete-worker complete-result)
+      (start-worker
+       (lambda ()
+         (read-exactly server
+                       (bytes-length complete-payload)
+                       37))))
+    (check-ok-nil (write-all client complete-payload))
+    (check-equal? (finish-worker complete-worker complete-result)
+                  complete-payload)
+
+    ;; Connections are full duplex and payloads are byte-exact.
+    (define reverse-payload #"\0\377\200reply")
+    (check-ok-nil (write-all server reverse-payload))
+    (check-equal? (read-exactly client
+                                (bytes-length reverse-payload)
+                                3)
+                  reverse-payload)
+
+    ;; Closing one endpoint produces orderly EOF at its peer. Explicit close
+    ;; removes a handle first, so every second close is deterministically stale.
+    (close-tracked! client)
+    (check-equal? (ok-bytes (read-some server 16)) #"")
+    (check-host-failure
+     (close-handle client)
+     #"tcp-close"
+     #"invalid-handle")
+    (close-tracked! server)
+    (check-host-failure
+     (read-some server 1)
+     #"tcp-read"
+     #"invalid-handle")
+    (close-tracked! listener)
+    (check-host-failure
+     (close-handle listener)
+     #"tcp-close"
+     #"invalid-handle")
+
+    ;; Closed handles are never reused within the runtime instance.
+    (define second-listener-result
+      (ok-list (listen loopback 0 1)))
+    (define second-listener
+      (track! (object-nat->integer
+               (car second-listener-result))))
+    (check-equal? second-listener 4)
+    (close-tracked! second-listener)
+
+    ;; Racket custodians close their owned TCP resources at shutdown. A later
+    ;; explicit close still removes the runtime handle, reports generic I/O
+    ;; rather than a false name-resolution failure, and leaves it stale.
+    (define socket-custodian (make-custodian))
+    (define custodian-listener-result
+      (parameterize ([current-custodian socket-custodian])
+        (ok-list (listen loopback 0 1))))
+    (define custodian-listener
+      (track! (object-nat->integer
+               (car custodian-listener-result))))
+    (check-equal? custodian-listener 5)
+    (custodian-shutdown-all socket-custodian)
+    (check-host-failure
+     (close-handle custodian-listener)
+     #"tcp-close"
+     #"io-failure")
+    (untrack! custodian-listener)
+    (check-host-failure
+     (close-handle custodian-listener)
+     #"tcp-close"
+     #"invalid-handle"))
+  (lambda ()
+    (for ([worker (in-list active-threads)])
+      (unless (thread-dead? worker)
+        (kill-thread worker)))
+    (for ([handle (in-list open-handles)])
+      (with-handlers ([exn:fail? (lambda (failure) (void))])
+        (lazy-force (close-handle handle))))))
+
+(check-equal? open-handles '())
+(check-equal? active-threads '())
