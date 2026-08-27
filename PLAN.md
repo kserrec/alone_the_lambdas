@@ -295,6 +295,20 @@ Completion evidence: 3,307 assertions across 24 test files, the unchanged
 purity scan over 16 `core/` modules, and the Phase 15 effects/runtime boundary
 gate all passed on 2026-08-27.
 
+Post-completion audit hardening (2026-08-27): function-name macros now lower
+identifier spellings to one Char per UTF-8 byte; the boundary gate pins both
+mechanical macro modules, rejects wrapped second codec/host imports, rejects
+disallowed imports before reading their exports, validates every component of
+the project root and production paths before discovery, rejects symlinks
+without traversing their targets, rejects additional macro modules and all
+premature `lang/` modules, and keeps macro OS/process/environment/dynamic-
+loading/FFI/mutation capabilities closed. CI
+actions, runner family, and Racket are pinned, and CI verifies the bundled
+`lazy` package without live package resolution. The resulting 3,345 assertions
+across 24 test files, unchanged 16-module expanded core scan, and strengthened
+boundary scan all passed. Phase 15 behavior and the approved host authority are
+unchanged.
+
 ## Phase 16 — Blocking TCP effects
 
 Status: next; not started

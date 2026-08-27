@@ -5,8 +5,10 @@
 ;; checker adds the approved classes without weakening that proof:
 ;;
 ;;   effects/             pure source forms and closed project imports
+;;   macros/              the two exact mechanical expansion modules
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
 ;;   runtime/host.rkt     sole host export and the Phase 15 effect allowlist
+;;   lang/                empty until its Phase 19 classification is approved
 
 (require racket/file
          racket/list
@@ -102,6 +104,38 @@
     truncate unknown-operation-reason windows with-handlers write-bytes
     write-file-operation wrong-arity-reason wrong-type-reason))
 
+(define macro-vocabulary
+  '(... = NIL _ and andmap argument arguments binding bit-expressions body
+    byte bytes->list car cdr char=? character-expressions context
+    curried-lambdas datum->syntax def define define-for-syntax
+    define-function-name define-syntax digit elements for-syntax
+    function-name-expression identifier? if lambda lambda-let map name
+    name-byte-expression name-list-expression null? number->string provide
+    quasisyntax quote racket/base raw-cons raw-false raw-name-char
+    raw-name-string raw-true rendered-name require string->bytes/utf-8
+    string->list stx symbol->string syntax syntax->list syntax-case syntax-e
+    unsyntax use-site-identifier value))
+
+(define expected-macro-shell-language 'racket/base)
+
+(define expected-macro-shell-forms
+  '((require lazy/lazy)
+    (provide (all-from-out lazy/lazy)
+             #%module-begin
+             #%app
+             #%datum
+             #%top)))
+
+(define expected-macro-language 'lazy)
+
+(define expected-macro-requires
+  '((require (for-syntax racket/base))))
+
+(define expected-macro-provide
+  '(provide def
+            lambda-let
+            define-function-name))
+
 (define expected-codec-provide
   '(provide (struct-out codec-failure)
             object-list->host-list
@@ -123,9 +157,10 @@
         #px"(^|\\.)env($|\\.)"
         (string-downcase (path->string name)))))
 
-(define (safe-source-path? path)
-  (and (not (dotenv-name? path))
-       (not (link-exists? path))))
+(define (dotenv-path? path)
+  (for/or ([part (in-list (explode-path (normalized path)))])
+    (and (path? part)
+         (dotenv-name? part))))
 
 (define (path-within? parent child)
   (define parent-parts (explode-path (normalized parent)))
@@ -134,12 +169,51 @@
        (equal? parent-parts
                (take child-parts (length parent-parts)))))
 
+(define (safe-absolute-components? path)
+  (let loop ([parts (explode-path (normalized path))]
+             [current #f])
+    (cond
+      [(null? parts) #t]
+      [(not (path? (car parts))) #f]
+      [else
+       (define next
+         (if current
+             (build-path current (car parts))
+             (car parts)))
+       (and (not (dotenv-name? next))
+            (not (link-exists? next))
+            (loop (cdr parts) next))])))
+
+(define (safe-components-under? project-root path)
+  (define root (normalized project-root))
+  (define source (normalized path))
+  (and
+   (safe-absolute-components? root)
+   (path-within? root source)
+   (let loop ([current root]
+              [parts
+               (explode-path (find-relative-path root source))])
+     (cond
+       [(null? parts) #t]
+       [(not (path? (car parts))) #f]
+       [else
+        (define next (build-path current (car parts)))
+        (and (not (dotenv-name? next))
+             (not (link-exists? next))
+             (loop next (cdr parts)))]))))
+
+(define (safe-source-path? path [project-root #f])
+  (and (not (dotenv-path? path))
+       (if project-root
+           (safe-components-under? project-root path)
+           (safe-absolute-components? path))))
+
 (define (resolve-relative source-path module-path)
   (normalized
    (build-path (or (path-only source-path) (current-directory))
                module-path)))
 
-(define (read-module-info path)
+(define (read-module-info/unchecked path)
   (define datum
     (call-with-input-file path
       (lambda (input)
@@ -165,15 +239,42 @@
 (define (provide-form? form)
   (and (pair? form) (eq? (car form) 'provide)))
 
-(define (require-spec-base spec)
+(define (combined-require-bases specs)
+  (define groups
+    (map require-spec-bases specs))
+  (and (andmap list? groups)
+       (append* groups)))
+
+(define (require-spec-bases spec)
   (cond
-    [(or (string? spec) (symbol? spec)) spec]
+    [(or (string? spec) (symbol? spec)) (list spec)]
     [(and (list? spec)
           (pair? spec)
-          (eq? (car spec) 'only-in)
+          (memq (car spec) '(only-in except-in rename-in))
+          (>= (length spec) 2))
+     (require-spec-bases (cadr spec))]
+    [(and (list? spec)
+          (pair? spec)
+          (eq? (car spec) 'prefix-in)
           (>= (length spec) 3))
-     (cadr spec)]
+     (require-spec-bases (caddr spec))]
+    [(and (list? spec)
+          (pair? spec)
+          (memq (car spec) '(combine-in for-syntax for-template for-label)))
+     (combined-require-bases (cdr spec))]
+    [(and (list? spec)
+          (pair? spec)
+          (memq (car spec) '(for-meta only-meta-in for-space))
+          (>= (length spec) 3))
+     (combined-require-bases (cddr spec))]
     [else #f]))
+
+(define (require-spec-base spec)
+  (define bases
+    (require-spec-bases spec))
+  (and bases
+       (= (length bases) 1)
+       (car bases)))
 
 (define (only-in-spec? spec)
   (and (list? spec)
@@ -218,17 +319,14 @@
        [else #f]))
    (cddr spec)))
 
-(define (imported-identifiers spec source-path)
+(define (imported-identifiers spec source-path project-root)
   (define base (require-spec-base spec))
   (cond
     [(only-in-spec? spec)
      (only-in-identifiers spec)]
     [(string? base)
      (define target (resolve-relative source-path base))
-     (define info
-       (with-handlers ([exn:fail? (lambda (failure) #f)])
-         (and (source-file? target)
-              (read-module-info target))))
+     (define info (read-module-info target project-root))
      (if info (provided-identifiers info) '())]
     [else '()]))
 
@@ -249,18 +347,32 @@
        [else #f]))
    (module-info-forms info)))
 
-(define (effect-allowed-identifiers info source-path)
+(define (effect-allowed-identifiers info source-path project-root)
   (remove-duplicates
    (append
     (effect-top-level-identifiers info)
     (append-map (lambda (spec)
-                  (imported-identifiers spec source-path))
+                  (if (effect-import-allowed? spec
+                                              source-path
+                                              project-root)
+                      (imported-identifiers spec
+                                            source-path
+                                            project-root)
+                      '()))
                 (module-require-specs info)))))
 
-(define (source-file? path)
-  (and (file-exists? path)
-       (equal? (path-get-extension path) #".rkt")
-       (safe-source-path? path)))
+(define (source-file? path project-root)
+  (and (safe-source-path? path project-root)
+       (file-exists? path)
+       (equal? (path-get-extension path) #".rkt")))
+
+;; All opportunistic project-wide reads go through this guard. The one caller
+;; that has already rejected unsafe/missing paths uses the unchecked reader so
+;; it can preserve a concrete read-failure diagnostic for a regular source.
+(define (read-module-info path project-root)
+  (with-handlers ([exn:fail? (lambda (failure) #f)])
+    (and (source-file? path project-root)
+         (read-module-info/unchecked path))))
 
 (define (effect-import-allowed? spec source-path project-root)
   (define base (require-spec-base spec))
@@ -270,11 +382,11 @@
                   (equal? target
                           (normalized
                            (build-path project-root "macros" "macros.rkt")))
-                  (source-file? target))
-             (and (source-file? target)
-                  (or (path-within? (build-path project-root "core") target)
+                  (source-file? target project-root))
+             (and (or (path-within? (build-path project-root "core") target)
                       (path-within? (build-path project-root "effects")
-                                    target)))))))
+                                    target))
+                  (source-file? target project-root))))))
 
 (define (codec-import-allowed? spec source-path project-root)
   (define base (require-spec-base spec))
@@ -283,8 +395,8 @@
     [(string? base)
      (define target (resolve-relative source-path base))
      (and (only-in-spec? spec)
-          (source-file? target)
-          (path-within? (build-path project-root "core") target))]
+          (path-within? (build-path project-root "core") target)
+          (source-file? target project-root))]
     [else #f]))
 
 (define (host-import-allowed? spec source-path project-root)
@@ -304,8 +416,8 @@
               ("effects" "protocol.rkt")
               ("runtime" "codec.rkt"))))
      (and (only-in-spec? spec)
-          (source-file? target)
-          (member target allowed equal?))]
+          (member target allowed equal?)
+          (source-file? target project-root))]
     [else #f]))
 
 (define (datum-symbols datum)
@@ -323,18 +435,16 @@
              #:when (memq name forbidden))
     (violation path kind name)))
 
-(define (codec-pattern-violations path symbols)
+(define (capability-pattern-violations path symbols kind)
   (for/list ([name (in-list (remove-duplicates symbols))]
              #:when
              (let ([text (symbol->string name)])
                (or (regexp-match? #px"^set-.+!$" text)
                    (regexp-match? #px"registry" text))))
-    (violation path 'forbidden-codec-capability name)))
+    (violation path kind name)))
 
-(define (strict-vocabulary-violations path allowed kind)
-  (define info
-    (with-handlers ([exn:fail? (lambda (failure) #f)])
-      (read-module-info path)))
+(define (strict-vocabulary-violations path project-root allowed kind)
+  (define info (read-module-info path project-root))
   (if info
       (for/list ([name (in-list
                         (remove-duplicates
@@ -448,7 +558,7 @@
   (define definitions
     (effect-top-level-identifiers info))
   (define allowed
-    (effect-allowed-identifiers info path))
+    (effect-allowed-identifiers info path project-root))
   (append
    (if (equal? (module-info-language info) effect-language)
        '()
@@ -467,14 +577,17 @@
              #:unless (allowed? spec path project-root))
     (violation path kind spec)))
 
-(define (strict-language-violations path info class)
-  (if (eq? (module-info-language info) 'racket/base)
+(define (exact-language-violations path info expected kind)
+  (if (eq? (module-info-language info) expected)
       '()
-      (list (violation path
-                       (if (eq? class 'codec)
-                           'unexpected-codec-language
-                           'unexpected-host-language)
-                       (module-info-language info)))))
+      (list (violation path kind (module-info-language info)))))
+
+(define (exact-require-violations path info expected kind)
+  (define requires
+    (filter require-form? (module-info-forms info)))
+  (if (equal? requires expected)
+      '()
+      (list (violation path kind requires))))
 
 (define (exact-provide-violations path info expected kind)
   (define provides
@@ -483,11 +596,50 @@
       '()
       (list (violation path kind provides))))
 
+(define (macro-shell-violations path info)
+  (append
+   (exact-language-violations path
+                              info
+                              expected-macro-shell-language
+                              'unexpected-macro-shell-language)
+   (if (equal? (module-info-forms info) expected-macro-shell-forms)
+       '()
+       (list (violation path
+                        'invalid-macro-shell-forms
+                        (module-info-forms info))))))
+
+(define (macro-violations path info)
+  (define symbols
+    (datum-symbols (module-info-forms info)))
+  (append
+   (exact-language-violations path
+                              info
+                              expected-macro-language
+                              'unexpected-macro-language)
+   (exact-require-violations path
+                             info
+                             expected-macro-requires
+                             'invalid-macro-imports)
+   (exact-provide-violations path
+                             info
+                             expected-macro-provide
+                             'invalid-macro-export)
+   (symbol-violations path
+                      symbols
+                      forbidden-codec-capabilities
+                      'forbidden-macro-capability)
+   (capability-pattern-violations path
+                                  symbols
+                                  'forbidden-macro-capability)))
+
 (define (codec-violations path info project-root)
   (define symbols
     (datum-symbols (module-info-forms info)))
   (append
-   (strict-language-violations path info 'codec)
+   (exact-language-violations path
+                              info
+                              'racket/base
+                              'unexpected-codec-language)
    (strict-import-violations path info project-root
                              codec-import-allowed?
                              'disallowed-codec-import)
@@ -497,7 +649,9 @@
                       symbols
                       forbidden-codec-capabilities
                       'forbidden-codec-capability)
-   (codec-pattern-violations path symbols)))
+   (capability-pattern-violations path
+                                  symbols
+                                  'forbidden-codec-capability)))
 
 (define (top-level-binding-name form)
   (and (list? form)
@@ -529,7 +683,10 @@
     (list (normalized (build-path project-root "effects" "protocol.rkt"))
           (normalized (build-path project-root "runtime" "codec.rkt"))))
   (append
-   (strict-language-violations path info 'host)
+   (exact-language-violations path
+                              info
+                              'racket/base
+                              'unexpected-host-language)
    (strict-import-violations path info project-root
                              host-import-allowed?
                              'disallowed-host-import)
@@ -553,15 +710,16 @@
 (define (file-boundary-violations path class
                                   [project-root default-project-root])
   (define source (normalized path))
+  (define root (normalized project-root))
   (cond
-    [(not (safe-source-path? source))
+    [(not (safe-source-path? source root))
      (list (violation source 'disallowed-boundary-path source))]
     [(not (file-exists? source))
      (list (violation source 'missing-boundary-file source))]
     [else
      (define info
        (with-handlers ([exn:fail? (lambda (failure) failure)])
-         (read-module-info source)))
+         (read-module-info/unchecked source)))
      (cond
        [(exn? info)
         (list (violation source 'boundary-read-failure
@@ -569,11 +727,15 @@
        [(not info)
         (list (violation source 'invalid-boundary-module source))]
        [(eq? class 'effect)
-        (effect-violations source info (normalized project-root))]
+        (effect-violations source info root)]
+       [(eq? class 'macro-shell)
+        (macro-shell-violations source info)]
+       [(eq? class 'macro)
+        (macro-violations source info)]
        [(eq? class 'codec)
-        (codec-violations source info (normalized project-root))]
+        (codec-violations source info root)]
        [(eq? class 'host)
-        (host-violations source info (normalized project-root))]
+        (host-violations source info root)]
        [else
         (list (violation source 'unknown-boundary-class class))])]))
 
@@ -589,29 +751,55 @@
      (list (normalized directory))]
     [else '()]))
 
-(define (unauthorized-codec-imports files codec host)
+(define (unsafe-production-path-violations files project-root)
+  (for/list ([path (in-list files)]
+             #:unless (source-file? path project-root))
+    (violation path 'disallowed-boundary-path path)))
+
+(define (unauthorized-codec-imports files project-root codec host)
   (append-map
    (lambda (source)
-     (define info
-       (with-handlers ([exn:fail? (lambda (failure) #f)])
-         (read-module-info source)))
+     (define info (read-module-info source project-root))
      (if info
-         (for/list ([spec (in-list (module-require-specs info))]
-                    #:when
-                    (let ([base (require-spec-base spec)])
-                      (and (string? base)
-                           (equal? (resolve-relative source base) codec)
-                           (not (equal? source host)))))
+         (for*/list ([spec (in-list (module-require-specs info))]
+                     [base (in-list (or (require-spec-bases spec) '()))]
+                     #:when
+                     (and (string? base)
+                          (equal? (resolve-relative source base) codec)
+                          (not (equal? source host))))
            (violation source 'unauthorized-codec-import spec))
          '()))
    files))
 
-(define (unauthorized-host-surfaces files host)
+(define (unauthorized-host-imports files project-root host)
   (append-map
    (lambda (source)
-     (define info
-       (with-handlers ([exn:fail? (lambda (failure) #f)])
-         (read-module-info source)))
+     (define info (read-module-info source project-root))
+     (if (or (not info) (equal? source host))
+         '()
+         (for*/list ([spec (in-list (module-require-specs info))]
+                     [base (in-list (or (require-spec-bases spec) '()))]
+                     #:when
+                     (and (string? base)
+                          (equal? (resolve-relative source base) host)))
+           (violation source 'unauthorized-host-import spec))))
+   files))
+
+(define (unclassified-require-specs files project-root)
+  (append-map
+   (lambda (source)
+     (define info (read-module-info source project-root))
+     (if info
+         (for/list ([spec (in-list (module-require-specs info))]
+                    #:unless (require-spec-bases spec))
+           (violation source 'unclassified-production-import spec))
+         '()))
+   files))
+
+(define (unauthorized-host-surfaces files project-root host)
+  (append-map
+   (lambda (source)
+     (define info (read-module-info source project-root))
      (if (or (not info) (equal? source host))
          '()
          (append
@@ -628,44 +816,79 @@
 (define (project-boundary-violations
          [project-root default-project-root])
   (define root (normalized project-root))
-  (define effects-directory (build-path root "effects"))
-  (define runtime-directory (build-path root "runtime"))
-  (define codec (normalized (build-path runtime-directory "codec.rkt")))
-  (define host (normalized (build-path runtime-directory "host.rkt")))
-  (define effect-files (racket-files-under effects-directory))
-  (define runtime-files (racket-files-under runtime-directory))
-  (define production-files
-    (append-map
-     racket-files-under
-     (list (build-path root "core")
-           effects-directory
-           (build-path root "macros")
-           runtime-directory
-           (build-path root "lang"))))
-  (append
-   (append-map (lambda (path)
-                 (file-boundary-violations path 'effect root))
-               effect-files)
-   (file-boundary-violations codec 'codec root)
-   (file-boundary-violations host 'host root)
-   (strict-vocabulary-violations codec
-                                 phase15-codec-vocabulary
-                                 'unapproved-codec-identifier)
-   (strict-vocabulary-violations host
-                                 phase15-host-vocabulary
-                                 'unapproved-host-identifier)
-   (for/list ([path (in-list runtime-files)]
-              #:unless (member path (list codec host) equal?))
-     (violation path 'unclassified-runtime-module path))
-   (unauthorized-codec-imports production-files codec host)
-   (unauthorized-host-surfaces production-files host)))
+  (cond
+    [(not (safe-absolute-components? root))
+     (list (violation root 'disallowed-boundary-root 'unsafe-root))]
+    [(not (directory-exists? root))
+     (list (violation root 'missing-boundary-root 'missing-root))]
+    [else
+     ;; No directory discovery or source read occurs until the complete
+     ;; authorization anchor above has passed component-by-component checks.
+     (define effects-directory (build-path root "effects"))
+     (define macros-directory (build-path root "macros"))
+     (define runtime-directory (build-path root "runtime"))
+     (define language-directory (build-path root "lang"))
+     (define macro-shell
+       (normalized (build-path macros-directory "lazy-with-macros.rkt")))
+     (define macro-definitions
+       (normalized (build-path macros-directory "macros.rkt")))
+     (define codec (normalized (build-path runtime-directory "codec.rkt")))
+     (define host (normalized (build-path runtime-directory "host.rkt")))
+     (define effect-files (racket-files-under effects-directory))
+     (define macro-files (racket-files-under macros-directory))
+     (define runtime-files (racket-files-under runtime-directory))
+     (define language-files (racket-files-under language-directory))
+     (define production-files
+       (append-map
+        racket-files-under
+        (list (build-path root "core")
+              effects-directory
+              macros-directory
+              runtime-directory
+              language-directory)))
+     (append
+      (unsafe-production-path-violations production-files root)
+      (append-map (lambda (path)
+                    (file-boundary-violations path 'effect root))
+                  effect-files)
+      (file-boundary-violations macro-shell 'macro-shell root)
+      (file-boundary-violations macro-definitions 'macro root)
+      (file-boundary-violations codec 'codec root)
+      (file-boundary-violations host 'host root)
+      (strict-vocabulary-violations codec
+                                    root
+                                    phase15-codec-vocabulary
+                                    'unapproved-codec-identifier)
+      (strict-vocabulary-violations host
+                                    root
+                                    phase15-host-vocabulary
+                                    'unapproved-host-identifier)
+      (strict-vocabulary-violations macro-definitions
+                                    root
+                                    macro-vocabulary
+                                    'unapproved-macro-identifier)
+      (for/list ([path (in-list macro-files)]
+                 #:unless (member path
+                                  (list macro-shell macro-definitions)
+                                  equal?))
+        (violation path 'unclassified-macro-module path))
+      (for/list ([path (in-list runtime-files)]
+                 #:unless (member path (list codec host) equal?))
+        (violation path 'unclassified-runtime-module path))
+      (for/list ([path (in-list language-files)])
+        (violation path 'unclassified-language-module path))
+      (unclassified-require-specs production-files root)
+      (unauthorized-codec-imports production-files root codec host)
+      (unauthorized-host-imports production-files root host)
+      (unauthorized-host-surfaces production-files root host))]))
 
 (module+ main
   (define findings
     (project-boundary-violations default-project-root))
   (cond
     [(null? findings)
-     (printf "Boundary check passed: pure effects, isolated codec, sole host.\n")]
+     (printf
+      "Boundary check passed: pure effects, mechanical macros, isolated codec, sole host.\n")]
     [else
      (for ([finding (in-list findings)])
        (eprintf "~a: ~a: ~a\n"

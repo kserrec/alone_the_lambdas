@@ -72,8 +72,8 @@ precedence over conflicting examples in the base specification.
 - `macros/lazy-with-macros.rkt` provides the minimal Lazy Racket module shell.
 - `macros/macros.rkt` provides arbitrary-arity curried `def` and the internal
   `lambda-let` sugar that will later be exported publicly as `let`. It also
-  mechanically expands identifier spellings into pure String terms for Error
-  frame names.
+  mechanically expands identifier spellings as UTF-8 bytes into pure String
+  terms for Error frame names.
 - `core/pair.rkt` provides lambda-encoded pairs and selectors.
 - `core/logic.rkt` provides raw Boolean selectors and lambda-based Boolean
   operations, including lazy `raw-if`.
@@ -145,16 +145,21 @@ precedence over conflicting examples in the base specification.
   oldest-to-newest named frames without feeding diagnostic text back into
   computation.
 - `tooling/check-purity.rkt` judges what Racket compiles: it expands every
-  production module exactly as `raco make` does and admits only the trusted
-  Lazy Racket shell, project-only phase-0 imports, plain or renamed exports,
-  single-identifier definitions, and terms alpha-equivalent to Lazy Racket's
-  own expansion of a unary `lambda` and a unary application. Every remaining
-  identifier must be lambda-bound, defined in the module, or imported from a
-  project module that passes the same scan. The two `macros/` files and the
-  Racket installation are its trusted base.
-- `tooling/check-boundaries.rkt` separately admits only pure effect modules,
-  deterministic codec conversion, the exact sole-host import/export path,
-  and Phase 15's closed stdout/read/replacement capability set.
+  `core/*.rkt` production module exactly as `raco make` does and admits only
+  the trusted Lazy Racket shell, project-only phase-0 imports, plain or renamed
+  exports, single-identifier definitions, and terms alpha-equivalent to Lazy
+  Racket's own expansion of a unary `lambda` and a unary application. Every
+  remaining identifier must be lambda-bound, defined in the module, or
+  imported from a project module that passes the same scan. The two `macros/`
+  files and the Racket installation are its semantic trusted base.
+- `tooling/check-boundaries.rkt` separately pins the two mechanical macro
+  modules, admits only pure effect modules, deterministic codec conversion,
+  the exact sole-host import/export path, and Phase 15's closed
+  stdout/read/truncation capability set. It rejects wrapped privileged imports,
+  authorizes imports before reading their exports, validates every project-root
+  and production-path component before discovery, rejects symlinks without
+  traversing their targets, rejects additional macro modules, and rejects any
+  premature `lang/` implementation.
 
 ## Development
 
@@ -171,17 +176,17 @@ Run only the production-source purity scan with:
 racket tooling/check-purity.rkt
 ```
 
-Run only the effects/runtime boundary scan with:
+Run only the production boundary-classification scan with:
 
 ```sh
 racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 3,307 assertions across 24 test files,
-plus the independent scan of all 16 core modules and the effects/runtime
-boundary gate. GitHub Actions runs the same suite for pushes and pull
-requests.
+green. The repository currently has 3,345 assertions across 24 test files,
+plus the independent expanded scan of all 16 core modules and the production
+boundary-classification gate. GitHub Actions runs the same suite for pushes
+and pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.

@@ -9,20 +9,23 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Racket
-        uses: Bogdanp/setup-racket@v1.15
+        uses: Bogdanp/setup-racket@2466913449df77df2bad149d1f2fc4e1ea4795dd # v1.15
         with:
-          version: stable
+          distribution: full
+          version: '9.3'
           variant: CS
 
-      - name: Install lazy package if needed
-        run: racket -e '(require lazy)' 2>/dev/null || raco pkg install --auto lazy
+      - name: Verify bundled lazy package
+        run: racket -e '(require lazy)'
 
       - name: Run test suite
         run: ./run-all-tests.sh

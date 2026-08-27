@@ -40,7 +40,7 @@
           #,(name-list-expression (cdr elements)
                                   context))))
 
-(define-for-syntax (name-character-expression character context)
+(define-for-syntax (name-byte-expression byte context)
   (define bit-expressions
     (map
      (lambda (digit)
@@ -51,7 +51,7 @@
             'raw-false)))
      (string->list
       (number->string
-       (char->integer character)
+       byte
        2))))
   #`(#,(use-site-identifier context 'raw-name-char)
      #,(name-list-expression bit-expressions
@@ -60,12 +60,12 @@
 (define-for-syntax (function-name-expression name context)
   (define character-expressions
     (map
-     (lambda (character)
-       (name-character-expression character
-                                  context))
-     (string->list
-      (symbol->string
-       (syntax-e name)))))
+     (lambda (byte)
+       (name-byte-expression byte context))
+     (bytes->list
+      (string->bytes/utf-8
+       (symbol->string
+        (syntax-e name))))))
   #`(#,(use-site-identifier context 'raw-name-string)
      #,(name-list-expression character-expressions
                              context)))

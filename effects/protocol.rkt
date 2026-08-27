@@ -50,13 +50,6 @@
 (def host-failure-kind =
   (church-succ invalid-host-request-kind))
 
-;; `define-function-name` mechanically constructs canonical lambda Strings.
-;; The older macro spelling asks for raw-name-list-cons, while the current
-;; spelling uses raw-cons directly; this local alias keeps the generated term
-;; independent of that implementation detail.
-(def raw-name-list-cons value tail =
-  ((raw-cons value) tail))
-
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))
 

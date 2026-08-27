@@ -126,11 +126,12 @@ module. `core/errors.rkt` therefore owns the raw List cell constructor
 `raw-cons` alongside `NIL`; `core/lists.rkt` re-exports it, and
 `core/function-names.rkt` builds its String constants from that constructor
 plus the lower object, tag, and raw-logic layers. The `define-function-name`
-macro translates an identifier spelling into an expression made from those
-pure constructors. Racket computes syntax during
+macro translates an identifier spelling to UTF-8 bytes and generates one Char
+per byte using those pure constructors. Racket computes syntax during
 mechanical expansion; every generated runtime value is still a tagged String
-containing a proper List of tagged Chars. Strict modules depend on these name
-constants, while Errors remain below String algorithms.
+containing a proper List of tagged Chars limited to 0 through 255. Strict
+modules depend on these name constants, while Errors remain below String
+algorithms.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
 `lambda-let` expands one binding into one unary-lambda application; the future
@@ -437,8 +438,10 @@ run-all-tests.sh
 ```
 
 Sixteen zero-exception production modules remain under `core/`; Phase 15 has
-three pure effect modules and two separately classified runtime boundary
-modules. New abstraction layers require a concrete need.
+three pure effect modules, two separately pinned mechanical macro modules, and
+two separately classified runtime boundary modules. `lang/` remains absent
+until Phase 19 supplies and tests its classification. New abstraction layers
+require a concrete need.
 
 ## Verification boundary
 
@@ -506,16 +509,24 @@ the compiler by inspecting its input. The two files under `macros/` and the
 Racket installation are the trusted base: `macros.rkt` is judged only through
 what its macros expand to, and, like `raco make`, the scan runs the read-time
 and compile-time code of the modules it examines rather than sandboxing them.
-The gate catches accidental or convenient impurity in production code; it
-does not defend against edits to the trusted files, which could equally edit
-the checker. Focused tests pin each boundary. The
+The purity gate therefore trusts macro semantics. The separate boundary gate
+pins both macro paths, their languages, imports, exports, and source
+vocabulary; rejects operating-system, process, environment, dynamic-loading,
+FFI, and mutation capabilities there; rejects additional macro modules; and
+admits no `lang/` module before Phase 19. A contributor who can edit both a
+trusted file and its checker remains outside this accidental-impurity model.
+Focused tests pin each boundary. The
 complete evidence map is
 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 
 The separate boundary gate allowlists every effect import and identifier,
 rejects non-unary effect source forms, admits no codec I/O, mutation, registry,
-reader, or runtime dependency, pins the host's imports and sole export, and
-rejects every second codec importer or `host` definition/export. Codec tests
+reader, or runtime dependency, pins the host's imports and sole export, sees
+through classified require wrappers, fails closed on unclassified wrappers,
+authorizes imports before discovering their exports, validates every component
+of the project root and each production path before discovery, rejects
+symlinks without traversing their targets, and rejects every second codec
+importer, host importer, or `host` definition/export. Codec tests
 cover all 256 byte values, canonical and malformed representations, private
 copying, acknowledgements, and Err encoding. Stdout tests prove exact fake-host
 requests, strict argument rejection, Result propagation, and force-once
@@ -525,8 +536,9 @@ mapping, unselected-branch laziness, and cached forcing. File-wrapper tests
 prove exact request shapes, strict curried contracts, early-Error absorption,
 fake-host isolation, and force-once dispatch. Isolated real-file tests prove
 empty and arbitrary-byte round trips, relative and absolute UTF-8 paths,
-truncating replacement, cleanup, cached writes, and the approved missing,
-permission, invalid-text, invalid-path, resource, timeout, and fallback codes.
+truncating replacement, symlink preservation without delete authority,
+cleanup, cached writes, and the approved missing, permission, invalid-text,
+invalid-path, resource, timeout, and fallback codes.
 
 ## Implemented and planned boundary
 

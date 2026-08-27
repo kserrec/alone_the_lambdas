@@ -382,8 +382,8 @@ and replacement without changing the other classifications:
 | `effects/` | invocation of its injected unary host argument only | Same pure-form scan plus no Racket effect imports or definitions |
 | `runtime/codec.rkt` | deterministic canonical conversion between object-language values and private host bytes/integers/collections | Exact-path conversion scan, narrow import allowlist, no I/O or network imports, no mutation or registry, no reader imports, and no language-visible export |
 | `runtime/host.rkt` | only the approved byte/file/TCP operations, UTF-8 interpretation, exception normalization, and private registry state | Exact-path effect scan, import allowlist, sole exported `host`, sole production codec importer, and forbidden eval/process/FFI/environment capabilities |
-| `lang/` | mechanical expansion and import/export wiring | No OS operations; one import of production `host`; literal expansion produces pure terms |
-| `macros/` | mechanical syntax translation | Existing macro classification |
+| `lang/` | mechanical expansion and import/export wiring | Absent and rejected through Phase 18; Phase 19 must add an exact no-OS class with one import of production `host` and pure literal expansion |
+| `macros/` | mechanical syntax translation | Exactly the two approved paths, pinned languages/imports/exports and source vocabulary, and no OS/process/environment/dynamic-loading/FFI/mutation capabilities |
 | `readers/` | one-way human observation | Must not enter core/effect computation |
 | `tests/` and `tooling/` | host facilities needed to verify the claim | Never imported by production computation |
 
@@ -396,6 +396,11 @@ Repository checks must prove:
   dynamic-loading, environment, FFI, or mutation facilities;
 - no production module imports process, eval, dynamic-loading, environment,
   or FFI facilities;
+- the two mechanical macro modules satisfy their approved path, language,
+  import, export, and vocabulary constraints; imports are authorized before
+  export discovery; the complete project-root anchor and production paths are
+  validated before discovery; rejected symlinks are never traversed; no
+  additional macro module exists; and `lang/` remains empty until Phase 19;
 - every pure production lambda is unary after mechanical expansion;
 - every wrapper's fake-host trace contains only its canonical request;
 - every implemented codec direction has exact round-trip, canonicality, and

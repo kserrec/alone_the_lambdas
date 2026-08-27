@@ -3,10 +3,27 @@
 (require rackunit
          racket/file
          racket/list
+         racket/path
          racket/runtime-path
          "../tooling/check-boundaries.rkt")
 
 (define-runtime-path project-root "..")
+
+(define clean-macro-shell-datum
+  '(module lazy-with-macros racket/base
+     (#%module-begin
+      (require lazy/lazy)
+      (provide (all-from-out lazy/lazy)
+               #%module-begin
+               #%app
+               #%datum
+               #%top))))
+
+(define clean-macro-datum
+  '(module macros lazy
+     (#%module-begin
+      (require (for-syntax racket/base))
+      (provide def lambda-let define-function-name))))
 
 (define (write-datum path datum)
   (call-with-output-file path
@@ -16,6 +33,55 @@
 
 (define (kinds findings)
   (map boundary-violation-kind findings))
+
+(define (normalized path)
+  (simplify-path (path->complete-path path) #f))
+
+(define (observe-source-operations watched relevant? procedure)
+  (define normalized-watched
+    (map normalized watched))
+  (define operation-count 0)
+  (define guard
+    (make-security-guard
+     (current-security-guard)
+     (lambda (who path permissions)
+       (when (and (relevant? permissions)
+                  (member (normalized path)
+                          normalized-watched
+                          equal?))
+         (set! operation-count (add1 operation-count))))
+     (lambda (who host-name port mode)
+       (void))))
+  (define result
+    (parameterize ([current-security-guard guard])
+      (procedure)))
+  (values result operation-count))
+
+(define (observe-source-reads watched procedure)
+  (observe-source-operations watched
+                             (lambda (permissions)
+                               (memq 'read permissions))
+                             procedure))
+
+(define (observe-source-accesses watched procedure)
+  (observe-source-operations
+   watched
+   (lambda (permissions)
+     (or (memq 'exists permissions)
+         (memq 'read permissions)))
+   procedure))
+
+(define (check-rejected-root-without-traversal unsafe-root)
+  (define-values (findings access-count)
+    (observe-source-accesses
+     (list (build-path unsafe-root "effects")
+           (build-path unsafe-root "macros")
+           (build-path unsafe-root "runtime")
+           (build-path unsafe-root "core"))
+     (lambda ()
+       (project-boundary-violations unsafe-root))))
+  (check-equal? (kinds findings) '(disallowed-boundary-root))
+  (check-equal? access-count 0))
 
 (define (temporary-project procedure)
   (define root
@@ -28,10 +94,11 @@
              (in-list '("core" "effects" "macros" "runtime" "lang"))])
         (make-directory (build-path root directory)))
       (write-datum
+       (build-path root "macros" "lazy-with-macros.rkt")
+       clean-macro-shell-datum)
+      (write-datum
        (build-path root "macros" "macros.rkt")
-       '(module macros racket/base
-          (#%module-begin
-           (provide def lambda-let define-function-name))))
+       clean-macro-datum)
       (write-datum
        (build-path root "core" "dependency.rkt")
        '(module dependency racket/base
@@ -74,6 +141,20 @@
 (temporary-project
  (lambda (root)
    (check-equal? (project-boundary-violations root) '())
+
+   ;; The authorization anchor is checked before project discovery. Neither a
+   ;; symlink supplied as the root nor one in an ancestor component can make
+   ;; the checker traverse the linked project tree.
+   (define root-link (build-path root "linked-project-root"))
+   (make-file-or-directory-link root root-link)
+   (check-rejected-root-without-traversal root-link)
+   (delete-file root-link)
+
+   (define parent-link (build-path root "linked-project-parent"))
+   (make-file-or-directory-link (path-only root) parent-link)
+   (check-rejected-root-without-traversal
+    (build-path parent-link (file-name-from-path root)))
+   (delete-file parent-link)
 
    (define effect (build-path root "effects" "example.rkt"))
    (define (check-effect datum expected)
@@ -142,7 +223,40 @@
         (provide use)
         (def use value =
           (object-ok value))))
-    '(disallowed-effect-import))
+    '(disallowed-effect-import
+      unapproved-effect-identifier))
+
+   ;; Filesystem access happens only after import authorization. A rejected
+   ;; full import is reported without touching even an ordinary regular
+   ;; target's metadata or content.
+   (define unapproved-directory (build-path root "unapproved"))
+   (define unapproved-target
+     (build-path unapproved-directory "plain.rkt"))
+   (make-directory unapproved-directory)
+   (write-datum
+    unapproved-target
+    '(module plain racket/base
+       (#%module-begin
+        (provide external-value))))
+   (write-datum
+    effect
+    '(module example "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../unapproved/plain.rkt")
+        (provide use)
+        (def use value =
+          (external-value value)))))
+   (define-values (disallowed-import-findings disallowed-target-accesses)
+     (observe-source-accesses
+      (list unapproved-target)
+      (lambda ()
+        (file-boundary-violations effect 'effect root))))
+   (check-not-false
+    (member 'disallowed-effect-import
+            (kinds disallowed-import-findings)))
+   (check-equal? disallowed-target-accesses 0)
+   (delete-file unapproved-target)
+   (delete-directory unapproved-directory)
 
    (define codec (build-path root "runtime" "candidate-codec.rkt"))
    (define (codec-datum extra)
@@ -264,9 +378,6 @@
     (member 'unauthorized-codec-import
             (kinds (project-boundary-violations root))))
 
-   ;; Project-wide isolation includes trusted macro infrastructure and the
-   ;; future language layer, even though those layers have separate purity
-   ;; classifications.
    (delete-file codec)
    (delete-file host-file)
    (write-datum
@@ -280,35 +391,180 @@
           (identity value)))))
    (check-equal? (project-boundary-violations root) '())
 
+   (define (project-kinds)
+     (kinds (project-boundary-violations root)))
+
+   (define (check-project-kind kind)
+     (check-not-false (member kind (project-kinds))))
+
+   ;; Require wrappers cannot hide either privileged runtime module from the
+   ;; project-wide scan. These core fixtures isolate the global detector from
+   ;; the stricter effect and macro module classes.
+   (define core-bridge (build-path root "core" "bridge.rkt"))
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (rename-in "../runtime/codec.rkt"
+                            [object-ok bridge]))
+        (provide bridge))))
+   (check-project-kind 'unauthorized-codec-import)
+   (delete-file core-bridge)
+
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (combine-in "../runtime/codec.rkt"
+                             "dependency.rkt")))))
+   (check-project-kind 'unauthorized-codec-import)
+   (delete-file core-bridge)
+
+   ;; A require transformer that has not been explicitly classified fails
+   ;; closed instead of becoming a new way to conceal a privileged path.
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (relative-in "../runtime" "codec.rkt")))))
+   (check-project-kind 'unclassified-production-import)
+   (delete-file core-bridge)
+
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (prefix-in codec: "../runtime/codec.rkt")))))
+   (check-project-kind 'unauthorized-codec-import)
+   (delete-file core-bridge)
+
+   (write-datum
+    core-bridge
+    '(module bridge racket/base
+       (#%module-begin
+        (require (rename-in "../runtime/host.rkt" [host bridge]))
+        (provide bridge))))
+   (check-project-kind 'unauthorized-host-import)
+   (delete-file core-bridge)
+
+   ;; A symlinked directory cannot disguise runtime code as an allowed core
+   ;; dependency. The individual effect check rejects it without metadata or
+   ;; content access beneath the link; the project gate never opens its target.
+   (define core-alias (build-path root "core" "runtime-alias"))
+   (define linked-codec (build-path core-alias "codec.rkt"))
+   (define linked-effect (build-path root "effects" "linked-escape.rkt"))
+   (make-file-or-directory-link (build-path root "runtime") core-alias)
+   (write-datum
+    linked-effect
+    '(module linked-escape "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../macros/macros.rkt"
+                 "../core/runtime-alias/codec.rkt")
+        (provide use)
+        (def use value =
+          (object-ok value)))))
+   (define-values (linked-effect-findings linked-effect-accesses)
+     (observe-source-accesses
+      (list linked-codec)
+      (lambda ()
+        (file-boundary-violations linked-effect 'effect root))))
+   (check-not-false
+    (member 'disallowed-effect-import
+            (kinds linked-effect-findings)))
+   (check-equal? linked-effect-accesses 0)
+   (define-values (linked-project-kinds linked-project-reads)
+     (observe-source-reads
+      (list core-alias linked-codec)
+      project-kinds))
+   (check-not-false
+    (member 'disallowed-boundary-path linked-project-kinds))
+   (check-equal? linked-project-reads 0)
+   (delete-file linked-effect)
+   (delete-file core-alias)
+
+   ;; The macro layer is trusted to translate syntax mechanically, not to gain
+   ;; operating-system authority. Exact imports plus a closed source
+   ;; vocabulary catch both explicit capabilities and unknown implicit ones.
    (define macro-file (build-path root "macros" "macros.rkt"))
    (write-datum
     macro-file
-    '(module macros racket/base
+    '(module macros lazy
        (#%module-begin
-        (require (only-in "../runtime/codec.rkt" object-ok))
-        (provide def lambda-let define-function-name host)
-        (define host object-ok))))
-   (check-equal?
-    (kinds (project-boundary-violations root))
-    '(unauthorized-codec-import
-      unauthorized-host-definition
-      unauthorized-host-export))
+        (require (for-syntax racket/base)
+                 racket/system)
+        (provide def lambda-let define-function-name)
+        (define-for-syntax leak (system "true")))))
+   (check-project-kind 'invalid-macro-imports)
+   (check-project-kind 'forbidden-macro-capability)
+   (write-datum macro-file clean-macro-datum)
 
    (write-datum
     macro-file
-    '(module macros racket/base
+    '(module macros lazy
        (#%module-begin
+        (require (for-syntax racket/base))
+        (provide def lambda-let define-function-name)
+        (define-for-syntax observed (current-seconds)))))
+   (check-project-kind 'unapproved-macro-identifier)
+   (write-datum macro-file clean-macro-datum)
+
+   (write-datum
+    macro-file
+    '(module macros lazy
+       (#%module-begin
+        (require (for-syntax racket/base)
+                 (rename-in "../runtime/codec.rkt"
+                            [object-ok bridge]))
         (provide def lambda-let define-function-name))))
+   (check-project-kind 'invalid-macro-imports)
+   (check-project-kind 'unauthorized-codec-import)
+   (write-datum macro-file clean-macro-datum)
+
+   ;; Both trusted paths are pinned, and new macro or language modules remain
+   ;; outside the approved production classifications.
+   (define macro-shell
+     (build-path root "macros" "lazy-with-macros.rkt"))
+   (write-datum
+    macro-shell
+    '(module lazy-with-macros racket/base
+       (#%module-begin
+        (require lazy/lazy)
+        (provide (all-from-out lazy/lazy)
+                 #%module-begin
+                 #%app
+                 #%datum
+                 #%top)
+        (define leak 'host-value))))
+   (check-project-kind 'invalid-macro-shell-forms)
+   (write-datum macro-shell clean-macro-shell-datum)
+
+   (define macro-target (build-path root "macro-target.rkt"))
+   (write-datum macro-target clean-macro-datum)
+   (delete-file macro-file)
+   (make-file-or-directory-link macro-target macro-file)
+   (define-values (macro-symlink-kinds unsafe-macro-reads)
+     (observe-source-reads (list macro-file) project-kinds))
+   (check-not-false
+    (member 'disallowed-boundary-path macro-symlink-kinds))
+   (check-equal? unsafe-macro-reads 0)
+   (delete-file macro-file)
+   (delete-file macro-target)
+   (write-datum macro-file clean-macro-datum)
+
+   (define extra-macro (build-path root "macros" "extra.rkt"))
+   (write-datum
+    extra-macro
+    '(module extra racket/base
+       (#%module-begin)))
+   (check-project-kind 'unclassified-macro-module)
+   (delete-file extra-macro)
+
    (define language-file (build-path root "lang" "main.rkt"))
    (write-datum
     language-file
     '(module main racket/base
-       (#%module-begin
-        (require (only-in "../runtime/codec.rkt" object-ok))
-        (provide host)
-        (define host object-ok))))
-   (check-equal?
-    (kinds (project-boundary-violations root))
-    '(unauthorized-codec-import
-      unauthorized-host-definition
-      unauthorized-host-export))))
+       (#%module-begin)))
+   (check-project-kind 'unclassified-language-module)
+   (delete-file language-file)
+
+   (check-equal? (project-boundary-violations root) '())))
