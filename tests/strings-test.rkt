@@ -143,7 +143,7 @@
    (error-kind=? error
                  empty-list-kind))
   (check-equal? (error-frames->host error)
-                '()))
+                '((0 0))))
 
 (define empty-from-list
   (chars->string '()))
@@ -253,7 +253,7 @@
    (error-kind=? failure
                  invalid-string-kind))
   (check-equal? (error-frames->host failure)
-                '()))
+                '((0 0))))
 
 (define lazy-wrong-element
   (apply2
@@ -487,7 +487,7 @@
                invalid-string-kind))
 (check-equal? (error-frames->host
                propagated-invalid-string)
-              '((1 6)))
+              '((1 6) (0 0)))
 
 (define unreadable-string
   (apply2

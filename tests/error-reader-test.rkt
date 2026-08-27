@@ -261,7 +261,48 @@
  (error-value->string invalid-string-error)
  "INVALID-STRING")
 (check-equal?
+ (error-value->string wrong-result-variant-error)
+ "WRONG-RESULT-VARIANT")
+
+(define one-element-list
+  (apply2 typed-cons ONE NIL))
+
+(define result-frame-cases
+  (list
+   (list (lazy-apply typed-head NIL)
+         "EMPTY-LIST" "HEAD")
+   (list (lazy-apply typed-tail NIL)
+         "EMPTY-LIST" "TAIL")
+   (list (lazy-apply typed-make-char
+                     (apply2 typed-nat-mult
+                             (apply2 typed-nat-mult FOUR EIGHT)
+                             EIGHT))
+         "INVALID-CHAR" "MAKE-CHAR")
+   (list (lazy-apply typed-make-string one-element-list)
+         "INVALID-STRING" "MAKE-STRING")
+   (list (lazy-apply typed-string-head EMPTY-STRING)
+         "EMPTY-LIST" "STRING-HEAD")
+   (list (lazy-apply typed-string-tail EMPTY-STRING)
+         "EMPTY-LIST" "STRING-TAIL")
+   (list (lazy-apply typed-result-unwrap-ok
+                     (lazy-apply typed-make-err invalid-nat-error))
+         "WRONG-RESULT-VARIANT" "unwrap-ok")
+   (list (lazy-apply typed-result-unwrap-err
+                     (lazy-apply typed-make-ok ONE))
+         "WRONG-RESULT-VARIANT" "unwrap-err")))
+
+(for ([case (in-list result-frame-cases)])
+  (define error (first case))
+  (define root (second case))
+  (define name (third case))
+  (check-true
+   (typed-value? error-type error))
+  (check-equal?
+   (error-value->string error)
+   (format "~a\n  -> ~a(result)" root name)))
+
+(check-equal?
  (error-value->string
-  (lazy-apply typed-string-head
-              EMPTY-STRING))
- "EMPTY-LIST")
+  (lazy-apply typed-nat-succ
+              (lazy-apply typed-head NIL)))
+ "EMPTY-LIST\n  -> HEAD(result)\n  -> SUCC(arg1 expected NAT)")

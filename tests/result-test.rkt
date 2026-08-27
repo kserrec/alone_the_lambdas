@@ -185,6 +185,34 @@
               internal-err)
   divide-by-zero-kind))
 
+(define (check-wrong-variant error)
+  (check-true
+   (typed-value? error-type error))
+  (check-true
+   (error-kind=? error
+                 wrong-result-variant-kind))
+  (check-equal? (error-frames->host error)
+                '((0 0))))
+
+(check-wrong-variant
+ (lazy-apply unwrap-ok err-invalid-nat))
+(check-wrong-variant
+ (lazy-apply unwrap-err ok-seven))
+(check-wrong-variant
+ (lazy-apply typed-result-unwrap-ok internal-err))
+(check-wrong-variant
+ (lazy-apply typed-result-unwrap-err internal-ok-three))
+
+(define wrong-variant-then-succ
+  (lazy-apply SUCC
+              (lazy-apply unwrap-err ok-seven)))
+
+(check-true
+ (error-kind=? wrong-variant-then-succ
+               wrong-result-variant-kind))
+(check-equal? (error-frames->host wrong-variant-then-succ)
+              '((1 3) (0 0)))
+
 (define propagated-ok-input
   (lazy-apply make-ok
               invalid-nat-error))

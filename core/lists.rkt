@@ -12,6 +12,7 @@
 
 (provide NIL
          raw-cons
+         list-unary-signature
          raw-list-head
          raw-list-tail
          raw-list-is-nil
@@ -24,13 +25,6 @@
          raw-reverse
          raw-map
          raw-filter)
-
-(def raw-list-cell value tail =
-  ((raw-pair value) tail))
-
-(def raw-cons value tail =
-  ((raw-make-object list-type)
-   ((raw-list-cell value) tail)))
 
 (def raw-list-head list =
   (raw-first (raw-object-value list)))
@@ -55,36 +49,39 @@
   ((raw-is-type error-type)
    (raw-list-payload-tail payload)))
 
+(def raw-checked-list-head payload =
+  (((raw-if
+     (raw-list-payload-is-nil payload))
+    ((raw-add-result-frame empty-list-error)
+     head-function-name))
+   (raw-list-payload-head payload)))
+
+(def raw-checked-list-tail payload =
+  (((raw-if
+     (raw-list-payload-is-nil payload))
+    ((raw-add-result-frame empty-list-error)
+     tail-function-name))
+   (raw-list-payload-tail payload)))
+
 (def typed-cons value tail =
   (((raw-if
      ((raw-is-type error-type) value))
     value)
-   (((raw-if
-      ((raw-is-type list-type) tail))
-     ((raw-cons value) tail))
-    (((raw-if
-      ((raw-is-type error-type) tail))
-      ((((raw-bubble-error tail)
-         cons-function-name)
+   ((((((raw-check-argument cons-function-name)
         argument-position-two)
-       list-type))
-     ((((raw-bubble-error
-         (((raw-make-type-mismatch-error
-            argument-position-two)
-           list-type)
-          (raw-object-type tail)))
-        cons-function-name)
-       argument-position-two)
-      list-type)))))
+       list-type)
+      raw-keep-return)
+     (raw-cons value))
+    tail)))
 
 (def typed-head =
-  ((((make-typed-function raw-list-payload-head)
+  ((((make-typed-function raw-checked-list-head)
      head-function-name)
     list-unary-signature)
    raw-keep-return))
 
 (def typed-tail =
-  ((((make-typed-function raw-list-payload-tail)
+  ((((make-typed-function raw-checked-list-tail)
      tail-function-name)
     list-unary-signature)
    raw-keep-return))

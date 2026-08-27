@@ -4,7 +4,6 @@
          "errors.rkt"
          "logic.rkt"
          "objects.rkt"
-         "pair.rkt"
          "tags.rkt")
 
 (provide cons-function-name
@@ -50,10 +49,6 @@
          string-tail-function-name
          string-prefix-function-name
          string-contains-function-name)
-
-(def raw-name-list-cons value tail =
-  ((raw-make-object list-type)
-   ((raw-pair value) tail)))
 
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))

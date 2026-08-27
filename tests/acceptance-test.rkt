@@ -126,11 +126,11 @@
 (define-runtime-path core-directory
   "../core")
 
-(define production-files
-  (production-files-under core-directory))
+(define production-results
+  (files-violations
+   (production-files-under core-directory)))
 
-(check-equal? (length production-files)
+(check-equal? (length production-results)
               16)
-(check-equal? (append-map file-violations
-                          production-files)
+(check-equal? (append-map cdr production-results)
               '())

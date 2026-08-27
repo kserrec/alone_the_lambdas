@@ -40,8 +40,9 @@ variables, unary lambdas, and application.
 - Expected computational failure uses `Result`; contract violations and
   invariant failures use structured `Error` values.
 - Public names are canonical language names such as `lambda`, `def`,
-  `let`, `if`, and `cons`. Racket collision workarounds never become
-  public language design.
+  `let`, `if`, and `cons`; today `if` is exported under its canonical name
+  and the rest arrive with the standalone surface. Racket collision
+  workarounds never become public language design.
 - The completed core contains no `host` boundary. The effects milestone adds
   exactly one explicit bridge without weakening ordinary lambda computation.
 
@@ -80,12 +81,14 @@ precedence over conflicting examples in the base specification.
 - `core/fix.rkt` provides the pure fixed-point term used by recursive raw
   algorithms.
 - `core/errors.rkt` provides structured Error roots and metadata, canonical
-  root Errors, newest-first named propagation frames, and the lazy
+  root Errors, newest-first named propagation frames, result frames for
+  failing algorithms, the raw List cell constructor, and the lazy
   `NIL`/empty-Error representation knot.
 - `core/function-names.rkt` provides the canonical typed String constants used
   to identify strict operation boundaries without introducing host strings.
 - `core/typecheck.rkt` provides the single generalized progressive checker,
-  named signature-driven Error absorbers, and raw-result or
+  the shared one-argument validation step it and the polymorphic boundaries
+  use, named signature-driven Error absorbers, and raw-result or
   already-typed-result finalizers.
 - `core/typed-logic.rkt` provides tagged `TRUE` and `FALSE`, checker-backed
   strict Boolean operations, and the polymorphic lazy `typed-if` with its
@@ -97,7 +100,8 @@ precedence over conflicting examples in the base specification.
   constants `ZERO` through `TEN`, and raw zero, successor, arithmetic, and
   comparison algorithms, including binary long division.
 - `core/result.rkt` provides lambda-encoded Ok and Err variants, strict
-  constructors and access operations, and the explicit Error-as-data boundary.
+  constructors and variant-checked unwrap operations, and the explicit
+  Error-as-data boundary.
 - `core/chars.rkt` provides strict `MAKE-CHAR` and comparisons, normalized
   binary payloads limited to 0 through 255, and the required lambda-built
   character constants.
@@ -132,13 +136,17 @@ precedence over conflicting examples in the base specification.
   numeric fallbacks at the same one-way boundary.
 - `readers/string.rkt` renders a completed lambda String to a host string at
   the same one-way boundary.
-- `readers/error.rkt` renders structured roots and oldest-to-newest named
-  frames without feeding diagnostic text back into computation.
-- `tooling/check-purity.rkt` admits only the trusted Lazy Racket shell,
-  project-only imports with validated selection or renaming, mechanical sugar,
-  variables, unary lambdas, and unary application. It also verifies that every
-  production identifier and export comes from a local binding or a recursively
-  validated project export.
+- `readers/error.rkt` renders structured roots, result frames, and
+  oldest-to-newest named frames without feeding diagnostic text back into
+  computation.
+- `tooling/check-purity.rkt` judges what Racket compiles: it expands every
+  production module exactly as `raco make` does and admits only the trusted
+  Lazy Racket shell, project-only phase-0 imports, plain or renamed exports,
+  single-identifier definitions, and terms alpha-equivalent to Lazy Racket's
+  own expansion of a unary `lambda` and a unary application. Every remaining
+  identifier must be lambda-bound, defined in the module, or imported from a
+  project module that passes the same scan. The two `macros/` files and the
+  Racket installation are its trusted base.
 - `tooling/check-boundaries.rkt` separately admits only pure effect modules,
   deterministic codec conversion, the exact sole-host import/export path,
   and Phase 14's closed stdout capability set.
@@ -165,9 +173,10 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. This committed phase has 3,026 assertions across 22 test files, plus
-the independent scan of all 16 core modules and the effects/runtime boundary
-gate. GitHub Actions runs the same suite for pushes and pull requests.
+green. The repository currently has 3,151 assertions across 22 test files,
+plus the independent scan of all 16 core modules and the effects/runtime
+boundary gate. GitHub Actions runs the same suite for pushes and pull
+requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.

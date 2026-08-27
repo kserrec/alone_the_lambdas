@@ -63,7 +63,8 @@
        ((raw-nat-less-equal normalized)
         raw-char-max-bits))
       (raw-make-char normalized))
-     invalid-char-error)))
+     ((raw-add-result-frame invalid-char-error)
+      make-char-function-name))))
 
 (def char-constructor-signature =
   ((raw-cons nat-type) NIL))

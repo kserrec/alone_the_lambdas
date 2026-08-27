@@ -116,10 +116,12 @@ stdout port. Expected output failure becomes Result Err HostFailure, while
 malformed direct requests remain bare InvalidHostRequest Error values.
 
 Named Error frames would create a cycle if Errors depended on the full String
-module. `core/function-names.rkt` therefore builds only the representation it
-needs from lower object, pair, tag, and raw-logic layers. The
-`define-function-name` macro translates an identifier spelling into an
-expression made from those pure constructors. Racket computes syntax during
+module. `core/errors.rkt` therefore owns the raw List cell constructor
+`raw-cons` alongside `NIL`; `core/lists.rkt` re-exports it, and
+`core/function-names.rkt` builds its String constants from that constructor
+plus the lower object, tag, and raw-logic layers. The `define-function-name`
+macro translates an identifier spelling into an expression made from those
+pure constructors. Racket computes syntax during
 mechanical expansion; every generated runtime value is still a tagged String
 containing a proper List of tagged Chars. Strict modules depend on these name
 constants, while Errors remain below String algorithms.
@@ -189,16 +191,21 @@ is itself List-tagged; its payload contains the canonical empty-List Error in
 both positions, so it is neither false nor numeric zero. That Error's empty
 frame List is the same `NIL`; `raw-fix` ties this finite lazy graph without a
 host reference or module cycle. `typed-cons` is the only strict constructor
-and accepts only a List tail. NIL recognition checks the tail's Error tag in
+and accepts only a List tail; it validates that tail with the shared
+`raw-check-argument` step described under Runtime typing. NIL recognition checks the tail's Error tag in
 O(1), so an Error head does not make a nonempty List look empty.
 
 `typed-head`, `typed-tail`, and `typed-is-nil` use the generalized checker with
 a one-element List signature. Wrong concrete types create structured
 TypeMismatch roots, while incoming Errors gain the current argument frame.
-`typed-cons` remains a direct strict constructor because its head is
-intentionally polymorphic and therefore has no expected runtime tag for a
-signature entry. Its polymorphic head preserves an incoming Error without
-inventing an expected type; its List tail has ordinary framed propagation.
+`typed-cons` is not built by the checker because its head is intentionally
+polymorphic and therefore has no expected runtime tag for a signature entry.
+Its polymorphic head preserves an incoming Error without inventing an expected
+type; its List tail has ordinary framed propagation. `HEAD` and `TAIL` on
+`NIL` return the canonical EmptyList Error with a result frame naming the
+operation. Deciding that requires reading the tail's tag, which `cons` has
+already validated for every public List; a raw-built List pays one extra cell
+step, and the second cell's contents are never forced.
 `typed-is-nil` now wraps its O(1) raw predicate result as a tagged Bool. The raw
 layer currently provides a right fold, append, reverse, map, and filter; the
 fold callback receives the head followed by the folded tail.
@@ -246,9 +253,9 @@ Error.
 
 Every Error is an Error-tagged object whose payload pairs one immutable root
 with a proper List of propagation frames. Root kinds are the small Church
-discriminants TypeMismatch, EmptyList, InvalidNat, DivideByZero, and
-InvalidChar, plus InvalidString for a List that violates the String element
-invariant. A TypeMismatch root additionally stores its argument position,
+discriminants TypeMismatch, EmptyList, InvalidNat, DivideByZero, InvalidChar,
+InvalidString for a List that violates the String element invariant, and
+WrongResultVariant for unwrapping the variant a Result does not hold. A TypeMismatch root additionally stores its argument position,
 expected runtime type, and actual runtime type. The other current roots need
 no extra details.
 
@@ -256,14 +263,24 @@ A frame contains a canonical function-name String, argument position, and
 expected runtime type for the current boundary. `raw-bubble-error` reuses the
 exact root and prepends one frame, so the frame List is newest-first and root
 metadata never changes. Fresh TypeMismatch roots receive the same named frame
-as propagated Errors. Root Errors produced by a valid raw algorithm remain
-unframed until another strict boundary propagates them. The polymorphic
-`typed-cons` head and `make-ok` also preserve an incoming Error without adding
-a frame because neither position has an expected runtime type to record.
+as propagated Errors.
+
+A strict operation whose valid arguments still make its algorithm fail —
+`HEAD` or `TAIL` on `NIL`, `MAKE-CHAR` above 255, `MAKE-STRING` with a
+non-Char element, `STRING-HEAD` or `STRING-TAIL` on the empty String, and
+`unwrap-ok` or `unwrap-err` on the wrong variant — returns the canonical root
+with one *result frame*: the function name, argument position `church-zero`
+(argument positions start at one, so zero unambiguously means "at the
+result"), and the Error type of the value produced. `raw-add-result-frame`
+builds it, and each failing raw algorithm attaches it explicitly, so an Error
+that a strict operation merely yields as ordinary data — a stored List element
+or a `Result` payload — is returned unchanged. The polymorphic `typed-cons`
+head and `make-ok` likewise preserve an incoming Error without adding a frame
+because neither position has an expected runtime type to record.
 
 `readers/error.rkt` reverses the stored frame List for causal display, renders
-the oldest mismatch frame with its actual type, and then prints each later
-boundary as an arrow. Function names remain structured String values inside
+the oldest mismatch frame with its actual type, prints a result frame as
+`NAME(result)`, and then prints each later boundary as an arrow. Function names remain structured String values inside
 the Error; only the reader flattens them to diagnostic text. Language-level
 failures never use host exceptions or strings.
 
@@ -275,11 +292,12 @@ Error bubbling: it requires an Error and stores that Error as data. A wrong
 non-Error argument remains a TypeMismatch Error.
 
 `is-ok`, `is-err`, `unwrap-ok`, and `unwrap-err` strictly require Result via
-the generalized checker. The predicates return tagged Bool values; the unwrap
-operations return the stored payload without automatically propagating it.
-Callers use the predicates to select the matching unwrap operation. This is
-the semantic boundary: a Result Err is an ordinary valid Result until a caller
-explicitly unwraps and uses its Error payload.
+the generalized checker. The predicates return tagged Bool values. `unwrap-ok`
+returns the payload of an Ok and `unwrap-err` the payload of an Err, each
+without automatically propagating it; asking for the variant a Result does not
+hold is a contract failure and returns the WrongResultVariant Error with a
+result frame. This is the semantic boundary: a Result Err is an ordinary valid
+Result until a caller explicitly unwraps and uses its Error payload.
 
 ### Characters and strings
 
@@ -341,11 +359,19 @@ by:
 
 The empty signature also supports a zero-argument raw value. No host arity
 counting or arity-specific checker variant exists. The purity gate explicitly
-rejects numbered checker names. `typed-if` is the specified custom polymorphic
-exception: it reuses the same named Error construction and framing primitives
-while preserving two untyped branch positions itself. `typed-make-ok` is
-likewise polymorphic, while `typed-make-err` intentionally accepts Error as
-data instead of invoking the checker's normal Error bubbling.
+rejects numbered checker names.
+
+One-argument validation lives in a single shared step, `raw-check-argument`:
+given a function name, argument position, expected type, a failure
+continuation, and a success continuation, it bubbles an incoming Error,
+frames a fresh TypeMismatch, or passes a valid argument on. The checker uses
+it with the remaining-arity absorber as its failure continuation; `typed-if`
+(the specified custom polymorphic conditional) uses it with a two-branch
+absorber and the raw selector as its success continuation; `typed-cons` uses
+it for its List tail. The polymorphic positions — the `typed-cons` head, `typed-make-ok`, and
+`typed-make-err`, which intentionally accepts Error as data — have no expected
+tag and therefore test for the Error tag directly rather than through this
+step.
 
 ## Naming
 
@@ -388,9 +414,14 @@ runtime/
   codec.rkt
   host.rkt
 readers/
+  raw-boolean.rkt
+  bool.rkt
+  type-tag.rkt
+  list.rkt
+  nat.rkt
   char.rkt
-  error.rkt
   string.rkt
+  error.rkt
 tests/
 tooling/
   check-purity.rkt
@@ -416,10 +447,12 @@ comparisons, larger bit widths, currying, and applicable laziness.
 Nat-dependent List tests cover length, take, drop, boundary counts, proper
 tails, strict failures, Error absorption, currying, and lazy base cases.
 Structured Error tests cover every kind, root
-metadata, the `NIL`/empty-Error knot, frame order, nested root preservation,
-canonical function-name Strings, List failures, currying, and lazy field
-access. The Error reader suite exercises all 43 named strict boundaries, all
-seven rendered type tags, every current root kind, and nested causal output.
+metadata, the `NIL`/empty-Error knot, frame order, result frames, nested root
+preservation, unframed Error-as-data pass-through, canonical function-name
+Strings, List failures, currying, and lazy field access. The Error reader
+suite exercises all 43 named strict boundaries, every raw-failure boundary's
+result frame, all seven rendered type tags, every current root kind, and
+nested causal output.
 The generalized
 checker suite covers lambda List signatures and zero-, one-, two-, three-, and
 five-argument functions; valid partial application; every five-argument
@@ -433,8 +466,8 @@ constants and public operations, representative large values, arithmetic and
 comparison semantics, every applicable mismatch and incoming-Error position,
 root preservation, exact absorber arity, ignored-argument laziness, currying,
 and canonical exports. The Result suite covers Ok and Err representation,
-strict constructors and accessors, Error encapsulation, mismatch and incoming
-Error behavior, safe division results, quotient laws, exact absorber arity,
+strict constructors and accessors, wrong-variant unwrap failures, Error
+encapsulation, mismatch and incoming Error behavior, safe division results, quotient laws, exact absorber arity,
 zero-divisor laziness, explicit post-unwrap propagation, currying, and public
 exports. The Char suite covers every required constant, normalized raw-bit
 payloads, 0 and 255 acceptance, 256 rejection, InvalidChar roots, mismatch and
@@ -447,15 +480,28 @@ absorbers, laziness, currying, and reader output. The milestone acceptance
 suite composes Bool, List, Nat, Result, Char, String, and Error behavior in one
 strict typed flow and runs the same structural scan over the complete core.
 
-The structural purity tool scans all 16 production Racket modules against an
-allowed grammar: the trusted language shell, project-only imports with
-validated selection or renaming, mechanical sugar, variables, unary lambdas,
-and unary application. It recursively validates reachable project imports,
-resolves local and imported project bindings, and permits only their explicit
-direct or renamed exports, rejecting host imports, unknown or re-exported host
-identifiers, unsupported export transformations, alternate module languages,
-host literals and forms, direct host definitions, syntax-shell rebinding, and
-numbered arity-specific checker variants. Focused tests pin each boundary. The
+The structural purity tool judges what Racket compiles. It reads each of the
+16 production modules with its source intact, expands it in a fresh namespace
+exactly as `raco make` would, and walks the fully expanded module. A reference
+term, `(lambda (f) (lambda (x) (f x)))`, is expanded under the same trusted
+shell so that Lazy Racket's own encodings of a unary `lambda` and a unary
+application become the only two admissible expression templates; every
+production lambda and application must be alpha-equivalent to one of them,
+and every identifier must be lambda-bound, defined in the module, or imported
+from a project module that passes the same scan. The tool pins the shell file
+itself, restricts imports to phase-0 project modules, restricts exports to
+plain or renamed project bindings, and rejects host forms, host literals,
+multi-argument or zero-argument applications, strict kernel lambdas,
+compile-time definitions, submodules, module-level expressions, and the
+reserved and arity-specific names. Because the scan sees the same expansion
+the compiler produces, a macro cannot hand the checker a different term than
+the compiler by inspecting its input. The two files under `macros/` and the
+Racket installation are the trusted base: `macros.rkt` is judged only through
+what its macros expand to, and, like `raco make`, the scan runs the read-time
+and compile-time code of the modules it examines rather than sandboxing them.
+The gate catches accidental or convenient impurity in production code; it
+does not defend against edits to the trusted files, which could equally edit
+the checker. Focused tests pin each boundary. The
 complete evidence map is
 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 

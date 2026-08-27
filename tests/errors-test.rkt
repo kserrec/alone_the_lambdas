@@ -89,7 +89,11 @@
         invalid-nat-kind
         divide-by-zero-kind
         invalid-char-kind
-        invalid-string-kind))
+        invalid-string-kind
+        wrong-result-variant-kind))
+
+(check-equal? (type-tag->integer result-position)
+              0)
 
 (for ([kind (in-list kinds)]
       [expected (in-naturals)])
@@ -300,7 +304,31 @@
 (check-true (error-kind=? nested-empty-error
                          empty-list-kind))
 (check-equal? (error-frames->host nested-empty-error)
-              '((1 2)))
+              '((1 2) (0 0)))
+(check-equal? (error-frame-names->host nested-empty-error)
+              '("LEN" "HEAD"))
+
+(define result-framed-empty-error
+  ((lazy-apply raw-add-result-frame invalid-nat-error)
+   head-function-name))
+
+(check-true (error-kind=? result-framed-empty-error
+                         invalid-nat-kind))
+(check-equal? (error-frames->host result-framed-empty-error)
+              '((0 0)))
+(check-equal? (error-frame-names->host result-framed-empty-error)
+              '("HEAD"))
+
+;; An Error stored as ordinary data is yielded unchanged: only a
+;; failing algorithm adds a result frame.
+(define error-as-list-element
+  (lazy-apply typed-head
+              (apply2 raw-cons invalid-nat-error NIL)))
+
+(check-true (error-kind=? error-as-list-element
+                         invalid-nat-kind))
+(check-equal? (error-frames->host error-as-list-element)
+              '())
 
 (define cons-head-propagation
   (apply2 typed-cons invalid-nat-error NIL))

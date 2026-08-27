@@ -65,24 +65,13 @@
 (def raw-ignore-if-branches failure ignored-then ignored-else =
   failure)
 
-(def typed-if condition =
-  (((raw-if
-     ((raw-is-type error-type) condition))
-    (raw-ignore-if-branches
-     ((((raw-bubble-error condition)
-        if-function-name)
-       argument-position-one)
-      bool-type)))
-   (((raw-if
-      ((raw-is-type bool-type) condition))
-     (raw-if
-      (raw-object-value condition)))
-    (raw-ignore-if-branches
-     ((((raw-bubble-error
-         (((raw-make-type-mismatch-error
-            argument-position-one)
-           bool-type)
-          (raw-object-type condition)))
-        if-function-name)
-       argument-position-one)
-      bool-type)))))
+(def raw-select-branch condition =
+  (raw-if
+   (raw-object-value condition)))
+
+(def typed-if =
+  (((((raw-check-argument if-function-name)
+      argument-position-one)
+     bool-type)
+    raw-ignore-if-branches)
+   raw-select-branch))

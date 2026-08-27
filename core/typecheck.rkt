@@ -9,6 +9,7 @@
          "tags.rkt")
 
 (provide make-typed-function
+         raw-check-argument
          raw-wrap-return
          raw-keep-return)
 
@@ -44,40 +45,53 @@
     remaining-types)
    failure))
 
+(def raw-check-argument function-name argument-position expected-type on-failure on-success argument =
+  (((raw-if
+     ((raw-is-type error-type) argument))
+    (on-failure
+     ((((raw-bubble-error argument)
+        function-name)
+       argument-position)
+      expected-type)))
+   (((raw-if
+      ((raw-is-type expected-type) argument))
+     (on-success argument))
+    (on-failure
+     ((((raw-bubble-error
+         (((raw-make-type-mismatch-error argument-position)
+           expected-type)
+          (raw-object-type argument)))
+        function-name)
+       argument-position)
+      expected-type)))))
+
+(def raw-continue-typed-function recur raw-function function-name remaining-types return-policy argument-position argument =
+  (((((recur
+       (raw-function
+        (raw-object-value argument)))
+      function-name)
+     remaining-types)
+    return-policy)
+   (church-succ argument-position)))
+
 (def raw-make-typed-function-step recur raw-function function-name expected-types return-policy argument-position =
   (((raw-if
      (raw-signature-is-empty expected-types))
     (return-policy raw-function))
    (lambda (argument)
-     (lambda-let expected-type =
-       (raw-signature-head expected-types)
-       (lambda-let remaining-types =
-         (raw-signature-tail expected-types)
-         (((raw-if
-           ((raw-is-type error-type) argument))
-           ((raw-absorb-error remaining-types)
-            ((((raw-bubble-error argument)
-               function-name)
-              argument-position)
-             expected-type)))
-          (((raw-if
-             ((raw-is-type expected-type) argument))
-            (((((recur
-                 (raw-function
-                  (raw-object-value argument)))
-                function-name)
-               remaining-types)
-              return-policy)
-             (church-succ argument-position)))
-           ((raw-absorb-error remaining-types)
-            ((((raw-bubble-error
-                (((raw-make-type-mismatch-error
-                   argument-position)
-                  expected-type)
-                 (raw-object-type argument)))
-               function-name)
-              argument-position)
-             expected-type)))))))))
+     (lambda-let remaining-types =
+       (raw-signature-tail expected-types)
+       ((((((raw-check-argument function-name)
+            argument-position)
+           (raw-signature-head expected-types))
+          (raw-absorb-error remaining-types))
+         ((((((raw-continue-typed-function recur)
+              raw-function)
+             function-name)
+            remaining-types)
+           return-policy)
+          argument-position))
+        argument)))))
 
 (def make-typed-function raw-function function-name expected-types return-policy =
   ((((((raw-fix raw-make-typed-function-step)

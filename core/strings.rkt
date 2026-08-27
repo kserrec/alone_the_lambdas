@@ -66,16 +66,14 @@
 (def raw-char-list-valid? =
   (raw-fix raw-char-list-valid-step))
 
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
-
 (def raw-make-checked-string list-payload =
   (lambda-let chars =
     (raw-list-object list-payload)
     (((raw-if
        (raw-char-list-valid? chars))
       (raw-make-string chars))
-     invalid-string-error)))
+     ((raw-add-result-frame invalid-string-error)
+      make-string-function-name))))
 
 (def raw-string-empty? chars =
   (raw-list-is-nil chars))
@@ -111,12 +109,17 @@
   ((raw-append left) right))
 
 (def raw-string-head chars =
-  (raw-list-head chars))
+  (((raw-if
+     (raw-list-is-nil chars))
+    ((raw-add-result-frame empty-list-error)
+     string-head-function-name))
+   (raw-list-head chars)))
 
 (def raw-string-tail chars =
   (((raw-if
      (raw-list-is-nil chars))
-    empty-list-error)
+    ((raw-add-result-frame empty-list-error)
+     string-tail-function-name))
    (raw-make-string
     (raw-list-tail chars))))
 
@@ -156,9 +159,6 @@
 
 (def raw-string-contains? =
   (raw-fix raw-string-contains-step))
-
-(def list-unary-signature =
-  ((raw-cons list-type) NIL))
 
 (def string-unary-signature =
   ((raw-cons string-type) NIL))

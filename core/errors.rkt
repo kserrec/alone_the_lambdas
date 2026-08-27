@@ -13,6 +13,8 @@
          divide-by-zero-kind
          invalid-char-kind
          invalid-string-kind
+         wrong-result-variant-kind
+         result-position
          argument-position-one
          argument-position-two
          raw-error-kind-equal
@@ -37,12 +39,15 @@
          raw-make-type-mismatch-error
          raw-add-error-frame
          raw-bubble-error
+         raw-add-result-frame
          NIL
+         raw-cons
          empty-list-error
          invalid-nat-error
          divide-by-zero-error
          invalid-char-error
-         invalid-string-error)
+         invalid-string-error
+         wrong-result-variant-error)
 
 (def type-mismatch-kind = church-zero)
 (def empty-list-kind = church-one)
@@ -50,7 +55,9 @@
 (def divide-by-zero-kind = church-three)
 (def invalid-char-kind = church-four)
 (def invalid-string-kind = church-five)
+(def wrong-result-variant-kind = church-six)
 
+(def result-position = church-zero)
 (def argument-position-one = church-one)
 (def argument-position-two = church-two)
 
@@ -138,7 +145,7 @@
 (def empty-list-error =
   (raw-second raw-error-list-knot))
 
-(def raw-error-list-cons value tail =
+(def raw-cons value tail =
   ((raw-make-object list-type)
    ((raw-pair value) tail)))
 
@@ -159,7 +166,7 @@
 (def raw-add-error-frame error frame =
   ((raw-make-error
     (raw-error-root error))
-   ((raw-error-list-cons frame)
+   ((raw-cons frame)
     (raw-error-frames error))))
 
 (def raw-bubble-error error function-name argument-position expected-type =
@@ -167,6 +174,12 @@
    (((raw-make-error-frame function-name)
      argument-position)
     expected-type)))
+
+(def raw-add-result-frame error function-name =
+  ((raw-add-error-frame error)
+   (((raw-make-error-frame function-name)
+     result-position)
+    error-type)))
 
 (def invalid-nat-error =
   (raw-make-root-error invalid-nat-kind))
@@ -179,3 +192,6 @@
 
 (def invalid-string-error =
   (raw-make-root-error invalid-string-kind))
+
+(def wrong-result-variant-error =
+  (raw-make-root-error wrong-result-variant-kind))

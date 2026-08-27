@@ -1,5 +1,9 @@
 #lang racket/base
 
+;; The purity gate scans what Racket compiles: every case below writes real
+;; modules to a temporary tree that shares the trusted macro shell, then asks
+;; the checker to expand and judge them exactly as `raco make` would.
+
 (require rackunit
          racket/file
          racket/list
@@ -9,9 +13,11 @@
 (define-runtime-path trusted-macros-directory
   "../macros")
 
-(define (kinds datum)
-  (map violation-kind
-       (datum-violations datum)))
+(define-runtime-path purity-checker-file
+  "../tooling/check-purity.rkt")
+
+(define-runtime-path core-directory
+  "../core")
 
 (define (write-datum path datum)
   (call-with-output-file path
@@ -19,236 +25,262 @@
     (lambda (output)
       (write datum output))))
 
+(define (temporary-tree prefix)
+  (make-temporary-file (string-append "alone-the-lambdas-" prefix "-~a")
+                       'directory
+                       (current-directory)))
+
+;; Writes `datum` as core/production.rkt beside optional dependency modules,
+;; with the real macros/ directory linked in, and returns the violation kinds.
 (define (file-kinds datum [dependencies '()])
-  (define directory
-    (make-temporary-file "alone-the-lambdas-purity-~a"
-                         'directory
-                         (current-directory)))
-  (define core
-    (build-path directory
-                "core"))
-  (define path
-    (build-path core
-                "production.rkt"))
+  (define directory (temporary-tree "purity"))
+  (define core (build-path directory "core"))
+  (define path (build-path core "production.rkt"))
   (dynamic-wind
     (lambda ()
       (make-directory core)
-      (make-file-or-directory-link
-       trusted-macros-directory
-       (build-path directory
-                   "macros"))
+      (make-file-or-directory-link trusted-macros-directory
+                                   (build-path directory "macros"))
       (write-datum path datum)
       (for ([dependency (in-list dependencies)])
-        (write-datum
-         (build-path core
-                     (car dependency))
-         (cadr dependency))))
+        (define dependency-path
+          (build-path core (car dependency)))
+        (define-values (base name directory?)
+          (split-path dependency-path))
+        (make-directory* base)
+        (write-datum dependency-path (cadr dependency))))
     (lambda ()
-      (map violation-kind
-           (file-violations path)))
+      (map violation-kind (file-violations path)))
     (lambda ()
       (delete-directory/files directory))))
 
+;; Wraps one expression as the body of a curried definition so that the
+;; free names the cases use are ordinary lambda-bound variables.
+(define (expression-kinds expression)
+  (file-kinds
+   `(module production "../macros/lazy-with-macros.rkt"
+      (#%module-begin
+       (require "../macros/macros.rkt")
+       (provide probe)
+       (def probe value left right condition raw-operation =
+         ,expression)))))
+
 (define (untrusted-shell-file-kinds datum)
-  (define directory
-    (make-temporary-file "alone-the-lambdas-shell-~a"
-                         'directory
-                         (current-directory)))
-  (define core
-    (build-path directory
-                "core"))
-  (define macros
-    (build-path directory
-                "macros"))
-  (define path
-    (build-path core
-                "production.rkt"))
+  (define directory (temporary-tree "shell"))
+  (define core (build-path directory "core"))
+  (define macros (build-path directory "macros"))
+  (define path (build-path core "production.rkt"))
   (dynamic-wind
     (lambda ()
       (make-directory core)
       (make-directory macros)
-      (write-datum
-       (build-path macros
-                   "lazy-with-macros.rkt")
-       '(module lookalike racket/base
-          (#%module-begin)))
-      (write-datum
-       (build-path macros
-                   "macros.rkt")
-       '(module lookalike racket/base
-          (#%module-begin)))
+      (write-datum (build-path macros "lazy-with-macros.rkt")
+                   '(module lookalike racket/base
+                      (#%module-begin)))
+      (write-datum (build-path macros "macros.rkt")
+                   '(module lookalike racket/base
+                      (#%module-begin)))
       (write-datum path datum))
     (lambda ()
-      (map violation-kind
-           (file-violations path)))
+      (map violation-kind (file-violations path)))
     (lambda ()
       (delete-directory/files directory))))
 
 (define (symlink-file-kinds datum)
-  (define directory
-    (make-temporary-file "alone-the-lambdas-link-~a"
-                         'directory
-                         (current-directory)))
-  (define target
-    (build-path directory
-                "target.rkt"))
-  (define link
-    (build-path directory
-                "production.rkt"))
+  (define directory (temporary-tree "link"))
+  (define target (build-path directory "target.rkt"))
+  (define link (build-path directory "production.rkt"))
   (dynamic-wind
     (lambda ()
       (write-datum target datum)
-      (make-file-or-directory-link target
-                                   link))
+      (make-file-or-directory-link target link))
     (lambda ()
-      (map violation-kind
-           (file-violations link)))
+      (map violation-kind (file-violations link)))
     (lambda ()
       (delete-directory/files directory))))
 
-(check-equal? (kinds '(lambda (value)
-                        value))
-              '())
-(check-equal? (kinds '(lambda (left right)
-                        left))
-              '(non-unary-lambda))
-(check-equal? (kinds '(lambda arguments
-                        arguments))
-              '(non-unary-lambda))
-(check-equal? (kinds '(lambda (value)
-                        value
-                        value))
-              '(non-unary-lambda))
-(check-equal? (kinds '(lambda (lambda)
-                        (lambda lambda)))
-              '())
-(check-equal? (kinds '(lambda (define)
-                        (define define)))
-              '())
-(check-equal? (kinds '(lambda (lambda-let)
-                        (lambda-let lambda-let)))
-              '())
-(check-equal? (kinds '(define (identity value)
-                        value))
-              '(host-function-definition))
-(check-not-false
- (member 'host-function-definition
-         (kinds '(define raw-operation
-                   +))))
-(check-not-false
- (member 'forbidden-host-identifier
-         (kinds '(define raw-operation
-                   +))))
-(check-equal? (kinds '(if condition
-                          when-true
-                          when-false))
-              '(forbidden-host-form))
-(check-equal? (kinds '(begin first
-                             second))
-              '(forbidden-host-form))
-(check-equal? (kinds '(string-ref value
-                                  index))
-              '(forbidden-host-form))
-(check-equal? (kinds '(host request))
-              '(forbidden-host-form))
-(check-equal? (kinds '(type-check2 value))
-              '(arity-specific-checker))
-(check-equal? (kinds '(make-typed-function-3 raw-function))
-              '(arity-specific-checker))
-(check-equal? (kinds '(make-typed-function raw-function))
-              '())
-(check-equal? (kinds '((lambda (value)
-                         value)
-                       argument))
-              '())
-(check-equal? (kinds '(raw-operation left right))
-              '(non-unary-application))
-(check-equal? (kinds '(lambda (value)
-                        0))
-              '(forbidden-host-datum))
-(check-equal? (kinds '(lambda (value)
-                        #t))
-              '(forbidden-host-datum))
-(check-equal? (kinds '(lambda (value)
-                        "host value"))
-              '(forbidden-host-datum))
-(check-equal? (kinds '(lambda (value)
-                        #\a))
-              '(forbidden-host-datum))
-(check-equal? (kinds '(lambda (value)
-                        #(host vector)))
-              '(forbidden-host-datum))
+;; Copies the checker into an isolated tree with a substitute macros.rkt (and
+;; optionally a substitute language shell), so the copied checker trusts the
+;; substitutes exactly as the real checker trusts the real files.
+(define (isolated-macro-file-kinds macro-datum
+                                   production-datum
+                                   [language-datum #f])
+  (define directory (temporary-tree "macro-purity"))
+  (define tooling (build-path directory "tooling"))
+  (define macros (build-path directory "macros"))
+  (define core (build-path directory "core"))
+  (define checker (build-path tooling "check-purity.rkt"))
+  (define production (build-path core "production.rkt"))
+  (dynamic-wind
+    (lambda ()
+      (make-directory tooling)
+      (make-directory macros)
+      (make-directory core)
+      (copy-file purity-checker-file checker)
+      (define language-path
+        (build-path macros "lazy-with-macros.rkt"))
+      (if language-datum
+          (write-datum language-path language-datum)
+          (copy-file (build-path trusted-macros-directory
+                                 "lazy-with-macros.rkt")
+                     language-path))
+      (write-datum (build-path macros "macros.rkt") macro-datum)
+      (write-datum production production-datum))
+    (lambda ()
+      (define isolated-file-violations
+        (dynamic-require checker 'file-violations))
+      (define isolated-violation-kind
+        (dynamic-require checker 'violation-kind))
+      (map isolated-violation-kind
+           (isolated-file-violations production)))
+    (lambda ()
+      (delete-directory/files directory))))
 
-(define scaffolding-datum
-  '(module example "../macros/lazy-with-macros.rkt"
+;; ---------------------------------------------------------------------------
+;; Expressions: only variables, unary lambda, and unary application survive
+
+(check-equal? (expression-kinds '(lambda (value) value))
+              '())
+(check-equal? (expression-kinds '(lambda (value) (value value)))
+              '())
+(check-equal? (expression-kinds '((lambda (value) value) left))
+              '())
+(check-equal? (expression-kinds '((raw-operation left) right))
+              '())
+(check-equal? (expression-kinds '(lambda (value)
+                                   (lambda-let inner = value
+                                     inner)))
+              '())
+
+;; Local shadowing of a reserved or host name is ordinary lambda binding.
+(check-equal? (expression-kinds '(lambda (lambda) (lambda lambda)))
+              '())
+(check-equal? (expression-kinds '(lambda (define) (define define)))
+              '())
+(check-equal? (expression-kinds '(lambda (lambda-let)
+                                   (lambda-let lambda-let)))
+              '())
+(check-equal? (expression-kinds '(lambda (car) (car car)))
+              '())
+
+(check-equal? (expression-kinds '(lambda (left right) left))
+              '(non-unary-lambda))
+(check-equal? (expression-kinds '(lambda arguments arguments))
+              '(non-unary-lambda))
+
+;; Lazy Racket sequences a second body form with a host `begin`.
+(check-equal? (expression-kinds '(lambda (value) value value))
+              '(forbidden-host-form))
+
+(check-equal? (expression-kinds '(raw-operation left right))
+              '(non-unary-application))
+(check-equal? (expression-kinds '(raw-operation))
+              '(non-unary-application))
+(check-equal? (expression-kinds '(lambda (value) (value left right)))
+              '(non-unary-application))
+
+(for ([form (in-list
+             '((if condition left right)
+               (cond [condition left] [else right])
+               (begin left right)
+               (let ([inner left]) inner)
+               (letrec ([inner left]) inner)
+               (case-lambda [(value) value])
+               (set! left right)
+               (when condition left)
+               (and left right)))])
+  (check-equal? (expression-kinds form)
+                '(forbidden-host-form)
+                (format "~s" form)))
+
+(for ([datum (in-list '(0 1 "text" #\a #t #f #(1) ()))])
+  (check-equal? (expression-kinds (if (null? datum) ''() datum))
+                '(forbidden-host-datum)
+                (format "~s" datum)))
+
+(check-equal? (expression-kinds '(car value))
+              '(forbidden-host-identifier))
+(check-equal? (expression-kinds '(display value))
+              '(forbidden-host-identifier))
+
+;; Lazy Racket applies its own strict primitives directly, so that
+;; application is not the lazy template; the bare reference is judged by
+;; its binding.
+(check-equal? (expression-kinds '(! value))
+              '(forbidden-host-form))
+(check-equal? (expression-kinds '(lambda (value) !))
+              '(unapproved-production-identifier))
+(check-equal? (expression-kinds '(lambda (value) car))
+              '(forbidden-host-identifier))
+
+;; An unbound name does not compile, so it cannot pass.
+(check-equal? (expression-kinds 'missing)
+              '(expansion-failure))
+
+;; ---------------------------------------------------------------------------
+;; Module scaffolding
+
+(define pure-dependency-datum
+  '(module dependency "../macros/lazy-with-macros.rkt"
      (#%module-begin
-      (require "dependency.rkt")
+      (require "../macros/macros.rkt")
       (provide identity)
       (def identity value =
         value))))
 
-(check-equal? (kinds scaffolding-datum)
-              '())
-
-(define lookalike-shell-datum
-  '(module example "../macros/lazy-with-macros.rkt"
+(define nested-pure-dependency-datum
+  '(module dependency "../../macros/lazy-with-macros.rkt"
      (#%module-begin
-      (require "../macros/macros.rkt"))))
+      (require "../../macros/macros.rkt")
+      (provide identity)
+      (def identity value =
+        value))))
 
-(define lookalike-shell-findings
-  (untrusted-shell-file-kinds lookalike-shell-datum))
-
-(check-not-false
- (and (member 'unexpected-production-language
-              lookalike-shell-findings)
-      (member 'disallowed-production-import
-              lookalike-shell-findings)))
-
-(define host-backed-production-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require "dependency.rkt")
-      (provide value)
-      (def value =
-        0))))
-
-(check-equal? (kinds host-backed-production-datum)
-              '(forbidden-host-datum))
-
-(define renamed-host-import-datum
+(define scaffolding-datum
   '(module example "../macros/lazy-with-macros.rkt"
      (#%module-begin
       (require "../macros/macros.rkt"
-               (rename-in racket/base
-                          [+ raw-operation]))
-      (provide bad)
-      (def bad left right =
-        (raw-operation left right)))))
+               "dependency.rkt")
+      (provide apply-identity
+               (rename-out [apply-identity APPLY-IDENTITY]))
+      (def apply-identity value =
+        (identity value)))))
 
-(check-not-false
- (member 'disallowed-production-import
-         (kinds renamed-host-import-datum)))
-(check-not-false
- (member 'non-unary-application
-         (kinds renamed-host-import-datum)))
+(check-equal? (file-kinds scaffolding-datum
+                          (list (list "dependency.rkt"
+                                      pure-dependency-datum)))
+              '())
 
-(define dotenv-like-import-datum
+;; A plain `define` of a lambda compiles to the same term as `def`.
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (provide identity)
+                 (define identity
+                   (lambda (value)
+                     value)))))
+ '())
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (provide (rename-out [identity renamed]))
+                 (require (only-in "../macros/macros.rkt" def))
+                 (def identity value = value))))
+ '())
+
+(check-equal? (file-kinds '(module example racket/base
+                             (#%module-begin)))
+              '(unexpected-production-language))
+
+(check-equal?
+ (untrusted-shell-file-kinds
   '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require "service.env.rkt"))))
+     (#%module-begin)))
+ '(unexpected-production-language))
 
-(check-not-false
- (member 'disallowed-production-import
-         (kinds dotenv-like-import-datum)))
-
-(define uppercase-dotenv-like-import-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require "SERVICE.ENV.RKT"))))
-
-(check-not-false
- (member 'disallowed-production-import
-         (kinds uppercase-dotenv-like-import-datum)))
+(check-equal? (file-kinds '(not a module))
+              '(invalid-production-module))
 
 (check-equal?
  (symlink-file-kinds
@@ -256,190 +288,476 @@
      (#%module-begin)))
  '(disallowed-production-path))
 
-(define shadowed-module-syntax-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require "../macros/macros.rkt")
-      (provide result)
-      (def require value = value)
-      (require "../macros/macros.rkt")
-      (def lambda-let value = value)
-      (lambda-let result = value value)
-      (def def first second third = first)
-      (def result = value))))
+;; Module-level forms other than definitions, imports, and exports
+(for ([form (in-list
+             '((identity identity)
+               (define-syntax-rule (sugar value) value)
+               (define-syntax (transformer stx) stx)
+               (begin-for-syntax (define compile-time 0))
+               (module+ test (define inner 0))
+               (define-values (first second) (values identity identity))))])
+  (check-equal?
+   (file-kinds `(module example "../macros/lazy-with-macros.rkt"
+                  (#%module-begin
+                   (require "../macros/macros.rkt"
+                            (for-syntax racket/base))
+                   (def identity value = value)
+                   ,form)))
+   '(disallowed-production-import disallowed-module-form)
+   (format "~s" form)))
+
+;; ---------------------------------------------------------------------------
+;; Imports
+
+(for ([spec (in-list
+             '(racket/base
+               (rename-in racket/base [car raw-first])
+               (only-in racket/list first)
+               (prefix-in host: racket/base)
+               (except-in racket/base car)
+               (for-syntax "dependency.rkt")
+               (for-meta 1 "dependency.rkt")
+               "sub/dependency.rkt"
+               ".env.rkt"
+               ".ENV.rkt"))])
+  (check-not-false
+   (member 'disallowed-production-import
+           (file-kinds `(module example "../macros/lazy-with-macros.rkt"
+                          (#%module-begin
+                           (require ,spec)))
+                       (list (list "dependency.rkt" pure-dependency-datum)
+                             (list "sub/dependency.rkt"
+                                   nested-pure-dependency-datum)
+                             (list ".env.rkt" pure-dependency-datum)
+                             (list ".ENV.rkt" pure-dependency-datum))))
+   (format "~s" spec)))
 
 (check-equal?
- (filter
-  (lambda (kind)
-    (eq? kind 'reserved-production-binding))
-  (file-kinds shadowed-module-syntax-datum))
- '(reserved-production-binding
-   reserved-production-binding
-   reserved-production-binding))
-
-(define pure-dependency-datum
-  '(module dependency "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (provide identity)
-      (def identity value =
-        value))))
-
-(define renamed-project-import-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require (rename-in "dependency.rkt"
-                          [identity renamed-identity]))
-      (provide call)
-      (def call value =
-        (renamed-identity value)))))
-
-(check-equal?
- (file-kinds renamed-project-import-datum
-             (list
-              (list "dependency.rkt"
-                    pure-dependency-datum)))
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt"
+                          (rename-in "dependency.rkt"
+                                     [identity renamed-identity]))
+                 (provide call)
+                 (def call value =
+                   (renamed-identity value))))
+             (list (list "dependency.rkt" pure-dependency-datum)))
  '())
 
-(define reserved-renamed-project-import-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require (rename-in "dependency.rkt"
-                          [identity require]))
-      (require "../macros/macros.rkt"))))
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require (rename-in "dependency.rkt"
+                                     [identity require]))))
+             (list (list "dependency.rkt" pure-dependency-datum)))
+ '(reserved-production-binding))
 
-(check-not-false
- (member
-  'reserved-production-binding
-  (file-kinds reserved-renamed-project-import-datum
-              (list
-               (list "dependency.rkt"
-                     pure-dependency-datum)))))
+(check-equal? (production-files-under (string->path ".env.rkt"))
+              '())
 
-(define numbered-checker-definition-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (provide type-check2)
-      (def type-check2 value = value))))
+;; Directory spellings that end in a separator must scan the same files.
+(check-equal? (length (production-files-under
+                       (path->directory-path core-directory)))
+              16)
 
-(check-not-false
- (member 'arity-specific-checker
-         (file-kinds numbered-checker-definition-datum)))
+;; A symlinked directory under a production tree is reported, not skipped.
+(let ()
+  (define directory (temporary-tree "linked-directory"))
+  (define elsewhere (build-path directory "elsewhere"))
+  (define core (build-path directory "core"))
+  (dynamic-wind
+    (lambda ()
+      (make-directory elsewhere)
+      (make-directory core)
+      (write-datum (build-path elsewhere "hidden.rkt")
+                   '(module hidden "../macros/lazy-with-macros.rkt"
+                      (#%module-begin)))
+      (make-file-or-directory-link elsewhere
+                                   (build-path core "linked")))
+    (lambda ()
+      (define found (production-files-under core))
+      (check-equal? (length found) 1)
+      (check-equal? (map violation-kind (file-violations (car found)))
+                    '(disallowed-production-path)))
+    (lambda ()
+      (delete-directory/files directory))))
 
-(define numbered-checker-boundary-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (require (rename-in "dependency.rkt"
-                          [identity make-typed-function-3]))
-      (provide (rename-out [local type-check2]))
-      (def local value = value))))
+;; Two identical violations are two findings.
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (def first-head value = (car value))
+                 (def second-head value = (car value)))))
+ '(forbidden-host-identifier forbidden-host-identifier))
+
+;; ---------------------------------------------------------------------------
+;; Names
+
+(for ([name (in-list '(lambda define def lambda-let define-function-name
+                       require provide))])
+  (check-equal?
+   (file-kinds `(module example "../macros/lazy-with-macros.rkt"
+                  (#%module-begin
+                   (require "../macros/macros.rkt")
+                   (def ,name value = value))))
+   '(reserved-production-binding)
+   (symbol->string name)))
 
 (check-equal?
- (filter
-  (lambda (kind)
-    (eq? kind 'arity-specific-checker))
-  (file-kinds numbered-checker-boundary-datum
-              (list
-               (list "dependency.rkt"
-                     pure-dependency-datum))))
- '(arity-specific-checker
-   arity-specific-checker))
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (provide host)
+                 (def host request = request))))
+ '(forbidden-host-identifier forbidden-host-identifier))
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (provide (rename-out [identity host]))
+                 (def identity value = value))))
+ '(forbidden-host-identifier))
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (def type-check2 value = value))))
+ '(arity-specific-checker))
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (provide (rename-out [identity make-typed-function-3]))
+                 (def identity value = value))))
+ '(arity-specific-checker))
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require (rename-in "dependency.rkt"
+                                     [identity type-check4]))))
+             (list (list "dependency.rkt" pure-dependency-datum)))
+ '(arity-specific-checker))
+
+;; A module-level definition may reuse a host name; references then resolve
+;; to the module's own pure binding.
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (provide car use-car)
+                 (def car value = value)
+                 (def use-car value = (car value)))))
+ '())
+
+;; ---------------------------------------------------------------------------
+;; Exports
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (provide car))))
+ '(unapproved-production-export))
+
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (provide (rename-out [car raw-first])))))
+ '(unapproved-production-export))
+
+
+;; `provide` compiles these transformations into plain or renamed exports,
+;; and each exported binding is judged on its own.
+(for ([spec (in-list
+             '((all-from-out "dependency.rkt")
+               (all-defined-out)
+               (prefix-out raw- identity)
+               (except-out (all-from-out "dependency.rkt") identity)))])
+  (check-equal?
+   (file-kinds `(module example "../macros/lazy-with-macros.rkt"
+                  (#%module-begin
+                   (require "dependency.rkt")
+                   (provide ,spec)))
+               (list (list "dependency.rkt" pure-dependency-datum)))
+   '()
+   (format "~s" spec)))
+
+;; Export forms that survive to the compiled module unchanged are rejected.
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt")
+                 (def identity value = value)
+                 (provide (protect-out identity)))))
+ '(disallowed-production-export))
+
+;; ---------------------------------------------------------------------------
+;; Transitive imports
 
 (define impure-provider-datum
   '(module provider "../macros/lazy-with-macros.rkt"
      (#%module-begin
-      (provide add1))))
+      (provide raw-head)
+      (define raw-head car))))
 
 (define forwarding-dependency-datum
   '(module dependency "../macros/lazy-with-macros.rkt"
      (#%module-begin
       (require "provider.rkt")
-      (provide add1))))
+      (provide raw-head))))
 
-(define transitive-import-datum
-  '(module example "../macros/lazy-with-macros.rkt"
+(check-equal?
+ (file-kinds '(module example "../macros/lazy-with-macros.rkt"
+                (#%module-begin
+                 (require "../macros/macros.rkt"
+                          "dependency.rkt")
+                 (provide use)
+                 (def use value = (raw-head value))))
+             (list (list "dependency.rkt" forwarding-dependency-datum)
+                   (list "provider.rkt" impure-provider-datum)))
+ '(impure-production-import))
+
+;; ---------------------------------------------------------------------------
+;; Macros are judged by what they compile to
+
+(define single-def-production-datum
+  '(module production "../macros/lazy-with-macros.rkt"
      (#%module-begin
-      (require "dependency.rkt")
-      (provide bad)
-      (def bad value =
-        (add1 value)))))
+      (require "../macros/macros.rkt")
+      (provide identity)
+      (def identity value =
+        value))))
 
-(check-not-false
- (member
-  'impure-production-import
-  (file-kinds transitive-import-datum
-              (list
-               (list "dependency.rkt"
-                     forwarding-dependency-datum)
-               (list "provider.rkt"
-                     impure-provider-datum)))))
+(define transparent-def-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              (lambda (argument)
+                body))]))))
 
-(define wrong-language-datum
-  '(module example racket/base
+(check-equal?
+ (isolated-macro-file-kinds transparent-def-macro-datum
+                            single-def-production-datum)
+ '())
+
+;; A macro that inspects its input — here, whether the syntax carries source
+;; information — cannot show the checker a pure term and the compiler a host
+;; datum, because the checker expands the same source the compiler does. (The
+;; macro module itself is trusted by path, not scanned; see the checker's
+;; header for that boundary.)
+(define source-sensitive-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          (if (syntax-source stx)
+              #'(define name 0)
+              #'(define name
+                  (lambda (argument)
+                    body)))]))))
+
+(check-equal?
+ (isolated-macro-file-kinds source-sensitive-macro-datum
+                            single-def-production-datum)
+ '(forbidden-host-datum))
+
+(define generated-binding-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(begin
+              (define generated-host-data 0)
+              (define name
+                (lambda (argument)
+                  body)))]))))
+
+(check-equal?
+ (isolated-macro-file-kinds generated-binding-macro-datum
+                            single-def-production-datum)
+ '(forbidden-host-datum))
+
+(define generated-value-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              0)]))))
+
+(check-equal?
+ (isolated-macro-file-kinds generated-value-macro-datum
+                            single-def-production-datum)
+ '(forbidden-host-datum))
+
+(define generated-nested-syntax-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def
+              lambda-let
+              define-function-name)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              (lambda (argument)
+                body))]))
+     (define-syntax (lambda-let stx)
+       (syntax-case stx (=)
+         [(_ name = value body)
+          #'(if #t
+                ((lambda (name) body) value)
+                value)]))
+     (define-syntax (define-function-name stx)
+       (syntax-case stx ()
+         [(_ binding rendered-name)
+          #'(define binding
+              0)]))))
+
+(define generated-nested-syntax-production-datum
+  '(module production "../macros/lazy-with-macros.rkt"
      (#%module-begin
-      (provide bad)
-      (define bad +))))
+      (require "../macros/macros.rkt")
+      (provide identity
+               rendered-name)
+      (def identity value =
+        (lambda-let local = value
+          local))
+      (define-function-name rendered-name identity))))
 
-(check-not-false
- (member 'unexpected-production-language
-         (kinds wrong-language-datum)))
+(check-equal?
+ (isolated-macro-file-kinds generated-nested-syntax-macro-datum
+                            generated-nested-syntax-production-datum)
+ '(forbidden-host-form forbidden-host-datum))
 
-(define unapproved-language-binding-datum
-  '(module example "../macros/lazy-with-macros.rkt"
+;; A macro shell that rebinds `lambda` or `quote` for its own expansion is
+;; judged by the term that results.
+(define generated-shadowed-lambda-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define-syntax lambda
+       (syntax-rules ()
+         [(_ (argument) body)
+          (quote forbidden-host-value)]))
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              (lambda (argument)
+                body))]))))
+
+(check-equal?
+ (isolated-macro-file-kinds generated-shadowed-lambda-macro-datum
+                            single-def-production-datum)
+ '(forbidden-host-datum))
+
+(define generated-shadowed-host-form-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              (lambda (argument)
+                (quote argument)))]))))
+
+(check-equal?
+ (isolated-macro-file-kinds
+  generated-shadowed-host-form-macro-datum
+  '(module production "../macros/lazy-with-macros.rkt"
      (#%module-begin
-      (provide bad)
-      (def bad value =
-        (add1 value)))))
+      (require "../macros/macros.rkt")
+      (provide identity)
+      (def identity quote =
+        quote))))
+ '(forbidden-host-datum))
 
-(check-not-false
- (member 'unapproved-production-identifier
-         (file-kinds unapproved-language-binding-datum)))
+;; A macro cannot smuggle in a value defined by the macro module itself,
+;; whether that value is pure or host-backed.
+(define helper-reference-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base))
+     (provide def)
+     (define helper car)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              helper)]))))
 
-(define forbidden-language-value-datum
-  '(module example "../macros/lazy-with-macros.rkt"
+(check-equal?
+ (isolated-macro-file-kinds helper-reference-macro-datum
+                            single-def-production-datum)
+ '(unapproved-production-identifier))
+
+;; A macro cannot substitute a strict kernel lambda for the lazy one.
+(define strict-lambda-macro-datum
+  '(module macros lazy
+     (require (for-syntax racket/base)
+              (only-in racket/base [lambda strict-lambda]))
+     (provide def)
+     (define-syntax (def stx)
+       (syntax-case stx (=)
+         [(_ name argument = body)
+          #'(define name
+              (strict-lambda (argument)
+                body))]))))
+
+(check-equal?
+ (isolated-macro-file-kinds strict-lambda-macro-datum
+                            single-def-production-datum)
+ '(forbidden-host-form))
+
+;; The language shell itself is pinned: a shell whose `#%module-begin`
+;; injects host data is rejected before any module is judged.
+(define generated-module-begin-language-datum
+  '(module lazy-with-macros racket/base
      (#%module-begin
-      (provide bad)
-      (def bad =
-        +))))
+      (require lazy/lazy
+               (for-syntax racket/base))
+      (define-syntax (impure-module-begin stx)
+        (syntax-case stx ()
+          [(_ form ...)
+           #'(#%module-begin
+              (define generated-host-data 0)
+              form ...)]))
+      (provide
+       (except-out (all-from-out lazy/lazy)
+                   #%module-begin)
+       (rename-out
+        [impure-module-begin #%module-begin])))))
 
-(check-not-false
- (member 'forbidden-host-identifier
-         (file-kinds forbidden-language-value-datum)))
+(check-equal?
+ (isolated-macro-file-kinds transparent-def-macro-datum
+                            single-def-production-datum
+                            generated-module-begin-language-datum)
+ '(invalid-production-language-shell))
 
-(define shadowed-host-names-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (provide call)
-      (def call map value =
-        (map value)))))
+;; ---------------------------------------------------------------------------
+;; The real core
 
-(check-equal? (file-kinds shadowed-host-names-datum)
-              '())
+(define production-results
+  (files-violations (production-files-under core-directory)))
 
-(define inherited-host-export-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (provide +))))
-
-(check-not-false
- (member 'unapproved-production-export
-         (file-kinds inherited-host-export-datum)))
-
-(define transformed-export-datum
-  '(module example "../macros/lazy-with-macros.rkt"
-     (#%module-begin
-      (provide (all-defined-out)))))
-
-(check-not-false
- (member 'disallowed-production-export
-         (file-kinds transformed-export-datum)))
-
-(define-runtime-path core-directory
-  "../core")
-
-(define production-findings
-  (append-map file-violations
-              (production-files-under
-               core-directory)))
-
-(check-equal? production-findings
-              '())
+(check-equal? (length production-results)
+              16)
+(for ([entry (in-list production-results)])
+  (check-equal? (cdr entry)
+                '()
+                (format "~a" (car entry))))

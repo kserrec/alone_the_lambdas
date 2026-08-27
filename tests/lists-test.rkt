@@ -280,3 +280,23 @@
 (check-equal? (procedure-arity
                (lazy-force raw-fold))
               1)
+
+;; HEAD decides emptiness from the tail's tag, which `cons` has already
+;; validated for public Lists. A raw-built second cell has its tag read but
+;; never its head or its own tail.
+(define second-cell-with-unforced-contents
+  (apply2 raw-cons
+          (delay (error 'lists-test "second head was forced"))
+          (delay (error 'lists-test "second tail was forced"))))
+
+(define peekable-list
+  (apply2 raw-cons
+          true-object
+          second-cell-with-unforced-contents))
+
+(check-true
+ (bool->boolean
+  (lazy-apply typed-head peekable-list)))
+(check-true
+ (list-value?
+  (lazy-apply typed-tail peekable-list)))

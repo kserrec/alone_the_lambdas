@@ -13,6 +13,7 @@
 (provide raw-list-length
          raw-list-take
          raw-list-drop
+         raw-list-object
          typed-len
          typed-take
          typed-drop)
@@ -63,9 +64,6 @@
   (((raw-fix raw-list-drop-step)
     count)
    list))
-
-(def list-unary-signature =
-  ((raw-cons list-type) NIL))
 
 (def nat-list-signature =
   ((raw-cons nat-type)

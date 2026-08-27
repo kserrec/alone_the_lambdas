@@ -248,7 +248,7 @@
    (error-kind=? failure
                  invalid-char-kind))
   (check-equal? (error-frames->host failure)
-                '()))
+                '((0 0))))
 
 (check-mismatch
  (lazy-apply MAKE-CHAR TRUE)

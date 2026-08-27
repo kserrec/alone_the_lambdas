@@ -268,7 +268,7 @@ Status: complete (2026-08-27)
 Acceptance: a lambda String reaches standard output only through the single
 bridge, and repository checks prove no second escape hatch exists.
 
-Completion evidence: 3,026 assertions across 22 test files, the unchanged
+Completion evidence: 3,151 assertions across 22 test files, the unchanged
 purity scan over 16 `core/` modules, and the separate effects/runtime boundary
 gate all passed on 2026-08-27.
 

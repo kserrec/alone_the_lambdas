@@ -21,6 +21,7 @@
     [(3) "DIVIDE-BY-ZERO"]
     [(4) "INVALID-CHAR"]
     [(5) "INVALID-STRING"]
+    [(6) "WRONG-RESULT-VARIANT"]
     [else
      (format "ERROR-KIND:~a"
              (type-tag->integer kind))]))
@@ -32,22 +33,28 @@
     values)))
 
 (define (frame->string frame actual-type)
-  (format "~a(arg~a expected ~a~a)"
-          (string-value->string
-           (lazy-apply
-            raw-error-frame-function-name
-            frame))
-          (type-tag->integer
-           (lazy-apply
-            raw-error-frame-argument-position
-            frame))
-          (type-tag->string
-           (lazy-apply
-            raw-error-frame-expected-type
-            frame))
-          (if actual-type
-              (format " got ~a" actual-type)
-              "")))
+  (define function-name
+    (string-value->string
+     (lazy-apply
+      raw-error-frame-function-name
+      frame)))
+  (define position
+    (type-tag->integer
+     (lazy-apply
+      raw-error-frame-argument-position
+      frame)))
+  (if (= position 0)
+      (format "~a(result)" function-name)
+      (format "~a(arg~a expected ~a~a)"
+              function-name
+              position
+              (type-tag->string
+               (lazy-apply
+                raw-error-frame-expected-type
+                frame))
+              (if actual-type
+                  (format " got ~a" actual-type)
+                  ""))))
 
 (define (type-mismatch-root->string details)
   (format "TYPE-MISMATCH(arg~a expected ~a got ~a)"

@@ -16,6 +16,8 @@
          raw-result-is-ok
          raw-result-is-err
          raw-result-value
+         raw-result-unwrap-ok
+         raw-result-unwrap-err
          typed-make-ok
          typed-make-err
          typed-result-is-ok
@@ -48,6 +50,20 @@
 
 (def raw-result-value payload =
   (raw-second payload))
+
+(def raw-result-unwrap-ok payload =
+  (((raw-if
+     (raw-result-is-ok payload))
+    (raw-result-value payload))
+   ((raw-add-result-frame wrong-result-variant-error)
+    unwrap-ok-function-name)))
+
+(def raw-result-unwrap-err payload =
+  (((raw-if
+     (raw-result-is-err payload))
+    (raw-result-value payload))
+   ((raw-add-result-frame wrong-result-variant-error)
+    unwrap-err-function-name)))
 
 (def result-unary-signature =
   ((raw-cons result-type) NIL))
@@ -86,13 +102,13 @@
    (raw-wrap-return bool-type)))
 
 (def typed-result-unwrap-ok =
-  ((((make-typed-function raw-result-value)
+  ((((make-typed-function raw-result-unwrap-ok)
      unwrap-ok-function-name)
     result-unary-signature)
    raw-keep-return))
 
 (def typed-result-unwrap-err =
-  ((((make-typed-function raw-result-value)
+  ((((make-typed-function raw-result-unwrap-err)
      unwrap-err-function-name)
     result-unary-signature)
    raw-keep-return))

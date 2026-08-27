@@ -35,7 +35,7 @@
 (define-for-syntax (name-list-expression elements context)
   (if (null? elements)
       (use-site-identifier context 'NIL)
-      #`((#,(use-site-identifier context 'raw-name-list-cons)
+      #`((#,(use-site-identifier context 'raw-cons)
            #,(car elements))
           #,(name-list-expression (cdr elements)
                                   context))))
