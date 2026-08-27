@@ -1,19 +1,20 @@
 # Host boundary design
 
-Status: proposed; host direction approved, detailed contract approval required
-before implementation
+Status: approved 2026-08-27; implementation not started
 
 Date: 2026-08-27
 
 This document fixes the contract for the second milestone's single privileged
 outside-world boundary. It is subordinate to the three canonical
-[specifications](../specifications/README.md). Until approved, it authorizes no
-production interop code and no relaxation of `AGENTS.md`.
+[specifications](../specifications/README.md). Its approval authorizes only the
+closed implementation described here and no broader relaxation of
+`AGENTS.md`.
 
-Kyle approved using the single `host` boundary in Alone the Lambdas on
-2026-08-27. That settles the high-level language direction. The concrete
-request, codec, authority, and runtime contract below remains the separate
-implementation approval gate.
+Kyle approved using the single `host` boundary in Alone the Lambdas and then
+approved this concrete request, codec, authority, and runtime contract on
+2026-08-27. Approval unblocks Phase 14 but does not itself add production
+interop code or relax `AGENTS.md`; those changes occur only when the approved
+phase is implemented.
 
 ## Decision summary
 
@@ -471,21 +472,19 @@ The design relies only on documented host behavior:
 
 These are implementation feasibility facts, not object-language semantics.
 
-## Approval gate
+## Approval record
 
 Approval accepts the request schemas, Result/Error split, byte and path rules,
 destructive replacement behavior of `write-file`, process-level authority,
 blocking TCP lifecycle, separated codec/host trust boundary, purity
 classifications, and standalone literal policy defined above.
 
-Kyle approved the high-level use of `host` on 2026-08-27. That approval does
-not by itself approve these detailed implementation boundaries.
-
-Until Kyle explicitly replies:
+Kyle approved the high-level use of `host` and then explicitly approved these
+detailed implementation boundaries on 2026-08-27 by replying:
 
 ```text
 Approve the Phase 13 host-boundary design.
 ```
 
-Phase 14 remains blocked. Questions or requested revisions do not authorize
-implementation.
+Phase 14 is unblocked. No production interop code exists until that phase is
+executed.

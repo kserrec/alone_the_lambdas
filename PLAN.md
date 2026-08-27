@@ -185,15 +185,15 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: host direction approved; detailed design approval pending
+Status: design approved; implementation not started
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
 contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
-Lambdas on 2026-08-27; the detailed request, codec, authority, and runtime
-contract remains pending approval.
+Lambdas and the detailed request, codec, authority, and runtime contract on
+2026-08-27. The gate is satisfied; Phase 14 is the next unblocked phase.
 
 The following constraints apply throughout:
 
@@ -216,7 +216,7 @@ The following constraints apply throughout:
 
 ## Phase 13 — Host contract and trust boundary
 
-Status: complete (revised 2026-08-27; detailed approval pending)
+Status: complete and approved (revised and approved 2026-08-27)
 
 - [x] Write `docs/design/host-boundary.md` with the exact request and response
   algebra for `stdout`, file access, and the complete blocking TCP lifecycle.
@@ -237,15 +237,16 @@ Status: complete (revised 2026-08-27; detailed approval pending)
   superseded representations.
 
 Acceptance: every later phase can implement against one unambiguous protocol;
-no production interop code exists yet; the design is presented for explicit
-approval before Phase 14.
+no production interop code exists yet; the design received explicit approval
+before Phase 14.
 
-High-level `host` direction: approved 2026-08-27. Detailed contract approval:
-pending. Phase 14 remains blocked until the revised design receives the
-explicit approval recorded in
+High-level `host` direction and detailed contract: approved 2026-08-27. The
+approval is recorded in
 [docs/design/host-boundary.md](docs/design/host-boundary.md).
 
 ## Phase 14 — Single `host` bridge and `stdout`
+
+Status: unblocked; not started
 
 - [ ] Apply the approved rule and architecture changes without weakening the
   completed core boundary.

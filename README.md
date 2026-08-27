@@ -13,8 +13,9 @@ variables, unary lambdas, and application.
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
 > green. The Phase 13
-> [host-boundary design](docs/design/host-boundary.md) is complete and awaits
-> explicit approval; no production host implementation exists. See
+> [host-boundary design](docs/design/host-boundary.md) was approved on
+> 2026-08-27; Phase 14 is unblocked, but no production host implementation
+> exists. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -55,8 +56,8 @@ precedence over conflicting examples in the base specification.
 - [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) maps every first-milestone
   completion criterion to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
-  proposed second-milestone protocol, authority, and purity classifications;
-  implementation remains blocked pending approval.
+  approved second-milestone protocol, authority, codecs, and purity
+  classifications; Phase 14 implementation has not started.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
