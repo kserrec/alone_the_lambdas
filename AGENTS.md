@@ -86,6 +86,9 @@ design.
 - Do not add a dependency for a convenience that is safer and clearer to write
   directly. Racket's lazy evaluator is the intended backbone.
 - Keep raw algorithms raw. Add strict wrappers only at the typed layer.
+- Never use Graphify in this repository or create or update `graphify-out/`.
+  Inspect the repository directly for codebase, architecture, and project
+  questions.
 - Do not build deferred effects beyond the completed phase: file or TCP
   operations, parser beyond Lisp syntax, optimizer, compiler, records, JSON,
   or unrelated standard-library breadth.
