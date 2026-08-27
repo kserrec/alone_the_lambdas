@@ -147,7 +147,7 @@
                        (lambda (failure)
                          (file-failure write-file-operation failure))])
         (call-with-output-file path
-          #:exists 'truncate/replace
+          #:exists 'truncate
           (lambda (output)
             (write-bytes payload output)))
         (object-ok NIL))

@@ -24,7 +24,8 @@
                          (current-directory)))
   (dynamic-wind
     (lambda ()
-      (for ([directory (in-list '("core" "effects" "macros" "runtime"))])
+      (for ([directory
+             (in-list '("core" "effects" "macros" "runtime" "lang"))])
         (make-directory (build-path root directory)))
       (write-datum
        (build-path root "macros" "macros.rkt")
@@ -42,8 +43,8 @@
           (#%module-begin
            (require "../macros/macros.rkt"
                     (only-in "../core/dependency.rkt" identity))
-           (provide bridge)
-           (def bridge value =
+           (provide make-host-bridge)
+           (def make-host-bridge value =
              (identity value)))))
       (write-datum
        (build-path root "runtime" "codec.rkt")
@@ -60,7 +61,7 @@
        (build-path root "runtime" "host.rkt")
        '(module host racket/base
           (#%module-begin
-           (require (only-in "../effects/protocol.rkt" bridge)
+           (require (only-in "../effects/protocol.rkt" make-host-bridge)
                     (only-in "codec.rkt" object-ok))
            (provide host)
            (define (host request) request)))))
@@ -72,6 +73,8 @@
 
 (temporary-project
  (lambda (root)
+   (check-equal? (project-boundary-violations root) '())
+
    (define effect (build-path root "effects" "example.rkt"))
    (define (check-effect datum expected)
      (write-datum effect datum)
@@ -186,7 +189,7 @@
    (define (host-datum provide-form body)
      `(module host racket/base
         (#%module-begin
-         (require (only-in "../effects/protocol.rkt" bridge)
+         (require (only-in "../effects/protocol.rkt" make-host-bridge)
                   (only-in "codec.rkt" object-ok))
          ,provide-form
          (define (host request) ,body))))
@@ -221,7 +224,7 @@
     '(module host racket/base
        (#%module-begin
         (require (only-in racket/file file->bytes directory-list)
-                 (only-in "../effects/protocol.rkt" bridge)
+                 (only-in "../effects/protocol.rkt" make-host-bridge)
                  (only-in "codec.rkt" object-ok))
         (provide host)
         (define (host request) request))))
@@ -242,7 +245,7 @@
     production-host
     '(module host racket/base
        (#%module-begin
-        (require (only-in "../effects/protocol.rkt" bridge)
+        (require (only-in "../effects/protocol.rkt" make-host-bridge)
                  (only-in "codec.rkt" object-ok))
         (provide host)
         (define (host request) request))))
@@ -259,4 +262,53 @@
           (object-ok value)))))
    (check-not-false
     (member 'unauthorized-codec-import
-            (kinds (project-boundary-violations root))))))
+            (kinds (project-boundary-violations root))))
+
+   ;; Project-wide isolation includes trusted macro infrastructure and the
+   ;; future language layer, even though those layers have separate purity
+   ;; classifications.
+   (delete-file codec)
+   (delete-file host-file)
+   (write-datum
+    effect
+    '(module example "../macros/lazy-with-macros.rkt"
+       (#%module-begin
+        (require "../macros/macros.rkt"
+                 (only-in "../core/dependency.rkt" identity))
+        (provide use)
+        (def use value =
+          (identity value)))))
+   (check-equal? (project-boundary-violations root) '())
+
+   (define macro-file (build-path root "macros" "macros.rkt"))
+   (write-datum
+    macro-file
+    '(module macros racket/base
+       (#%module-begin
+        (require (only-in "../runtime/codec.rkt" object-ok))
+        (provide def lambda-let define-function-name host)
+        (define host object-ok))))
+   (check-equal?
+    (kinds (project-boundary-violations root))
+    '(unauthorized-codec-import
+      unauthorized-host-definition
+      unauthorized-host-export))
+
+   (write-datum
+    macro-file
+    '(module macros racket/base
+       (#%module-begin
+        (provide def lambda-let define-function-name))))
+   (define language-file (build-path root "lang" "main.rkt"))
+   (write-datum
+    language-file
+    '(module main racket/base
+       (#%module-begin
+        (require (only-in "../runtime/codec.rkt" object-ok))
+        (provide host)
+        (define host object-ok))))
+   (check-equal?
+    (kinds (project-boundary-violations root))
+    '(unauthorized-codec-import
+      unauthorized-host-definition
+      unauthorized-host-export))))

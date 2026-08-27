@@ -99,7 +99,7 @@
     posix provide quote racket/base racket/file racket/promise
     read-file-operation reason reason->object request require
     resource-exhausted-code second stdout-operation string? timed-out-code
-    truncate/replace unknown-operation-reason windows with-handlers write-bytes
+    truncate unknown-operation-reason windows with-handlers write-bytes
     write-file-operation wrong-arity-reason wrong-type-reason))
 
 (define expected-codec-provide
@@ -635,9 +635,13 @@
   (define effect-files (racket-files-under effects-directory))
   (define runtime-files (racket-files-under runtime-directory))
   (define production-files
-    (append (racket-files-under (build-path root "core"))
-            effect-files
-            runtime-files))
+    (append-map
+     racket-files-under
+     (list (build-path root "core")
+           effects-directory
+           (build-path root "macros")
+           runtime-directory
+           (build-path root "lang"))))
   (append
    (append-map (lambda (path)
                  (file-boundary-violations path 'effect root))
