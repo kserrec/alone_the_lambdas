@@ -15,6 +15,10 @@ raco make core/*.rkt readers/*.rkt
 The result was 2,914 passing assertions across 18 test files, followed by a
 clean structural scan of all 16 production modules.
 
+Phase 14 was verified on 2026-08-27 with `./run-all-tests.sh`: 3,026 passing
+assertions across 22 test files, the same clean 16-module core scan, and a
+clean effects/codec/host boundary scan.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -43,11 +47,22 @@ clean structural scan of all 16 production modules.
 | Error frames contain structured function-name Strings. | [`function-names.rkt`](../core/function-names.rkt) contains pure typed constants; [`error-reader-test.rkt`](../tests/error-reader-test.rkt) verifies all 43 names, every corresponding strict mismatch boundary, and nested propagation. |
 | Diagnostics preserve structured data until observation. | [`error.rkt`](../readers/error.rkt) alone flattens roots and frames; its tests cover all root kinds, type names, raw fallback output, and causal order. |
 | Internal names expose raw and typed layers without underscore collision workarounds. | Structural check: production APIs use `raw-*` and `typed-*`; canonical `if` is exported at its module boundary. The remaining standalone `lambda`/`let`/`cons` surface is explicitly next-milestone work, as permitted by the naming addendum. |
-| No implicit host boundary exists in this milestone. | `host` is absent from production and is itself a forbidden production head in the purity checker. [`PLAN.md`](../PLAN.md) defers the single explicit boundary and standalone language surface. |
+| No implicit host boundary exists in the core milestone. | `host` remains absent from `core/` and forbidden by its unchanged purity scan. Phase 14's later explicit bridge is isolated in `runtime/host.rkt` and checked separately rather than weakening this evidence. |
+
+## Phase 14 effects-boundary evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Exact byte conversion is isolated from effects. | [`codec-test.rkt`](../tests/codec-test.rkt) covers all 256 byte values, empty and embedded-zero Strings, immutable output, source-byte copying, canonical List/Char/String construction, malformed tags/tails/elements, leading-zero and out-of-range Char rejection, and canonical Ok/Err construction. [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) rejects codec I/O, mutation, registries, readers, runtime dependencies, unknown strict-module identifiers, and unauthorized exports. |
+| `host` is one unary, closed privileged bridge. | [`host-test.rkt`](../tests/host-test.rkt) checks unary arity, the strict outer List contract, every stdout schema failure, defensive codec rejection, canonical InvalidHostRequest/HostFailure details, incoming Error propagation, and cached force-once behavior. The boundary checker requires the sole `host` definition/export, its protocol and codec imports, and rejects every second codec importer or host surface. |
+| `stdout` remains ordinary lambda computation. | [`stdout-test.rkt`](../tests/stdout-test.rkt) proves the exact `["stdout", bytes]` request, strict String rejection before dispatch, deterministic fake-host traces, unchanged Result propagation, unary shape, and lazy single dispatch. The boundary checker allowlists every effect identifier/import/export and rejects host data, non-unary forms, runtime imports, and unknown Lazy Racket bindings. |
+| Real stdout is byte-exact and expected failure is Result Err. | [`host-test.rkt`](../tests/host-test.rkt) captures empty, embedded-zero, and byte-255 output with no newline, observes output only after forcing, proves repeat forcing does not write twice, proves an unselected host branch performs no effect, and maps a closed output port to `Err HostFailure("stdout", "io-failure")`. |
+| The completed core boundary is unchanged. | [`check-purity.rkt`](../tooling/check-purity.rkt) still performs its zero-exception scan over exactly 16 `core/` modules. [`run-all-tests.sh`](../run-all-tests.sh) runs that gate and the new boundary-classification gate independently. |
 
 ## What this milestone does not claim
 
-The repository is a verified core implementation hosted by Lazy Racket. It
-does not yet provide the standalone `#lang`, literal syntax, command-line
-runner, effects, networking, or the explicit `host` primitive. Those features
-belong to the next milestone and must preserve this core boundary.
+The repository now contains the verified core plus the explicit Phase 14
+`stdout` boundary. It does not yet provide the standalone `#lang`, literal
+syntax, command-line runner, file effects, networking, or later pure HTTP
+layers. Those features remain ordered future phases and must preserve both the
+core purity proof and the new boundary classifications.

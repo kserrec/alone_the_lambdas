@@ -25,5 +25,6 @@ for test_file in "${test_files[@]}"; do
 done
 
 racket "$project_root/tooling/check-purity.rkt"
+racket "$project_root/tooling/check-boundaries.rkt"
 
 echo "All ${#test_files[@]} test files passed."

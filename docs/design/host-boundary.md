@@ -1,6 +1,6 @@
 # Host boundary design
 
-Status: approved 2026-08-27; implementation not started
+Status: approved 2026-08-27; Phase 14 stdout boundary implemented
 
 Date: 2026-08-27
 
@@ -12,9 +12,9 @@ closed implementation described here and no broader relaxation of
 
 Kyle approved using the single `host` boundary in Alone the Lambdas and then
 approved this concrete request, codec, authority, and runtime contract on
-2026-08-27. Approval unblocks Phase 14 but does not itself add production
-interop code or relax `AGENTS.md`; those changes occur only when the approved
-phase is implemented.
+2026-08-27. Phase 14 subsequently implemented the approved codec split, sole
+host bridge, and `stdout` operation. File and TCP operations remain planned
+for Phases 15 and 16.
 
 ## Decision summary
 
@@ -486,5 +486,7 @@ detailed implementation boundaries on 2026-08-27 by replying:
 Approve the Phase 13 host-boundary design.
 ```
 
-Phase 14 is unblocked. No production interop code exists until that phase is
-executed.
+Phase 14 executed the approved first slice on 2026-08-27: exact String-byte
+conversion, the sole unary `host`, pure injected-host `stdout`, real output,
+and the separate structural boundary gate. The broader approval record above
+still controls the unimplemented file, TCP, and standalone phases.

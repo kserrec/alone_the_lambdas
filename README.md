@@ -12,21 +12,23 @@ variables, unary lambdas, and application.
 > preserve their root cause and accumulate canonical function-name Strings in
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
-> green. The Phase 13
-> [host-boundary design](docs/design/host-boundary.md) was approved on
-> 2026-08-27; Phase 14 is unblocked, but no production host implementation
-> exists. See
+> green. The approved Phase 13
+> [host-boundary design](docs/design/host-boundary.md) now has its first
+> implementation slice: Phase 14 adds exact String-byte conversion, one unary
+> `host`, and pure injected-host `stdout`, guarded by a separate structural
+> boundary gate. File and TCP effects remain unimplemented. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
 
 ## Commitments
 
-- Every object-language function is a chain of one-argument lambdas.
-- Production representations and algorithms contain no host-language data or
-  computation.
+- Every ordinary object-language function is a chain of one-argument lambdas.
+- Core representations and algorithms contain no host-language data or
+  computation; pure effect wrappers can invoke only an injected unary host.
 - Racket is limited to modules, lazy evaluation, mechanical macros, readers,
-  tests, and tooling.
+  tests, tooling, deterministic boundary conversion in `runtime/codec.rkt`,
+  and the one approved privileged bridge in `runtime/host.rkt`.
 - Church numerals are used only for tiny fixed discriminants such as type
   tags, Error kinds, and argument positions—not ordinary numbers.
 - Public natural numbers are normalized, most-significant-bit-first binary
@@ -40,7 +42,7 @@ variables, unary lambdas, and application.
 - Public names are canonical language names such as `lambda`, `def`,
   `let`, `if`, and `cons`. Racket collision workarounds never become
   public language design.
-- The completed core contains no `host` boundary. The next milestone adds
+- The completed core contains no `host` boundary. The effects milestone adds
   exactly one explicit bridge without weakening ordinary lambda computation.
 
 ## Specifications
@@ -57,7 +59,7 @@ precedence over conflicting examples in the base specification.
   completion criterion to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
   approved second-milestone protocol, authority, codecs, and purity
-  classifications; Phase 14 implementation has not started.
+  classifications; Phase 14 implements its `stdout` slice.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -107,6 +109,17 @@ precedence over conflicting examples in the base specification.
 - `core/strings.rkt` provides the strict `MAKE-STRING` invariant boundary,
   `EMPTY-STRING`, and the complete initial String operation set over lambda
   Lists and Chars.
+- `effects/protocol.rkt` provides pure canonical operation/reason Strings,
+  host Error constructors, request validation, and the injected-dispatcher
+  builder for the sole host bridge.
+- `effects/stdout.rkt` provides the pure typed request constructor and unary
+  injected-host `stdout` wrapper.
+- `runtime/codec.rkt` performs exact deterministic conversion between lambda
+  Lists/Chars/Strings/Results and private host bytes/collections, with no
+  operating-system effects or mutation.
+- `runtime/host.rkt` alone defines and exports `host`; its Phase 14 dispatcher
+  accepts only the approved `stdout` request, writes and flushes raw bytes,
+  and returns canonical Result/Error values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -126,6 +139,9 @@ precedence over conflicting examples in the base specification.
   variables, unary lambdas, and unary application. It also verifies that every
   production identifier and export comes from a local binding or a recursively
   validated project export.
+- `tooling/check-boundaries.rkt` separately admits only pure effect modules,
+  deterministic codec conversion, the exact sole-host import/export path,
+  and Phase 14's closed stdout capability set.
 
 ## Development
 
@@ -142,10 +158,16 @@ Run only the production-source purity scan with:
 racket tooling/check-purity.rkt
 ```
 
+Run only the effects/runtime boundary scan with:
+
+```sh
+racket tooling/check-boundaries.rkt
+```
+
 Each implementation phase adds focused tests and must leave the complete suite
-green. The completed milestone currently has 2,914 assertions across 18 test
-files, plus the independent scan of all 16 production modules. GitHub Actions
-runs the same suite for pushes and pull requests.
+green. This committed phase has 3,026 assertions across 22 test files, plus
+the independent scan of all 16 core modules and the effects/runtime boundary
+gate. GitHub Actions runs the same suite for pushes and pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.

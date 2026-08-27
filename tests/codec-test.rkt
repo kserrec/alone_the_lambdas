@@ -1,0 +1,161 @@
+#lang racket/base
+
+(require rackunit
+         (only-in racket/list range)
+         racket/promise
+         "../core/chars.rkt"
+         "../core/errors.rkt"
+         "../core/lists.rkt"
+         "../core/logic.rkt"
+         "../core/objects.rkt"
+         "../core/pair.rkt"
+         "../core/result.rkt"
+         "../core/strings.rkt"
+         "../core/tags.rkt"
+         (only-in "../core/typed-logic.rkt" TRUE)
+         "../readers/bool.rkt"
+         "../readers/raw-boolean.rkt"
+         "../runtime/codec.rkt"
+         "helpers/lazy.rkt")
+
+(define (apply2 function first second)
+  (lazy-apply (lazy-apply function first) second))
+
+(define (typed-value? type value)
+  (raw-boolean->boolean
+   (apply2 raw-is-type type value)))
+
+(define (failure-reason value)
+  (and (codec-failure? value)
+       (codec-failure-reason value)))
+
+(define every-byte
+  (apply bytes (range 256)))
+
+(define every-char
+  (bytes->object-string every-byte))
+
+(check-true (immutable? (object-string->bytes every-char)))
+(check-equal? (object-string->bytes every-char)
+              every-byte)
+
+(for ([sample (in-list (list #""
+                             #"\0"
+                             #"A\0B"
+                             #"\377\200\0\177"))])
+  (define encoded (bytes->object-string sample))
+  (check-true (typed-value? string-type encoded))
+  (check-equal? (object-string->bytes encoded)
+                sample))
+
+;; Encoding copies host bytes into pure lambda values; later mutation of the
+;; source byte string cannot alter the object-language String.
+(define mutable-source (bytes 65 0 255))
+(define copied-string (bytes->object-string mutable-source))
+(bytes-set! mutable-source 0 66)
+(check-equal? (object-string->bytes copied-string)
+              #"A\0\377")
+
+(define two-values
+  (list A TRUE))
+(define object-list
+  (host-list->object-list two-values))
+(define decoded-list
+  (object-list->host-list object-list))
+
+(check-true (typed-value? list-type object-list))
+(check-equal? (length decoded-list) 2)
+(check-true (typed-value? char-type (car decoded-list)))
+(check-true (typed-value? bool-type (cadr decoded-list)))
+(check-equal? (object-list->host-list NIL) '())
+
+(check-equal? (failure-reason (object-list->host-list TRUE))
+              'wrong-type)
+(check-equal? (failure-reason (object-string->bytes TRUE))
+              'wrong-type)
+
+(define malformed-string-payload
+  (lazy-apply raw-make-string TRUE))
+(check-equal? (failure-reason
+               (object-string->bytes malformed-string-payload))
+              'wrong-type)
+
+(define wrong-element-string
+  (lazy-apply
+   raw-make-string
+   (host-list->object-list (list TRUE))))
+(check-equal? (failure-reason
+               (object-string->bytes wrong-element-string))
+              'wrong-type)
+
+(define improper-char-list
+  (apply2 raw-make-object
+          list-type
+          (apply2 raw-pair A TRUE)))
+(define improper-string
+  (lazy-apply raw-make-string improper-char-list))
+(check-equal? (failure-reason
+               (object-string->bytes improper-string))
+              'wrong-type)
+
+(define malformed-tag
+  (lambda (step)
+    (lambda (seed)
+      (lambda (ignored) ignored))))
+(define malformed-tail
+  (apply2 raw-make-object malformed-tag raw-false))
+(define malformed-list-predicate
+  (apply2 raw-make-object
+          list-type
+          (apply2 raw-pair A malformed-tail)))
+(check-equal? (failure-reason
+               (object-list->host-list malformed-list-predicate))
+              'wrong-type)
+
+(define (bits->raw bits)
+  (host-list->object-list
+   (map (lambda (bit)
+          (if bit raw-true raw-false))
+        bits)))
+
+(define leading-zero-char
+  (apply2 raw-make-object
+          char-type
+          (bits->raw '(#f #t))))
+(define leading-zero-string
+  (lazy-apply
+   raw-make-string
+   (host-list->object-list (list leading-zero-char))))
+(check-equal? (failure-reason
+               (object-string->bytes leading-zero-string))
+              'out-of-range)
+
+(define char-256
+  (lazy-apply raw-make-char
+              (bits->raw '(#t #f #f #f #f #f #f #f #f))))
+(define out-of-range-string
+  (lazy-apply
+   raw-make-string
+   (host-list->object-list (list char-256))))
+(check-equal? (failure-reason
+               (object-string->bytes out-of-range-string))
+              'out-of-range)
+
+(define ok-nil (object-ok NIL))
+(check-true (typed-value? result-type ok-nil))
+(check-true (bool->boolean (lazy-apply is-ok ok-nil)))
+(check-true (bool->boolean
+             (lazy-apply typed-is-nil
+                         (lazy-apply unwrap-ok ok-nil))))
+
+(define err-invalid-nat (object-err invalid-nat-error))
+(check-true (typed-value? result-type err-invalid-nat))
+(check-true (bool->boolean
+             (lazy-apply is-err err-invalid-nat)))
+(check-true (typed-value?
+             error-type
+             (lazy-apply unwrap-err err-invalid-nat)))
+
+(check-exn exn:fail:contract?
+           (lambda ()
+             (bytes->object-string "not bytes")))

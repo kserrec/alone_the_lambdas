@@ -24,7 +24,9 @@ strict Error boundary, renders structured diagnostics at the one-way reader
 boundary, hardens the production purity gate, and closes the milestone with
 criterion-level acceptance coverage. Phase 13 fixes the approved host request
 protocol, trust boundary, module split, and future purity classifications in a
-design document; no production interop code exists yet.
+design document. Phase 14 implements the first approved slice: deterministic
+String-byte conversion, pure stdout request construction, one unary `host`,
+raw stdout output, and structural enforcement of the new boundary classes.
 
 ## Computational boundary
 
@@ -34,22 +36,26 @@ The object language is pure untyped lambda calculus:
 2. exactly unary `lambda`;
 3. application.
 
-Every computationally meaningful production term must contain only those forms
-after mechanical macro expansion. There is no host-computation escape hatch.
-Multi-argument functions are nested unary lambdas, and partial application is
-ordinary application.
+Every ordinary computationally meaningful production term must contain only
+those forms after mechanical macro expansion. Multi-argument functions are
+nested unary lambdas, and partial application is ordinary application. The
+single deliberate exception is the explicit unary `host` value in
+`runtime/host.rkt`; no other host-computation escape hatch exists.
 
-Racket supplies only the enclosing module system, lazy evaluation, syntactic
-sugar, readers, tests, and development tooling. It must not decide
-object-language results or provide object-language representations.
+Racket supplies the enclosing module system, lazy evaluation, syntactic sugar,
+readers, tests, development tooling, deterministic private conversion in
+`runtime/codec.rkt`, and the approved effects in `runtime/host.rkt`. It must
+not decide ordinary object-language results or become an object-language
+representation.
 
 > Alone the Lambdas does not merely avoid using host libraries for major
 > algorithms. Its production computational terms are built exclusively from
 > unary lambda abstraction and application. Every multi-argument function is
 > represented by nested one-argument lambdas. Racket is used only to
 > host/evaluate the terms, provide mechanical syntactic sugar and module
-> tooling, test them, and observe completed values for humans. Until `host` is
-> deliberately introduced, no other computational escape hatch exists.
+> tooling, test them, and observe completed values for humans. The explicitly
+> introduced unary `host` is the sole privileged boundary; no other
+> computational escape hatch exists.
 
 ## Layers
 
@@ -60,6 +66,9 @@ object-language results or provide object-language representations.
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
 | Public data | List, Nat, Error, Result, Char, and String |
+| Pure effects | Lambda request validation and wrappers over an injected unary host |
+| Boundary codec | Exact private representation conversion; no operating-system effects |
+| Privileged host | Sole `host` export and operations approved through the current phase |
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
 | Human boundary | Readers and test diagnostics; never object-language computation |
 
@@ -94,6 +103,17 @@ module depends on that reader. `core/strings.rkt` sits above Char, List, raw
 List length, Errors, objects, and the checker. It reuses those raw layers
 directly, while `readers/string.rkt` remains outside the production dependency
 graph.
+
+`effects/protocol.rkt` and `effects/stdout.rkt` remain ordinary lambda
+computation. The protocol validates canonical flat requests before invoking
+its injected strict dispatcher; the stdout layer validates one String and
+constructs `["stdout", bytes]`. Neither imports `runtime/`. The trusted
+`runtime/codec.rkt` converts exact List/Char/String shapes to immutable bytes
+and constructs canonical response values without effects or mutation.
+`runtime/host.rkt` alone imports that codec and alone defines and exports
+`host`; its Phase 14 dispatcher writes and flushes raw bytes to the current
+stdout port. Expected output failure becomes Result Err HostFailure, while
+malformed direct requests remain bare InvalidHostRequest Error values.
 
 Named Error frames would create a cycle if Errors depended on the full String
 module. `core/function-names.rkt` therefore builds only the representation it
@@ -361,17 +381,26 @@ core/
   typecheck.rkt
   typed-logic.rkt
   strings.rkt
+effects/
+  protocol.rkt
+  stdout.rkt
+runtime/
+  codec.rkt
+  host.rkt
 readers/
   char.rkt
   error.rkt
   string.rkt
 tests/
 tooling/
+  check-purity.rkt
+  check-boundaries.rkt
 run-all-tests.sh
 ```
 
-Sixteen production modules currently exist under `core/`. New abstraction
-layers require a concrete need.
+Sixteen zero-exception production modules remain under `core/`; Phase 14 adds
+two pure effect modules and the two separately classified runtime boundary
+modules. New abstraction layers require a concrete need.
 
 ## Verification boundary
 
@@ -430,14 +459,24 @@ numbered arity-specific checker variants. Focused tests pin each boundary. The
 complete evidence map is
 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 
-## Planned boundary
+The separate boundary gate allowlists every effect import and identifier,
+rejects non-unary effect source forms, admits no codec I/O, mutation, registry,
+reader, or runtime dependency, pins the host's imports and sole export, and
+rejects every second codec importer or `host` definition/export. Codec tests
+cover all 256 byte values, canonical and malformed representations, private
+copying, acknowledgements, and Err encoding. Stdout tests prove exact fake-host
+requests, strict argument rejection, Result propagation, and force-once
+laziness. Real-host tests prove byte-exact output and flushing completion,
+malformed request rejection before effects, canonical success, stable failure
+mapping, unselected-branch laziness, and cached forcing.
 
-The completed core contains no `host` form. Phases 13 through 20 in
-[PLAN.md](PLAN.md) design and then introduce exactly one explicit host
-boundary, ordinary lambda effect wrappers, a minimal lambda-built HTTP server,
-and the standalone language surface. The approved protocol and its full
+## Implemented and planned boundary
+
+The completed core still contains no `host` form. Phases 13 and 14 in
+[PLAN.md](PLAN.md) approved and implemented exactly one explicit boundary plus
+the first ordinary lambda effect wrapper. The approved protocol and its full
 process-level filesystem/network authority are recorded in
-[docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 13 is
-complete and its detailed contract was approved on 2026-08-27. Phase 14 is
-unblocked but has not started; the three specifications deliberately leave
-that protocol to this separately approved design.
+[docs/design/host-boundary.md](docs/design/host-boundary.md). Only stdout is
+implemented today; Phase 15 is the next unfinished phase and adds the approved
+file operations. TCP, pure HTTP, and the standalone language surface remain
+later phases.

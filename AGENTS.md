@@ -25,11 +25,22 @@ design.
   values or computation.
 - Do not use host conditionals, pattern matching, arithmetic, equality, loops,
   mutation, or data access to decide object-language results.
-- Racket is allowed only for modules, `#lang lazy`, mechanical macro
-  expansion, readers, tests, and tooling.
+- In `core/`, Racket is allowed only for modules, `#lang lazy`, and mechanical
+  macro expansion. `effects/` follows the same rule and may invoke only its
+  injected unary host argument.
+- `runtime/codec.rkt` is the separately classified deterministic conversion
+  exception. It may inspect validated representations and construct canonical
+  ones, but it may not perform effects, mutate state, own a registry, or enter
+  the object-language dependency graph.
+- `runtime/host.rkt` is the single privileged exception. It alone defines and
+  exports `host`, alone imports the codec in production, and may perform only
+  the operations approved for the current completed phases.
+- Readers, tests, and tooling may use the host facilities needed for their
+  stated roles, but production computation must never depend on them.
 - Readers may observe and format values. Production modules must never depend
   on readers.
-- Do not add `host` during this milestone.
+- No other production module may define or import a privileged binding,
+  codec, dispatcher, port, path, socket, exception, or host collection.
 
 ## Representation invariants
 
@@ -75,8 +86,9 @@ design.
 - Do not add a dependency for a convenience that is safer and clearer to write
   directly. Racket's lazy evaluator is the intended backbone.
 - Keep raw algorithms raw. Add strict wrappers only at the typed layer.
-- Do not build deferred features: host interop, parser beyond Lisp syntax,
-  optimizer, compiler, records, JSON, or unrelated standard-library breadth.
+- Do not build deferred effects beyond the completed phase: file or TCP
+  operations, parser beyond Lisp syntax, optimizer, compiler, records, JSON,
+  or unrelated standard-library breadth.
 
 ## Tests and verification
 
@@ -85,6 +97,9 @@ design.
   application, and laziness where applicable.
 - Maintain structural purity checks for forbidden host forms and non-unary
   lambdas in production modules.
+- Maintain the separate boundary check for pure effects, deterministic codec
+  conversion, the sole host definition/export/import path, and each phase's
+  exact host capability allowlist.
 - Run focused tests while working, then the complete suite before each commit.
 - Documentation must distinguish observed implementation from planned design.
 

@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: design approved; implementation not started
+Status: implementation in progress; Phase 14 complete
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,7 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phase 14 is the next unblocked phase.
+2026-08-27. The gate is satisfied; Phase 14 is complete and Phase 15 is the
+next unfinished phase.
 
 The following constraints apply throughout:
 
@@ -246,28 +247,34 @@ approval is recorded in
 
 ## Phase 14 — Single `host` bridge and `stdout`
 
-Status: unblocked; not started
+Status: complete (2026-08-27)
 
-- [ ] Apply the approved rule and architecture changes without weakening the
+- [x] Apply the approved rule and architecture changes without weakening the
   completed core boundary.
-- [ ] Implement `runtime/codec.rkt` with only the exact Char/String/List and
+- [x] Implement `runtime/codec.rkt` with only the exact Char/String/List and
   Result/Error conversions required by stdout; prove byte round trips,
   canonical output, malformed-value rejection, and absence of effects.
-- [ ] Implement one unary `host` binding and one closed dispatcher in
+- [x] Implement one unary `host` binding and one closed dispatcher in
   `runtime/host.rkt`, the only production importer of the codec and the only
   language-visible privileged binding.
-- [ ] Implement the pure `stdout` request constructor and wrapper, with typed
+- [x] Implement the pure `stdout` request constructor and wrapper, with typed
   success and expected-failure results.
-- [ ] Add a deterministic fake dispatcher plus real output-capture tests for
+- [x] Add a deterministic fake dispatcher plus real output-capture tests for
   request validation, result encoding, failure mapping, and laziness.
-- [ ] Make the purity tool enforce the distinct codec and effect-module
+- [x] Make the purity tool enforce the distinct codec and effect-module
   allowlists, reject every unapproved importer or privileged definition, and
   scan `core/` with no new exceptions.
 
 Acceptance: a lambda String reaches standard output only through the single
 bridge, and repository checks prove no second escape hatch exists.
 
+Completion evidence: 3,026 assertions across 22 test files, the unchanged
+purity scan over 16 `core/` modules, and the separate effects/runtime boundary
+gate all passed on 2026-08-27.
+
 ## Phase 15 — File effects
+
+Status: next; not started
 
 - [ ] Add pure `read-file` and `write-file` wrappers over the approved request
   protocol.
