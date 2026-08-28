@@ -29,3 +29,25 @@ jobs:
 
       - name: Run test suite
         run: ./run-all-tests.sh
+
+  linux-distribution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Racket
+        uses: Bogdanp/setup-racket@2466913449df77df2bad149d1f2fc4e1ea4795dd # v1.15
+        with:
+          distribution: full
+          version: '9.3'
+          variant: CS
+
+      - name: Build unpublished Linux distribution
+        run: ./tooling/build-linux-distribution.sh "$RUNNER_TEMP/atl-artifacts"
+
+      - name: Test transferred archive without Racket
+        run: ./tooling/test-linux-distribution.sh "$RUNNER_TEMP/atl-artifacts"

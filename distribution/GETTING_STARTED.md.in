@@ -1,0 +1,31 @@
+# Alone the Lambdas @VERSION@
+
+This is an unpublished development artifact for internal testing on Linux
+x86-64. It is not a public release.
+
+The archive contains the `atl` executable, its private Racket runtime, and four
+example `.atl` programs. A separate Racket installation is neither required nor
+used.
+
+From the extracted `@ROOT_NAME@` directory:
+
+```text
+./bin/atl --help
+./bin/atl --version
+./bin/atl run examples/hello.atl
+```
+
+Every source file must use the lowercase `.atl` extension and begin with this
+exact declaration:
+
+```text
+#lang alone_the_lambdas
+```
+
+`atl run` executes with the launching process's filesystem and network
+authority. This development artifact does not sandbox programs, ask for
+permissions, or make backups.
+
+Verify the archive against the sibling `SHA256SUMS` file before extracting it.
+The internal `BUILD-MANIFEST.txt` identifies the source revision, toolchain,
+payload inventory, and observed Linux system-library assumptions.

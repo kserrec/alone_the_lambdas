@@ -1,0 +1,10 @@
+UNPUBLISHED DEVELOPMENT ARTIFACT
+
+This archive exists only for internal build and acceptance testing. Alone the
+Lambdas does not yet have an approved repository license, and this archive is
+not authorized for publication, upload, public download, or redistribution.
+
+The bundled Racket components remain subject to their own terms, reproduced in
+THIRD_PARTY_NOTICES.md. Phase 27 must complete the legal inventory and Kyle must
+approve the exact repository license and runtime notices before any public
+release candidate is built.

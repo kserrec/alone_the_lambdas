@@ -480,7 +480,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 24 next)
+Status: in progress (Phase 25 next)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -645,25 +645,25 @@ effect, codec, host, reader, expander, or public-language executable changed.
 
 ## Phase 24 — Self-contained Linux distribution
 
-Status: planned
+Status: complete (2026-08-28)
 
-- [ ] Add one deterministic build entry point that compiles the runner,
+- [x] Add one deterministic build entry point that compiles the runner,
   explicitly embeds dynamic support for `#lang alone_the_lambdas`, assembles
   its runtime with `raco distribute`, and produces a versioned Linux x86-64
   archive without modifying the developer's package registry.
-- [ ] Keep build outputs outside source control and include only the executable
+- [x] Keep build outputs outside source control and include only the executable
   tree plus the provisional runtime notices, getting-started document, build
   manifest, and `.atl` examples approved for internal testing. Until Phase 27
   records an approved repository license, label every archive as an
   unpublished development artifact rather than a releasable download.
-- [ ] In a fresh Linux container with no `racket` or `raco` command, no ATL
+- [x] In a fresh Linux container with no `racket` or `raco` command, no ATL
   package installation, no source checkout, and no inherited Racket
   collection path, unpack the archive after transferring it as an opaque
   artifact and run help, version, stdout, isolated file round trip, and
   ephemeral-loopback HTTP acceptance.
-- [ ] Move the unpacked tree to a second path and repeat a smoke run to prove
+- [x] Move the unpacked tree to a second path and repeat a smoke run to prove
   it contains no absolute build-tree or package-registry dependency.
-- [ ] Record compressed size, unpacked size, startup time, runtime file
+- [x] Record compressed size, unpacked size, startup time, runtime file
   inventory, remaining system-library assumptions, and SHA-256 digest. Do not
   optimize with demodularization or another tool until this correct baseline
   exists and measurement demonstrates a need.
@@ -671,6 +671,32 @@ Status: planned
 Acceptance: the Linux archive runs arbitrary canonical `.atl` source on a
 machine with no Racket installation and performs the completed language's real
 stdout, file, and loopback-network work entirely from the unpacked tree.
+
+Completion evidence: two isolated builds from the same approved uncommitted
+Phase 24 state based on
+`ce55da42a06a4edc5ef37e2d1ca787b5bc1de8fc` produced the same 10-file archive;
+later hardening rebuilds retained SHA-256
+`a5e43c54467fa4afe0bb74aeeda962ae617de26b35c6cf50d65891de81b64cf0`.
+That disposable development archive was `13,679,991` compressed bytes and
+`59,299,555` unpacked regular-file bytes. Its executable tree was exactly
+`bin/atl` (`7,853,237` bytes) plus `lib/plt/racketcs-9.3` (`51,412,696`
+bytes); both retained only the ELF loader, `libc`, `libdl`, `libm`,
+`libpthread`, `librt`, and `libz` as observed system-library assumptions. A
+digest-pinned Ubuntu 24.04 container with no Racket commands, no checkout, no
+package install, a read-only root, an unprivileged user, and no external
+network verified the external checksum; exact help/version/stdout/file/HTTP
+bytes; a source created after packaging; embedded-reader precedence; and a
+move between paths containing spaces. Final runs observed 290–344 ms
+first-process startup and 294–302 ms after relocation. The recorded digest
+belongs only to the
+unpublished validation artifacts, not a release or later clean commit. The
+build added no dependency or demodularization and modified no production
+Racket source, operation, representation, or host authority.
+
+Final completion verification passed 4,492 assertions across all 32 test
+files, the unchanged expanded purity scan over 16 `core/` modules, and the
+complete zero-finding structural inventory of all 80 Racket and `.atl`
+sources. The focused distribution contract suite passed 43 assertions.
 
 ## Phase 25 — Native macOS distributions
 

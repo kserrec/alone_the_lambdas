@@ -182,6 +182,17 @@ runner class.
 | Language data and requested host failure remain outside launcher control flow. | Separate source programs complete with an ordinary strict contract Error, pure `DIV ONE ZERO` Result Err, and real-host missing-file Result Err. All exit 0 with empty stdout/stderr. The runner imports no codec or reader, never receives a final value from `dynamic-require`, and cannot branch on any lambda representation. |
 | The diagnostic implementation remains closed loader scaffolding. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) pins the exact formatter, safe identifier extraction, strict UTF-8 expression, runner imports/definitions/vocabulary, status definitions, two input paths, one loader call, terminal `main`, and no exports. [`boundary-check-test.rkt`](../tests/boundary-check-test.rkt) now proves raw syntax-object rendering and removal of the strict source preflight are rejected, in addition to the Phase 22 capability and dependency denials. |
 
+## Phase 24 self-contained Linux distribution evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| The build is isolated, pinned, and deterministic. | [`build-linux-distribution.sh`](../tooling/build-linux-distribution.sh) accepts only Linux x86-64 and the exact full Racket CS 9.3 banner/VM, verifies the closed `VERSION` projection before compilation, stages only nonsymlink production sources, and installs them under a disposable `PLTUSERHOME` with `--deps fail`. It invokes `raco exe ++lang alone_the_lambdas` and `raco distribute`, rejects outputs inside the checkout or existing output files, removes local timestamps/owners/gzip metadata, and scans the payload for checkout, package-home, temporary-build, and toolchain paths. Two same-state builds under different temporary paths produced byte-identical archives; later output-hardening rebuilds retained those bytes. |
+| The unpublished artifact and checksum contracts are exact. | The archive has one versioned root containing only `bin/atl`, its `lib/` runtime, the four canonical `.atl` examples, `GETTING_STARTED.md`, `BUILD-MANIFEST.txt`, `THIRD_PARTY_NOTICES.md`, and `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt`; it contains no unapproved repository `LICENSE`. The build manifest records the product/source/toolchain/target, exact file inventory, and observed dynamic libraries without a local path or timestamp. The final archive digest and filename live in external `SHA256SUMS`, as explicitly approved on 2026-08-28. The provisional notice reproduces and hashes the exact Racket 9.3 top-level notice plus Apache, MIT, and LGPL texts while reserving the final legal inventory for Phase 27. |
+| A transferred archive runs without Racket or the checkout. | [`test-linux-distribution.sh`](../tooling/test-linux-distribution.sh) copies only the archive, checksum, and harness into a digest-pinned Ubuntu 24.04 container. The container has no `racket` or `raco`, runs as UID/GID 65534 with a read-only root and no capabilities, and has Docker networking disabled except loopback. It verifies the checksum before extraction, exact layout and executable permissions, exact help/version bytes, a canonical source created after packaging, and proof that a conflicting external `alone_the_lambdas` reader cannot displace the embedded language. |
+| All approved real effects and relocation work from the payload. | The same container checks exact stdout bytes, file replacement/readback in an isolated writable directory, and one HTTP request to the program's ephemeral loopback listener with exact status/body and clean stderr. It then moves the entire extracted tree between two paths containing spaces and reruns version plus the post-package source. Neither the checkout, a package registry, a system Racket, nor an external network service is mounted or available. |
+| The unoptimized Linux baseline is measured without becoming a release claim. | The disposable validation archive was `13,679,991` compressed bytes and `59,299,555` unpacked regular-file bytes. Its runtime tree was exactly `bin/atl` (`7,853,237` bytes) plus `lib/plt/racketcs-9.3` (`51,412,696` bytes); the full payload had 10 files. Final pinned-container runs observed 290–344 ms for the first `atl --version` process and 294–302 ms after relocation. Both ELF files resolved the loader, `libc`, `libdl`, `libm`, `libpthread`, `librt`, and `libz`. Every recorded internal dirty-tree build had SHA-256 `a5e43c54467fa4afe0bb74aeeda962ae617de26b35c6cf50d65891de81b64cf0`; this is reproducibility evidence for those disposable artifacts, not a public or final-commit checksum. No demodularizer or new dependency was added. |
+| Packaging changes no language or host boundary. | [`distribution-test.rkt`](../tests/distribution-test.rkt) contributes 43 focused shell/asset/contract assertions. The final suite passed 4,492 assertions across 32 test files, the unchanged 16-module expanded core-purity proof, and a zero-finding inventory of all 80 Racket and `.atl` sources. No production Racket source changed; shell tooling remains nonproduction and cannot enter the structural dependency graph. |
+
 ## Explicit one-bridge evidence map
 
 | Boundary fact | Sole allowed production location | Enforced evidence |
@@ -197,10 +208,11 @@ runner class.
 ## What this milestone does not claim
 
 The completed milestone deliberately does not claim sandboxing or per-program
-permission prompts: a real-host program inherits the launching Racket
-process's relevant authority. Phase 23 now has an exact development runner and
-frozen diagnostics, but not yet a self-contained native executable,
-distributed runtime, or downloadable release. The language has no
+permission prompts: a real-host program inherits the launching process's
+relevant authority. Phase 24 now proves one unpublished self-contained Linux
+x86-64 development archive, but not a public download, a Linux compatibility
+floor beyond the pinned Ubuntu 24.04 consumer, a macOS or Windows artifact, an
+approved repository license, signing, or release authority. The language has no
 program-argument API, general parser, optimizer, compiler, records, JSON,
 environment or process access, directory operations, atomic file replacement,
 TLS, UDP, timeouts, asynchronous server, production concurrency, or general

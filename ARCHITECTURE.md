@@ -54,7 +54,11 @@ the runner delegates to the existing reader/expander and remains outside every
 object-language dependency path. Phase 23 freezes ATL-level launch diagnostics,
 strict UTF-8 preflight, source-position sanitization, and the distinction among
 launcher failure, completed language data, and requested host failure without
-changing the object language or its effect boundary.
+changing the object language or its effect boundary. Phase 24 adds one
+deterministic Linux x86-64 build entry point, a self-contained Racket CS 9.3
+runtime tree, an external checksum manifest, provisional internal notices, and
+a locked-down no-Racket consumer/relocation proof without adding a production
+module or language capability.
 
 ## Computational boundary
 
@@ -101,6 +105,7 @@ become an object-language representation.
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
 | Runner scaffolding | Exact command, path/header/UTF-8 validation, sanitized ATL diagnostics, version display, and one existing-language module instantiation; no exports or object values |
 | Runnable applications | Public-language hello/stdout, isolated file round trip, and one-request ephemeral-loopback HTTP server |
+| Distribution tooling | Isolated native build, deterministic archive assembly, external checksum, and no-Racket consumer verification; never a production dependency |
 | Human boundary | Readers and test diagnostics; never object-language computation |
 
 Dependencies point downward only. Typed operations may use raw operations; raw
@@ -230,6 +235,29 @@ the returned bound Nat as decimal using public lambda operations, announces
 the exact URL, serves one request through `make-http-serve-one`, explicitly
 closes the caller-owned listener, and exits. No example adds a production
 module, primitive, wrapper, or authority.
+
+`tooling/build-linux-distribution.sh` is host-only build infrastructure. It
+requires full Racket CS 9.3, copies only nonsymlink production sources into a
+temporary package, installs that copy under an isolated `PLTUSERHOME`, invokes
+`raco exe ++lang alone_the_lambdas` and `raco distribute`, and normalizes the
+resulting tar/gzip metadata. Its output directory must resolve outside the
+checkout, and it never uses the developer's Racket package registry. The
+archive contains only `bin/atl`, its private runtime, the canonical examples,
+an internal guide, a path-free build manifest, exact provisional Racket
+license text, and an unpublished-artifact warning. Its final digest lives in a
+sibling `SHA256SUMS`, because a file inside an archive cannot authenticate the
+archive bytes that contain that file.
+
+`tooling/test-linux-distribution.sh` copies only the archive, checksum, and
+consumer harness across a temporary transfer boundary. A digest-pinned Ubuntu
+24.04 container runs as an unprivileged user with a read-only root, no
+`racket`/`raco`, no checkout or package install, and Docker networking disabled
+except its own loopback device. It verifies exact artifact inventory and
+output bytes; creates and runs a canonical source after packaging; proves an
+external same-named reader cannot replace the embedded language; performs
+stdout, isolated file, and one-request loopback HTTP effects; then moves the
+tree to a path with spaces and reruns it. This harness constrains the test, not
+the authority of an ordinary distributed ATL process.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -534,10 +562,16 @@ examples/
   stdout.atl
   file-round-trip.atl
   http-server.atl
+distribution/
+  GETTING_STARTED.md.in
+  THIRD_PARTY_NOTICES.md.in
+  UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt
 tests/
 tooling/
+  build-linux-distribution.sh
   check-purity.rkt
   check-boundaries.rkt
+  test-linux-distribution.sh
 VERSION
 info.rkt
 run-all-tests.sh
@@ -548,7 +582,7 @@ milestone has seven pure effect modules, two separately pinned mechanical
 macro modules, two separately classified runtime boundary modules, the exact
 reader/expander pair, pinned package metadata, eight one-way value readers,
 one exact non-exporting runner, four public-language applications, and
-separately classified tests/tooling. All 79 Racket and `.atl` sources are
+separately classified tests/tooling. All 80 Racket and `.atl` sources are
 inventoried. New abstraction layers require a concrete need.
 
 ## Verification boundary
@@ -720,6 +754,21 @@ Result Err values all remain unobserved completed language data. The
 structural suite independently proves the runner is one non-exporting loader
 rather than a parser, evaluator, codec, effect bridge, or object-language
 dependency.
+
+The Linux distribution suite separately checks the build and transfer
+boundary. Two isolated builds from the same development source state and
+different temporary paths produced byte-identical archives; later hardening
+rebuilds retained those bytes. The consumer
+harness verifies the external SHA-256 before extraction and runs from only the
+transferred files in a pinned Ubuntu 24.04 image with no Racket command. It
+checks the exact logical layout and manifest inventory, clean stderr and exact
+stdout bytes, a source created after packaging, hostile collection-path
+precedence, isolated file replacement/readback, loopback HTTP with external
+networking disabled, and execution after relocation. This proves a current
+Linux development artifact, not a minimum Linux version or public release.
+The completion suite passed 4,492 assertions across 32 test files, retained
+the unchanged 16-module expanded core proof, and inventoried all 80 Racket and
+`.atl` sources with zero boundary findings.
 
 ## Completed milestone boundary
 

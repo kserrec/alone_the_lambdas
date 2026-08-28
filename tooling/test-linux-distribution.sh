@@ -1,0 +1,357 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export LC_ALL=C
+
+program_name="test-linux-distribution"
+consumer_image="ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  tooling/test-linux-distribution.sh OUTPUT_DIRECTORY
+
+Transfer the unpublished Linux archive and its checksum into a locked-down
+Ubuntu 24.04 container with no Racket installation, then run the Phase 24
+consumer and relocation acceptance checks.
+USAGE
+}
+
+die() {
+  printf '%s: %s\n' "$program_name" "$1" >&2
+  exit 2
+}
+
+dotenv_component() {
+  local lower_path="${1,,}"
+  [[ "/$lower_path/" =~ /([^/]*\.)?env(\.[^/]*)?/ ]]
+}
+
+run_inside_consumer() {
+  [[ "$#" -eq 3 ]] || die "internal consumer arguments are invalid"
+  local archive_name="$1"
+  local artifact_root_name="$2"
+  local product_version="$3"
+  local transfer_directory="/transfer"
+  local archive_path="$transfer_directory/$archive_name"
+  local checksum_path="$transfer_directory/SHA256SUMS"
+  local scratch_root="/tmp/alone-the-lambdas-consumer"
+  local first_parent="$scratch_root/first path with spaces"
+  local first_root="$first_parent/$artifact_root_name"
+  local second_parent="$scratch_root/second relocated path"
+  local second_root="$second_parent/$artifact_root_name"
+  local server_pid=""
+
+  cleanup_consumer() {
+    if [[ -n "${server_pid:-}" ]] && kill -0 "$server_pid" 2>/dev/null; then
+      kill "$server_pid" 2>/dev/null || true
+      wait "$server_pid" 2>/dev/null || true
+    fi
+  }
+  trap cleanup_consumer EXIT
+
+  command -v racket >/dev/null 2>&1 && die "consumer unexpectedly has a racket command"
+  command -v raco >/dev/null 2>&1 && die "consumer unexpectedly has a raco command"
+  [[ -f "$archive_path" && ! -L "$archive_path" ]] || die "transferred archive is unavailable"
+  [[ -f "$checksum_path" && ! -L "$checksum_path" ]] || die "transferred checksum manifest is unavailable"
+
+  expected_checksum_line="$(<"$checksum_path")"
+  [[ "$expected_checksum_line" =~ ^[0-9a-f]{64}[[:space:]][[:space:]]${archive_name//./\.}$ ]] ||
+    die "checksum manifest does not contain exactly the transferred archive"
+  (cd "$transfer_directory" && sha256sum --check --strict SHA256SUMS >/dev/null)
+
+  while IFS= read -r archive_entry; do
+    [[ "$archive_entry" == "$artifact_root_name" ||
+       "$archive_entry" == "$artifact_root_name/"* ]] ||
+      die "archive contains an entry outside its one root directory"
+    [[ "$archive_entry" != /* &&
+       "/$archive_entry/" != *'/../'* ]] ||
+      die "archive contains an unsafe path"
+    dotenv_component "$archive_entry" && die "archive contains a dotenv path"
+  done < <(tar -tzf "$archive_path")
+
+  mkdir -p -- "$first_parent"
+  tar -xzf "$archive_path" -C "$first_parent"
+  [[ -d "$first_root" && ! -L "$first_root" ]] || die "archive root is unavailable"
+
+  while IFS= read -r -d '' linked_path; do
+    die "extracted artifact contains a symlink"
+  done < <(
+    find "$first_root" \
+      \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+      -type l -print0
+  )
+
+  for required_path in \
+    bin/atl \
+    examples/hello.atl \
+    examples/stdout.atl \
+    examples/file-round-trip.atl \
+    examples/http-server.atl \
+    GETTING_STARTED.md \
+    BUILD-MANIFEST.txt \
+    UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
+    THIRD_PARTY_NOTICES.md; do
+    [[ -f "$first_root/$required_path" && ! -L "$first_root/$required_path" ]] ||
+      die "artifact is missing required file: $required_path"
+  done
+  [[ -d "$first_root/lib" && ! -L "$first_root/lib" ]] || die "artifact is missing lib/"
+  [[ -x "$first_root/bin/atl" ]] || die "bin/atl is not executable"
+  [[ ! -e "$first_root/LICENSE" && ! -L "$first_root/LICENSE" ]] ||
+    die "development artifact must not contain an unapproved repository license"
+
+  local actual_top_level="$scratch_root/actual-top-level.txt"
+  local expected_top_level="$scratch_root/expected-top-level.txt"
+  find "$first_root" -mindepth 1 -maxdepth 1 \
+    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    -printf '%f\n' |
+    sort > "$actual_top_level"
+  printf '%s\n' \
+    BUILD-MANIFEST.txt \
+    GETTING_STARTED.md \
+    THIRD_PARTY_NOTICES.md \
+    UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
+    bin \
+    examples \
+    lib |
+    sort > "$expected_top_level"
+  cmp -s "$actual_top_level" "$expected_top_level" ||
+    die "artifact top-level layout differs from the contract"
+
+  local actual_bin="$scratch_root/actual-bin.txt"
+  local actual_examples="$scratch_root/actual-examples.txt"
+  find "$first_root/bin" -mindepth 1 -maxdepth 1 \
+    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    -printf '%f\n' |
+    sort > "$actual_bin"
+  printf '%s\n' atl > "$scratch_root/expected-bin.txt"
+  cmp -s "$actual_bin" "$scratch_root/expected-bin.txt" ||
+    die "artifact bin/ inventory differs from the contract"
+  find "$first_root/examples" -mindepth 1 -maxdepth 1 \
+    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    -printf '%f\n' |
+    sort > "$actual_examples"
+  printf '%s\n' file-round-trip.atl hello.atl http-server.atl stdout.atl \
+    > "$scratch_root/expected-examples.txt"
+  cmp -s "$actual_examples" "$scratch_root/expected-examples.txt" ||
+    die "artifact examples/ inventory differs from the contract"
+
+  actual_inventory="$scratch_root/actual-inventory.txt"
+  manifest_inventory="$scratch_root/manifest-inventory.txt"
+  find "$first_root" \
+    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    -type f -printf '%P\n' |
+    sort > "$actual_inventory"
+  awk '
+    /^Artifact file inventory:$/ { inventory=1; next }
+    /^Observed dynamic system-library assumptions:$/ { inventory=0 }
+    inventory && /^  / { sub(/^  /, ""); print }
+  ' "$first_root/BUILD-MANIFEST.txt" > "$manifest_inventory"
+  cmp -s "$actual_inventory" "$manifest_inventory" ||
+    die "BUILD-MANIFEST.txt file inventory differs from the artifact"
+
+  grep -Fxq "Product version: $product_version" "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest version mismatch"
+  grep -Fxq 'Target identifier: linux-x86_64' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest target mismatch"
+  grep -Fxq 'Racket version: 9.3' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest Racket version mismatch"
+  grep -Fxq 'Racket variant: CS' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest Racket variant mismatch"
+  grep -Eq '^Source commit: [0-9a-f]{40}$' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest source commit is invalid"
+  grep -Fxq 'Archive checksum: external sibling SHA256SUMS' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest checksum contract mismatch"
+  grep -Fq 'UNPUBLISHED DEVELOPMENT ARTIFACT' "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" ||
+    die "development warning is absent"
+  grep -Fq 'LICENSE-APACHE.txt' "$first_root/THIRD_PARTY_NOTICES.md" ||
+    die "provisional Racket notice is incomplete"
+
+  local atl="$first_root/bin/atl"
+  local stdout_file="$scratch_root/stdout.txt"
+  local stderr_file="$scratch_root/stderr.txt"
+  local expected_file="$scratch_root/expected-output.txt"
+
+  check_captured_output() {
+    local expected_output="$1"
+    local failure_label="$2"
+    printf '%s' "$expected_output" > "$expected_file"
+    cmp -s "$stdout_file" "$expected_file" || die "$failure_label output mismatch"
+    [[ ! -s "$stderr_file" ]] || die "$failure_label wrote stderr"
+  }
+
+  local first_startup_begin
+  local first_startup_end
+  local first_startup_milliseconds
+  first_startup_begin="$(date +%s%N)"
+  "$atl" --version >"$stdout_file" 2>"$stderr_file"
+  first_startup_end="$(date +%s%N)"
+  first_startup_milliseconds=$(( (first_startup_end - first_startup_begin + 999999) / 1000000 ))
+  check_captured_output "Alone the Lambdas $product_version"$'\n' "packaged version"
+
+  "$atl" --help >"$stdout_file" 2>"$stderr_file"
+  check_captured_output \
+    $'Usage:\n  atl run FILE.atl\n  atl --help\n  atl --version\n' \
+    "packaged help"
+
+  local generated_source="$scratch_root/generated-after-packaging.atl"
+  printf '%s\n' \
+    '#lang alone_the_lambdas' \
+    '' \
+    '(stdout "Generated after packaging.\n")' \
+    > "$generated_source"
+  "$atl" run "$generated_source" >"$stdout_file" 2>"$stderr_file"
+  check_captured_output $'Generated after packaging.\n' "generated source"
+
+  local decoy_root="$scratch_root/decoy-collections"
+  mkdir -p -- "$decoy_root/alone_the_lambdas/lang"
+  printf '%s\n' 'this external reader must never be loaded' \
+    > "$decoy_root/alone_the_lambdas/lang/reader.rkt"
+  PLTCOLLECTS="$decoy_root" "$atl" run "$generated_source" \
+    >"$stdout_file" 2>"$stderr_file"
+  check_captured_output $'Generated after packaging.\n' "embedded-language precedence run"
+
+  local stdout_work="$scratch_root/stdout-work"
+  mkdir -p -- "$stdout_work"
+  (cd "$stdout_work" && "$atl" run "$first_root/examples/stdout.atl" \
+    >"$stdout_file" 2>"$stderr_file")
+  check_captured_output $'Hello from Alone the Lambdas.\n' "stdout example"
+
+  local file_work="$scratch_root/file-work"
+  mkdir -p -- "$file_work"
+  (cd "$file_work" && "$atl" run "$first_root/examples/file-round-trip.atl" \
+    >"$stdout_file" 2>"$stderr_file")
+  check_captured_output $'Alone the Lambdas file round trip.\n' "file round trip"
+  printf '%s' $'Alone the Lambdas file round trip.\n' > "$expected_file"
+  cmp -s "$file_work/alone-the-lambdas-round-trip.txt" "$expected_file" ||
+    die "packaged file round trip wrote the wrong bytes"
+
+  local http_work="$scratch_root/http-work"
+  local announcement_file="$scratch_root/http-announcement.txt"
+  local http_error_file="$scratch_root/http-stderr.txt"
+  local response_file="$scratch_root/http-response.txt"
+  mkdir -p -- "$http_work"
+  (cd "$http_work" && timeout 20 "$atl" run "$first_root/examples/http-server.atl" \
+    > "$announcement_file" 2> "$http_error_file") &
+  server_pid="$!"
+  for _attempt in $(seq 1 200); do
+    [[ -s "$announcement_file" ]] && break
+    kill -0 "$server_pid" 2>/dev/null || break
+    sleep 0.05
+  done
+  announcement="$(<"$announcement_file")"
+  [[ "$announcement" =~ ^Listening[[:space:]]on[[:space:]]http://127\.0\.0\.1:([0-9]+)/lambda$ ]] ||
+    die "packaged HTTP example did not announce an ephemeral loopback URL"
+  bound_port="${BASH_REMATCH[1]}"
+  exec 3<>"/dev/tcp/127.0.0.1/$bound_port"
+  printf 'GET /lambda HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n' >&3
+  cat <&3 > "$response_file"
+  exec 3<&-
+  exec 3>&-
+  wait "$server_pid"
+  server_pid=""
+  [[ ! -s "$http_error_file" ]] || die "HTTP example wrote stderr"
+  grep -Fq $'HTTP/1.1 200 OK\r' "$response_file" || die "HTTP response status mismatch"
+  sed -n '/^\r$/,$p' "$response_file" | sed '1d' > "$scratch_root/http-body.txt"
+  printf '%s' $'Hello from Alone the Lambdas.\n' > "$expected_file"
+  cmp -s "$scratch_root/http-body.txt" "$expected_file" ||
+    die "HTTP response body mismatch"
+
+  mkdir -p -- "$second_parent"
+  mv -- "$first_root" "$second_root"
+  atl="$second_root/bin/atl"
+  local relocated_startup_begin
+  local relocated_startup_end
+  local relocated_startup_milliseconds
+  relocated_startup_begin="$(date +%s%N)"
+  "$atl" --version >"$stdout_file" 2>"$stderr_file"
+  relocated_startup_end="$(date +%s%N)"
+  relocated_startup_milliseconds=$(( (relocated_startup_end - relocated_startup_begin + 999999) / 1000000 ))
+  check_captured_output "Alone the Lambdas $product_version"$'\n' "relocated version"
+  "$atl" run "$generated_source" >"$stdout_file" 2>"$stderr_file"
+  check_captured_output $'Generated after packaging.\n' "relocated source"
+
+  printf 'consumer_image=%s\n' "$consumer_image"
+  printf 'consumer_racket_command=absent\n'
+  printf 'consumer_raco_command=absent\n'
+  printf 'consumer_network=none-with-loopback-only\n'
+  printf 'relocation=passed\n'
+  printf 'first_startup_milliseconds=%s\n' "$first_startup_milliseconds"
+  printf 'relocated_startup_milliseconds=%s\n' "$relocated_startup_milliseconds"
+  printf 'consumer_acceptance=passed\n'
+}
+
+if [[ "${1:-}" == "--inside-consumer" ]]; then
+  shift
+  run_inside_consumer "$@"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+[[ "$#" -eq 1 ]] || {
+  usage >&2
+  exit 2
+}
+
+for command_name in chmod docker install mktemp realpath sha256sum stat; do
+  command -v "$command_name" >/dev/null 2>&1 || die "required command is unavailable: $command_name"
+done
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+output_directory="$(realpath -- "$1")"
+version_file="$project_root/VERSION"
+[[ -f "$version_file" && ! -L "$version_file" ]] || die "VERSION is unavailable or symlinked"
+product_version="$(<"$version_file")"
+artifact_root_name="alone-the-lambdas-$product_version-linux-x86_64"
+archive_name="$artifact_root_name.tar.gz"
+archive_path="$output_directory/$archive_name"
+checksum_path="$output_directory/SHA256SUMS"
+[[ -f "$archive_path" && ! -L "$archive_path" ]] || die "archive is unavailable: $archive_path"
+[[ -f "$checksum_path" && ! -L "$checksum_path" ]] || die "checksum manifest is unavailable: $checksum_path"
+[[ "$(stat -c '%a' "$archive_path")" == "644" ]] || die "archive mode must be 0644"
+[[ "$(stat -c '%a' "$checksum_path")" == "644" ]] || die "checksum manifest mode must be 0644"
+
+expected_checksum_line="$(<"$checksum_path")"
+[[ "$expected_checksum_line" =~ ^[0-9a-f]{64}[[:space:]][[:space:]]${archive_name//./\.}$ ]] ||
+  die "SHA256SUMS must contain exactly the versioned Linux archive"
+(cd "$output_directory" && sha256sum --check --strict SHA256SUMS >/dev/null)
+
+consumer_transfer_root="$(mktemp -d /tmp/alone-the-lambdas-linux-transfer-XXXXXX)"
+cleanup_host() {
+  if [[ -n "${consumer_transfer_root:-}" &&
+        "$consumer_transfer_root" == /tmp/alone-the-lambdas-linux-transfer-* &&
+        -d "$consumer_transfer_root" ]]; then
+    rm -rf -- "$consumer_transfer_root"
+  fi
+}
+trap cleanup_host EXIT
+
+chmod 0755 -- "$consumer_transfer_root"
+install -m 0644 -- "$archive_path" "$consumer_transfer_root/$archive_name"
+install -m 0644 -- "$checksum_path" "$consumer_transfer_root/SHA256SUMS"
+install -m 0555 -- "${BASH_SOURCE[0]}" "$consumer_transfer_root/consumer.sh"
+
+docker run \
+  --rm \
+  --pull=missing \
+  --platform linux/amd64 \
+  --network none \
+  --read-only \
+  --tmpfs /tmp:rw,exec,nosuid,nodev,mode=1777 \
+  --user 65534:65534 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --pids-limit 256 \
+  --memory 2g \
+  --mount "type=bind,src=$consumer_transfer_root,dst=/transfer,readonly" \
+  --entrypoint /bin/bash \
+  "$consumer_image" \
+  /transfer/consumer.sh \
+  --inside-consumer \
+  "$archive_name" \
+  "$artifact_root_name" \
+  "$product_version"

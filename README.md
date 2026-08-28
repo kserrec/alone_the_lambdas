@@ -32,9 +32,12 @@ variables, unary lambdas, and application.
 > one separately trusted development runner, and the `0.2.0-dev` product
 > version source; Phase 23 freezes concise ATL launch diagnostics, strict
 > source encoding, original-path/source-position reporting, and stable failure
-> statuses without changing the object language or its host authority.
-> The project does not yet ship the no-Racket native archive planned by later
-> phases. Separate structural gates enforce every boundary class. See
+> statuses without changing the object language or its host authority; Phase
+> 24 adds a deterministic, self-contained Linux x86-64 development archive and
+> proves it in a transferred no-Racket Ubuntu container. That artifact remains
+> unpublished: macOS, Windows, the final legal inventory, and explicit release
+> approval still belong to later phases. Separate structural gates enforce
+> every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -181,6 +184,19 @@ precedence over conflicting examples in the base specification.
   reader/expander with `dynamic-require`; and emits only fixed ATL diagnostics
   with the quoted original path and canonical source position. It exports no
   binding and cannot enter an object-language dependency path.
+- `tooling/build-linux-distribution.sh` verifies full Racket CS 9.3, stages the
+  package under an isolated Racket user home, embeds dynamic `#lang` support,
+  runs `raco distribute`, and emits a normalized Linux archive plus external
+  `SHA256SUMS` outside the checkout without modifying the developer's package
+  registry.
+- `tooling/test-linux-distribution.sh` transfers only that archive, checksum,
+  and its consumer harness into a pinned nonroot, read-only Ubuntu container
+  with no Racket command and no external network, then proves CLI, arbitrary
+  source, stdout, file, loopback HTTP, embedded-reader precedence, and
+  relocation behavior.
+- `distribution/` contains only the internal getting-started and provisional
+  notice templates. Until Phase 27 approves a repository license, generated
+  archives carry `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE`.
 - `examples/hello.atl`, `examples/stdout.atl`,
   `examples/file-round-trip.atl`, and `examples/http-server.atl` are the exact
   runnable language programs. The HTTP program uses an ephemeral loopback
@@ -223,7 +239,7 @@ precedence over conflicting examples in the base specification.
   runner's exact imports, diagnostic formatter, UTF-8 preflight, and closed
   vocabulary, its sole validated loader call, and the four-file application
   inventory. Its repository-wide
-  inventory classifies all 79 Racket and `.atl` sources: readers may
+  inventory classifies all 80 Racket and `.atl` sources: readers may
   observe through a closed source vocabulary but cannot perform effects or
   import upward; tests and tooling retain normal host authority but cannot
   enter a production dependency path; standalone examples must use the public
@@ -249,11 +265,11 @@ surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
-Phase 23 supplies the canonical runner source and frozen launch diagnostics,
-but not yet the downloadable native `atl` executable. After the fresh setup
-above, invoke that development entry point through Racket. The later
-distribution phases will package the
-same entry point so end users type `atl` without installing Racket.
+Phase 24 proves a native Linux x86-64 `atl` executable with its private
+runtime, but that development artifact is neither checked in nor published.
+After the fresh setup above, invoke the source-checkout development entry
+point through Racket. Later phases still own the other native platforms,
+license approval, and an authorized public download.
 
 The minimal hello application emits one line:
 

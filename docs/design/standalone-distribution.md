@@ -384,6 +384,11 @@ alone-the-lambdas-VERSION-TARGET/
   THIRD_PARTY_NOTICES.md
 ```
 
+The finished archive is accompanied by one external `SHA256SUMS` file. Keeping
+the archive digest outside the bytes it authenticates avoids an impossible
+self-referential checksum and lets a user verify the download before
+extraction. Kyle approved this correction on 2026-08-28.
+
 Only the platform's one executable spelling is present. The internal `lib/`
 shape may differ by platform because `raco distribute` is authoritative, but
 the executable must resolve it relative to the relocated archive root.
@@ -396,10 +401,11 @@ runtime notice text require the Phase 27 legal inventory and Kyle's explicit
 approval.
 
 `BUILD-MANIFEST.txt` records at least the product version, source commit,
-target identifier, Racket version/variant, artifact file inventory, dynamic
-system-library assumptions, and archive SHA-256. It contains no secret,
-absolute checkout path, temporary path, user name, package registry, or
-nondeterministic local timestamp.
+target identifier, Racket version/variant, artifact file inventory, and
+dynamic system-library assumptions. The sibling `SHA256SUMS` records the final
+archive SHA-256 and filename. Neither file contains a secret, absolute checkout
+path, temporary path, user name, package registry, or nondeterministic local
+timestamp.
 
 ## Release authority
 
@@ -498,10 +504,12 @@ Windows artifact, license notices, signing, or public download workflow. It
 used a temporary proof executable named `atl-proof`, not the Phase 22 `atl`
 runner recorded below.
 
-Linux has only one Ubuntu 24.04 consumer observation so far. The system-library
-floor, cold startup measurements, canonical application suite, filesystem and
-loopback HTTP acceptance, relocation matrix, archive manifest, and clean
-consumer automation belong to Phases 24 through 26.
+Phase 24 now supplies the Linux archive manifest, reproducible build, startup
+measurement, canonical application/effect checks, hostile collection-path
+probe, and relocation automation described below. Its consumer evidence is
+limited to one digest-pinned Ubuntu 24.04 image; it establishes no older Linux
+floor. Native macOS/Windows artifacts, their compatibility floors, the final
+legal inventory, signing, and publication remain unproven.
 
 ## Phase 22 implementation record
 
@@ -535,8 +543,9 @@ reader runs. This is encoding validation, not a tokenizer, parser, expander,
 or evaluator. It reads no path other than the one already supplied and does
 not retain or expose the temporary host String. The implementation adds one
 direct `racket/port` standard-library import for `port->bytes`, no third-party
-package, and no package-metadata dependency; Phase 24 will measure whether it
-changes the eventual embedded file closure or artifact size.
+package, and no package-metadata dependency. Phase 24 measured the resulting
+complete runner/runtime closure; it does not attribute a marginal size to this
+one transitive import.
 
 Focused tests pin every diagnostic byte and status, preserve relative and
 Unicode path spelling, reject invalid encoding, and keep contract Error, pure
@@ -553,6 +562,60 @@ unchanged expanded purity scan over 16 `core/` modules, and the complete
 79-source boundary inventory. The focused runner suite passed 161 assertions;
 the adversarial boundary suite passed 112.
 
+## Phase 24 implementation record
+
+Phase 24 implemented `tooling/build-linux-distribution.sh` as the one Linux
+x86-64 build entry point. It verifies the exact full Racket CS 9.3 toolchain,
+the product/package version projection, architecture, clean-source state by
+default, nonsymlink source inputs, and an output directory outside the
+checkout. It copies only production package sources into disposable storage,
+installs them under an isolated Racket user home with dependency downloads
+forbidden, calls `raco exe ++lang alone_the_lambdas`, then calls
+`raco distribute`. Normalized file metadata, sorted POSIX tar entries, and
+gzip's timestamp-free mode make identical inputs byte reproducible. The build
+refuses to replace output files and emits one external `SHA256SUMS` beside the
+archive.
+
+The development payload contains 10 files. Its runtime inventory is
+`bin/atl` (`7,853,237` bytes) and `lib/plt/racketcs-9.3` (`51,412,696` bytes);
+the other eight files are the four canonical examples plus the manifest,
+guide, unpublished warning, and generated provisional Racket notices. The
+unoptimized archive measured `13,679,991` compressed bytes and `59,299,555`
+unpacked regular-file bytes. Both ELF files observed the same seven system
+assumptions as the feasibility proof: the ELF loader, `libc`, `libdl`, `libm`,
+`libpthread`, `librt`, and `libz`.
+
+Two disposable builds from different temporary paths over the same approved
+uncommitted Phase 24 source state based on commit
+`ce55da42a06a4edc5ef37e2d1ca787b5bc1de8fc` were byte-identical. Later
+rebuilds after output, permission, and dotenv-pruning hardening retained SHA-256
+`a5e43c54467fa4afe0bb74aeeda962ae617de26b35c6cf50d65891de81b64cf0`.
+That digest describes only those internal validation artifacts; it is not a
+release checksum or a claim about a later clean commit.
+
+`tooling/test-linux-distribution.sh` copied only the archive, checksum, and
+consumer harness into
+`ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea`.
+The container ran as an unprivileged user with a read-only root, no
+capabilities, no `racket`/`raco`, and no external Docker network. It verified
+the digest before extraction; exact layout, file inventory, permissions,
+help/version bytes, and clean stderr; a source created after packaging;
+embedded-language precedence over a conflicting collection path; stdout,
+isolated file, and ephemeral-loopback HTTP behavior; and a second run after
+moving the tree between paths containing spaces. Final runs observed
+290–344 ms for the first process and 294–302 ms after relocation. These are
+observations, not
+startup guarantees or a Linux compatibility floor.
+
+Phase 24 adds no Racket production source, object-language operation,
+representation, host capability, package dependency, demodularization step,
+license choice, public artifact, tag, upload, or release authority.
+
+Completion verification passed 4,492 assertions across all 32 test files, the
+unchanged expanded purity scan over 16 `core/` modules, and the complete
+80-source boundary inventory. The focused distribution contract suite passed
+43 assertions, and the no-Racket consumer harness passed independently.
+
 ## Approval record
 
 Approval accepts the `.atl` source rules, exact command surface, completion and
@@ -566,6 +629,13 @@ replying:
 
 ```text
 Approve the Phase 21 standalone-distribution design.
+```
+
+Kyle explicitly approved moving the archive checksum out of the internal
+manifest on 2026-08-28 by replying:
+
+```text
+Approve the Phase 24 external checksum manifest correction.
 ```
 
 This approval does not authorize a public release, license selection, tag,
