@@ -30,7 +30,9 @@ variables, unary lambdas, and application.
 > Phase 21 then approves the independent-distribution contract and proves the
 > Racket 9.3 embedding path; Phase 22 adds the canonical `.atl` source names,
 > one separately trusted development runner, and the `0.2.0-dev` product
-> version source without changing the object language or its host authority.
+> version source; Phase 23 freezes concise ATL launch diagnostics, strict
+> source encoding, original-path/source-position reporting, and stable failure
+> statuses without changing the object language or its host authority.
 > The project does not yet ship the no-Racket native archive planned by later
 > phases. Separate structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
@@ -175,9 +177,10 @@ precedence over conflicting examples in the base specification.
   and suppresses Racket printing of final lambda values.
 - `runner/atl.rkt` implements only the approved `run`, `--help`, and
   `--version` development entry point. It validates the one explicit `.atl`
-  path and delegates once to the existing reader/expander with
-  `dynamic-require`; it exports no binding and cannot enter an object-language
-  dependency path.
+  path, declaration, and UTF-8 bytes; delegates once to the existing
+  reader/expander with `dynamic-require`; and emits only fixed ATL diagnostics
+  with the quoted original path and canonical source position. It exports no
+  binding and cannot enter an object-language dependency path.
 - `examples/hello.atl`, `examples/stdout.atl`,
   `examples/file-round-trip.atl`, and `examples/http-server.atl` are the exact
   runnable language programs. The HTTP program uses an ephemeral loopback
@@ -217,8 +220,9 @@ precedence over conflicting examples in the base specification.
   traversing their targets, rejects additional macro/language modules, and
   permits only the facade's exact import and re-export of production `host`.
   It also pins the product/package version projection, the non-exporting
-  runner's exact imports and closed vocabulary, its sole validated loader
-  call, and the four-file application inventory. Its repository-wide
+  runner's exact imports, diagnostic formatter, UTF-8 preflight, and closed
+  vocabulary, its sole validated loader call, and the four-file application
+  inventory. Its repository-wide
   inventory classifies all 79 Racket and `.atl` sources: readers may
   observe through a closed source vocabulary but cannot perform effects or
   import upward; tests and tooling retain normal host authority but cannot
@@ -245,9 +249,10 @@ surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
-Phase 22 supplies the canonical runner source but not yet the downloadable
-native `atl` executable. After the fresh setup above, invoke that development
-entry point through Racket. The later distribution phases will package the
+Phase 23 supplies the canonical runner source and frozen launch diagnostics,
+but not yet the downloadable native `atl` executable. After the fresh setup
+above, invoke that development entry point through Racket. The later
+distribution phases will package the
 same entry point so end users type `atl` without installing Racket.
 
 The minimal hello application emits one line:
@@ -306,7 +311,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,412 assertions across 31 test files,
+green. The repository currently has 4,449 assertions across 31 test files,
 plus the independent expanded scan of all 16 core modules and the complete
 repository boundary-classification gate. The application acceptance test
 installs a copied package under an isolated Racket user home before running

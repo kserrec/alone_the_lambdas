@@ -60,6 +60,12 @@ All runner and application execution used a copied package installation under
 an isolated Racket user home rather than a checkout link or existing package
 registry entry.
 
+Phase 23 was verified on 2026-08-28 with `./run-all-tests.sh`: 4,449 passing
+assertions across the same 31 test files, the unchanged clean 16-module
+expanded core scan, and the complete 79-source classification with the exact
+diagnostic formatter and strict source-encoding preflight added to the closed
+runner class.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -159,12 +165,22 @@ registry entry.
 
 | Requirement | Evidence |
 | --- | --- |
-| The command and `.atl` source contracts are exact. | [`runner-test.rkt`](../tests/runner-test.rkt) uses the copied-package runner for exact help/version output, every command-misuse shape, lowercase-extension precedence, missing/nonregular inputs, exact LF/CRLF/EOF declarations, bare-CR and malformed-declaration rejection, direct symlink refusal, supplied and resolved-parent dotenv refusal, and paths containing spaces and non-ASCII characters. Covered launcher failures write nothing to stdout and use exact statuses 64, 65, and 66; the structural gate separately pins the defensive unexpected-failure status at 70. Phase 23 owns final diagnostic templates and a deterministic internal-failure presentation test. |
+| The command and `.atl` source contracts are exact. | [`runner-test.rkt`](../tests/runner-test.rkt) uses the copied-package runner for exact help/version output, every command-misuse shape, lowercase-extension precedence, missing/nonregular inputs, exact LF/CRLF/EOF declarations, bare-CR and malformed-declaration rejection, direct symlink refusal, supplied and resolved-parent dotenv refusal, and paths containing spaces and non-ASCII characters. At the Phase 22 boundary, covered launcher failures wrote nothing to stdout and used exact statuses 64, 65, and 66 while the structural gate pinned the defensive status 70; Phase 23 evidence below adds the final templates and internal-failure presentation proof. |
 | The runner delegates to the existing language exactly once. | [`atl.rkt`](../runner/atl.rkt) validates one explicit path and invokes `dynamic-require` on that path without importing a reader, expander, codec, runtime, test, tool, or application. The focused suite runs [`hello.atl`](../examples/hello.atl), exercises existing facade currying and UTF-8 String lowering, and proves an unavailable Racket identifier is rejected by the existing expander. [`milestone-two-acceptance-test.rkt`](../tests/milestone-two-acceptance-test.rkt) launches all three real effect applications through the same copied runner. |
 | Runner scaffolding cannot become object-language computation or a second effect bridge. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) admits only `runner/atl.rkt`, its exact Racket imports, fixed definition and exit-status sets, two exact input targets, closed vocabulary, no export, terminal `main`, and exactly one `(dynamic-require source-path #f)`. It rejects copied product-version literals, altered metadata/header read targets, extra runner modules, exports, changed loader targets, changed status constants, project imports, environment/process/eval/namespace/network/directory/mutation capabilities, and every production dependency on `runner/`. The 110-check boundary suite proves representative denials, including symlink rejection without target reads and same-named application directories. |
 | Product and package versions have one authority. | Root [`VERSION`](../VERSION) contains exactly `0.2.0-dev` plus LF. Runner expansion/build derives and embeds the CLI value from that source, so a future native artifact needs no runtime version file and the runner source contains no copied public version literal. The boundary gate accepts only the approved `0.2.0-dev` → `0.1.900`, `0.2.0-rc.1` → `0.1.901`, and `0.2.0` → `0.2` package projections and rejects malformed, mismatched, missing, or symlinked version metadata without reading a symlink target. |
 | Completed language failures remain language data. | Runner tests prove a strict contract Error and a real-host `read-file` Result Err both complete with process status 0 and no implicit observation. The runner never decodes, renders, or branches on either value; the unchanged facade module wrapper alone forces requested top-level effects and discards the completed lambda value. |
 | The public application inventory is canonical. | The repository contains exactly `hello.atl`, `stdout.atl`, `file-round-trip.atl`, and `http-server.atl` under `examples/`. The boundary inventory rejects old `.rkt` names, unknown application sources, missing canonical files, non-language modules, and symlinked entries without reading linked content. |
+
+## Phase 23 user-facing diagnostic evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Every launcher-controlled class has stable ATL stderr and status. | [`runner-test.rkt`](../tests/runner-test.rkt) now compares complete stderr byte strings rather than matching fragments. It covers command misuse (64); wrong extension, declaration, encoding, reader syntax, unsupported datum, unavailable identifier, and wrong public name (65); dotenv refusal, symlink refusal, missing/nonregular/unreadable source (66); and a deterministic injected loader failure (70). Help, version, and successful source runs retain empty stderr. The exact templates are frozen in the [distribution design](design/standalone-distribution.md#completion-and-exit-statuses). |
+| Diagnostics preserve useful source identity without leaking implementation state. | Relative failing sources are reported with the exact quoted command-line spelling plus canonical reader line/column. Tests explicitly reject the isolated installation's temporary root, `package-source`, injected raw exception text, and host procedure rendering. Absolute and Unicode paths remain the caller-supplied strings; no resolved checkout, registry, or build path substitutes for them. |
+| Invalid UTF-8 is rejected before Racket can substitute a replacement character. | A focused malformed-byte fixture proves status 65 and the exact `source is not valid UTF-8` reason. [`atl.rkt`](../runner/atl.rkt) checks only the bytes after the exact ASCII declaration with strict `bytes->string/utf-8`; it still delegates all ATL tokenization, parsing, expansion, and evaluation to the existing reader/expander. The boundary gate pins the sole `port->bytes` call to that already supplied source preflight. |
+| Language data and requested host failure remain outside launcher control flow. | Separate source programs complete with an ordinary strict contract Error, pure `DIV ONE ZERO` Result Err, and real-host missing-file Result Err. All exit 0 with empty stdout/stderr. The runner imports no codec or reader, never receives a final value from `dynamic-require`, and cannot branch on any lambda representation. |
+| The diagnostic implementation remains closed loader scaffolding. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) pins the exact formatter, safe identifier extraction, strict UTF-8 expression, runner imports/definitions/vocabulary, status definitions, two input paths, one loader call, terminal `main`, and no exports. [`boundary-check-test.rkt`](../tests/boundary-check-test.rkt) now proves raw syntax-object rendering and removal of the strict source preflight are rejected, in addition to the Phase 22 capability and dependency denials. |
 
 ## Explicit one-bridge evidence map
 
@@ -175,16 +191,16 @@ registry entry.
 | Raw stdout, filesystem, TCP, registry, and external-failure operations | [`runtime/host.rkt`](../runtime/host.rkt) | Exact `racket/file` and `racket/tcp` imports, host-only primitive identifiers, closed dispatcher vocabulary, and sole-importer scans reject the same capabilities everywhere else in production. Real-host tests prove each approved operation. |
 | Request construction, typing, Result control flow, HTTP parsing/rendering/routing/serving | [`effects/`](../effects) | The effect scanner admits only variables, unary lambdas, unary applications, mechanical forms, pure core/effect imports, and application of an injected unary host argument. Exact fake-host traces prove wrappers issue only canonical requests. |
 | Public access to the same bridge and bound wrappers | [`lang/expander.rkt`](../lang/expander.rkt) | Exact facade imports/exports and nine fixed injection definitions permit only this module to import and re-export the runtime binding; the facade has no direct OS capability. |
-| Process launch and one requested module load | [`runner/atl.rkt`](../runner/atl.rkt) | The separately trusted, non-exporting runner validates host command/path/header metadata and instantiates one source through the existing language. It imports neither `runtime/host.rkt` nor the codec, observes no lambda value, and is unreachable from every object-language module, so it does not add a language-visible bridge. |
+| Process launch and one requested module load | [`runner/atl.rkt`](../runner/atl.rkt) | The separately trusted, non-exporting runner validates host command/path/header/encoding metadata, emits only fixed sanitized diagnostics, and instantiates one source through the existing language. It imports neither `runtime/host.rkt` nor the codec, observes no lambda value, and is unreachable from every object-language module, so it does not add a language-visible bridge. |
 | Host-enabled observation and verification | [`readers/`](../readers), [`tests/`](../tests), and [`tooling/`](../tooling) | These are explicitly nonproduction classes. Reader imports/effects are constrained, every source is inventoried, and every production dependency on any support class is rejected. |
 
 ## What this milestone does not claim
 
 The completed milestone deliberately does not claim sandboxing or per-program
 permission prompts: a real-host program inherits the launching Racket
-process's relevant authority. Phase 22 now has an exact development runner,
-but not yet a self-contained native executable, distributed runtime, frozen
-Phase 23 diagnostic templates, or downloadable release. The language has no
+process's relevant authority. Phase 23 now has an exact development runner and
+frozen diagnostics, but not yet a self-contained native executable,
+distributed runtime, or downloadable release. The language has no
 program-argument API, general parser, optimizer, compiler, records, JSON,
 environment or process access, directory operations, atomic file replacement,
 TLS, UDP, timeouts, asynchronous server, production concurrency, or general

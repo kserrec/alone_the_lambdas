@@ -51,7 +51,10 @@ the independent-distribution contract and proves Racket 9.3 can embed the
 dynamic language closure. Phase 22 adds one exact development runner, the
 canonical `.atl` application names, and a single `0.2.0-dev` version source;
 the runner delegates to the existing reader/expander and remains outside every
-object-language dependency path.
+object-language dependency path. Phase 23 freezes ATL-level launch diagnostics,
+strict UTF-8 preflight, source-position sanitization, and the distinction among
+launcher failure, completed language data, and requested host failure without
+changing the object language or its effect boundary.
 
 ## Computational boundary
 
@@ -96,7 +99,7 @@ become an object-language representation.
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
-| Runner scaffolding | Exact command, path/header validation, version display, and one existing-language module instantiation; no exports or object values |
+| Runner scaffolding | Exact command, path/header/UTF-8 validation, sanitized ATL diagnostics, version display, and one existing-language module instantiation; no exports or object values |
 | Runnable applications | Public-language hello/stdout, isolated file round trip, and one-request ephemeral-loopback HTTP server |
 | Human boundary | Readers and test diagnostics; never object-language computation |
 
@@ -207,10 +210,15 @@ mechanically to Racket package version `0.1.900`.
 `runner/atl.rkt` is host launch scaffolding, not an effect primitive. It
 accepts only `run`, `--help`, and `--version`; validates the one supplied path,
 exact `.atl` suffix, dotenv exclusions, final-entry symlink rule, resolved
-parent, regular-file metadata, and exact declaration; then invokes
-`dynamic-require` once on that source. It exports nothing, imports no project
-module, observes no completed lambda value, and has no environment, process,
-directory-scan, network, namespace, evaluator, codec, or reader import.
+parent, regular-file metadata, exact declaration, and strict UTF-8 bytes; then
+invokes `dynamic-require` once on that source. Launcher failures use fixed
+ATL-only stderr templates with the quoted original path and canonical reader
+position. Raw exception messages, resolved paths, stack details, and host
+procedure renderings never enter those templates. It exports nothing, imports
+no project module, observes no completed lambda value, and has no environment,
+process, directory-scan, network, namespace, evaluator, codec, or reader
+import. Its sole new Phase 23 import is standard-library `racket/port` for
+`port->bytes`; no package dependency was added.
 
 The four files under `examples/` import nothing and run only through that
 public language. `hello.atl` and `stdout.atl` each emit one String.
@@ -631,10 +639,12 @@ of the project root and each production path before discovery, rejects
 symlinks without traversing their targets, and rejects every second codec
 importer, host importer, filesystem/TCP importer, or `host` definition/export.
 It also inventories every Racket or `.atl` source, rejects unknown locations,
-pins the root/package/CLI version projection and the one exact runner, rejects
-runner exports, extra loader modules, altered loader targets, and
-process/environment/evaluator capabilities, constrains readers to an exact
-effect-free observation vocabulary with core/reader imports, rejects every
+pins the root/package/CLI version projection and the one exact runner, pins
+its quoted diagnostic formatter and one strict UTF-8 preflight, rejects runner
+exports, extra loader modules, altered input/loader targets, raw diagnostic
+rendering, and process/environment/evaluator capabilities; constrains readers
+to an exact effect-free observation vocabulary with core/reader imports;
+rejects every
 production import of readers/tests/tooling/applications/runner, admits normal
 host authority only in the test/tooling support classes, and requires the
 exact four `.atl` examples to use the public standalone language. Dedicated
@@ -695,16 +705,21 @@ TCP lifecycle suites and the zero-finding boundary inventory, this covers the
 specified `stdout`, `read-file`, `write-file`, and TCP effect families while
 retaining the one-bridge proof.
 
-The runner suite uses that same copied-package installation for 126 focused
-checks. It proves exact help/version output, command misuse, all three version
-states, validation precedence, exact lowercase extension and declaration
-terminators, supplied and resolved-parent dotenv rejection, final symlink
-rejection, regular-file checks, paths with spaces and non-ASCII characters,
-the checked-in hello program, existing-facade currying/UTF-8 behavior,
-existing-expander rejection of a Racket identifier, and successful process
-completion for ordinary lambda Error and Result Err values. The structural
-suite independently proves the runner is one non-exporting loader rather than
-a parser, evaluator, codec, effect bridge, or object-language dependency.
+The runner suite uses that same copied-package installation for focused exact
+checks. It proves help/version output, command misuse, all three version states,
+validation precedence, exact lowercase extension and declaration terminators,
+strict source encoding, supplied and resolved-parent dotenv rejection, final
+symlink rejection, missing/nonregular/unreadable distinctions, paths with
+spaces and non-ASCII characters, and the checked-in hello program. Its
+diagnostic cases pin byte-exact status-64/65/66/70 stderr; preserve only the
+original relative source spelling and reader line/column; distinguish reader
+syntax, unsupported datums, unbound names, and wrong public names; and prove a
+deliberately injected internal exception cannot expose raw detail. Separate
+successful runs prove ordinary contract Error, pure Result Err, and real-host
+Result Err values all remain unobserved completed language data. The
+structural suite independently proves the runner is one non-exporting loader
+rather than a parser, evaluator, codec, effect bridge, or object-language
+dependency.
 
 ## Completed milestone boundary
 

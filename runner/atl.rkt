@@ -2,6 +2,7 @@
 
 (require (only-in racket/file file-type-bits regular-file-type-bits)
          (only-in racket/path path-get-extension)
+         (only-in racket/port port->bytes)
          (for-syntax racket/base
                      (only-in racket/path path-only)))
 
@@ -38,10 +39,15 @@
   (datum->syntax stx
                  (bytes->string/utf-8 (cadr matched))))
 
-(define (stop status source reason)
-  (if source
-      (eprintf "Alone the Lambdas: ~a: ~a\n" source reason)
-      (eprintf "Alone the Lambdas: ~a\n" reason))
+(define (stop status source line column reason)
+  (cond
+    [(and source line column)
+     (eprintf "Alone the Lambdas: ~s:~a:~a: ~a\n"
+              source line column reason)]
+    [source
+     (eprintf "Alone the Lambdas: ~s: ~a\n" source reason)]
+    [else
+     (eprintf "Alone the Lambdas: ~a\n" reason)])
   (exit status))
 
 (define (dotenv-component? part)
@@ -80,18 +86,24 @@
          [else
           (loop (cdr remaining) next seen)])])))
 
-(define (valid-language-declaration? source)
+(define (source-preflight-result source)
   (call-with-input-file source
     (lambda (input)
       (define declaration
         (read-bytes (bytes-length language-declaration) input))
       (define terminator
         (read-byte input))
-      (and (equal? declaration language-declaration)
-           (or (eof-object? terminator)
-               (= terminator 10)
-               (and (= terminator 13)
-                    (equal? (read-byte input) 10)))))
+      (if (and (equal? declaration language-declaration)
+               (or (eof-object? terminator)
+                   (= terminator 10)
+                   (and (= terminator 13)
+                        (equal? (read-byte input) 10))))
+          (with-handlers
+              ([exn:fail:contract?
+                (lambda (failure) 'invalid-encoding)])
+            (bytes->string/utf-8 (port->bytes input) #f)
+            'valid)
+          'invalid-declaration))
     #:mode 'binary))
 
 (define (regular-file? path)
@@ -104,46 +116,118 @@
   (with-handlers
       ([exn:fail?
         (lambda (failure)
-          (stop unavailable-source-status source-name "source is unavailable"))])
+          (stop unavailable-source-status source-name #f #f
+                "source path could not be inspected"))])
     (define supplied-path (string->path source-name))
     (when (dotenv-path? supplied-path)
-      (stop unavailable-source-status source-name "dotenv paths are refused"))
+      (stop unavailable-source-status source-name #f #f
+            "refused source path because dotenv files are never read"))
     (unless (equal? (path-get-extension supplied-path) #".atl")
-      (stop invalid-source-status source-name "source must end in .atl"))
+      (stop invalid-source-status source-name #f #f
+            "source file name must end in lowercase .atl"))
     (define complete-path (path->complete-path supplied-path))
     (when (link-exists? complete-path)
-      (stop unavailable-source-status source-name "symbolic links are refused"))
+      (stop unavailable-source-status source-name #f #f
+            "refused symbolic-link source; choose a regular .atl file"))
     (define-values (parent name directory?)
       (split-path complete-path))
     (define resolved-parent (resolve-parent-path parent))
     (unless resolved-parent
-      (stop unavailable-source-status source-name "source is unavailable"))
+      (stop unavailable-source-status source-name #f #f
+            "source path could not be inspected"))
     (when (dotenv-path? resolved-parent)
-      (stop unavailable-source-status source-name "dotenv paths are refused"))
+      (stop unavailable-source-status source-name #f #f
+            "refused source path because dotenv files are never read"))
     (define resolved-source (build-path resolved-parent name))
+    (unless (or (file-exists? resolved-source)
+                (directory-exists? resolved-source))
+      (stop unavailable-source-status source-name #f #f
+            "source file was not found"))
     (unless (regular-file? resolved-source)
-      (stop unavailable-source-status source-name "source is unavailable"))
-    (unless (valid-language-declaration? resolved-source)
-      (stop invalid-source-status source-name
-            "first line must be #lang alone_the_lambdas"))
+      (stop unavailable-source-status source-name #f #f
+            "source path is not a regular file"))
+    (define preflight-result
+      (with-handlers
+        ([exn:fail?
+          (lambda (failure)
+            (stop unavailable-source-status source-name #f #f
+                  "source file could not be read"))])
+        (source-preflight-result resolved-source)))
+    (cond
+      [(eq? preflight-result 'invalid-declaration)
+       (stop invalid-source-status source-name #f #f
+             "line 1 must be exactly #lang alone_the_lambdas")]
+      [(eq? preflight-result 'invalid-encoding)
+       (stop invalid-source-status source-name #f #f
+             "source is not valid UTF-8")])
     supplied-path))
+
+(define (syntax-failure-expression failure)
+  (define expressions
+    (exn:fail:syntax-exprs failure))
+  (and (pair? expressions)
+       (car expressions)))
+
+(define (datum-failure-expression? expression)
+  (and expression
+       (let ([value (syntax-e expression)])
+         (and (pair? value)
+              (syntax? (car value))
+              (eq? (syntax-e (car value)) '#%datum)))))
+
+(define (syntax-failure-reason expression)
+  (cond
+    [(and expression (identifier? expression))
+     (format "unknown ATL name: ~s" (syntax-e expression))]
+    [(datum-failure-expression? expression)
+     "unsupported literal; only nonnegative Nat and String literals are supported"]
+    [else
+     "source has invalid syntax"]))
+
+(define (requested-source-missing? failure source-path)
+  (define missing-path
+    (exn:fail:filesystem:missing-module-path failure))
+  (and (path? missing-path)
+       (equal?
+        (simplify-path (path->complete-path missing-path) #f)
+        (simplify-path (path->complete-path source-path) #f))))
 
 (define (run-source source-name)
   (define source-path (validate-source source-name))
   (with-handlers
       ([exn:fail:read?
         (lambda (failure)
-          (stop invalid-source-status source-name "source could not be read"))]
+          (define locations
+            (exn:fail:read-srclocs failure))
+          (define location
+            (and (pair? locations) (car locations)))
+          (stop invalid-source-status source-name
+                (and location (srcloc-line location))
+                (and location (srcloc-column location))
+                "source could not be read; check delimiters and UTF-8 encoding"))]
        [exn:fail:syntax?
         (lambda (failure)
-          (stop invalid-source-status source-name "source has invalid syntax"))]
+          (define expression
+            (syntax-failure-expression failure))
+          (stop invalid-source-status source-name
+                (and expression (syntax-line expression))
+                (and expression (syntax-column expression))
+                (syntax-failure-reason expression)))]
+       [exn:fail:filesystem:missing-module?
+        (lambda (failure)
+          (if (requested-source-missing? failure source-path)
+              (stop unavailable-source-status source-name #f #f
+                    "source file was not found")
+              (stop unexpected-failure-status source-name #f #f
+                    "unexpected launcher failure; verify the ATL installation")))]
        [exn:fail:filesystem?
         (lambda (failure)
-          (stop unavailable-source-status source-name "source is unavailable"))]
+          (stop unavailable-source-status source-name #f #f
+                "source file could not be read"))]
        [exn:fail?
         (lambda (failure)
-          (stop unexpected-failure-status source-name
-                "unexpected launcher failure"))])
+          (stop unexpected-failure-status source-name #f #f
+                "unexpected launcher failure; verify the ATL installation"))])
     (dynamic-require source-path #f)))
 
 (define (main)
@@ -161,7 +245,7 @@
           (equal? (car arguments) "run"))
      (run-source (cadr arguments))]
     [else
-     (stop command-misuse-status #f
-           "usage: atl run FILE.atl | atl --help | atl --version")]))
+     (stop command-misuse-status #f #f #f
+           "expected atl run FILE.atl, atl --help, or atl --version")]))
 
 (main)

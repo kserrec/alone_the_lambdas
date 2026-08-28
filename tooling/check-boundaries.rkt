@@ -97,32 +97,41 @@
     make-hash make-hasheq make-weak-hash register registry))
 
 (define runner-vocabulary
-  '(#%module-begin = and append arguments binary bitwise-and build-path
+  '(#%datum #%module-begin = and append arguments binary bitwise-and build-path
     bytes->string/utf-8 bytes-length bytes? cadr call-with-input-file car cdr
-    command-misuse-status complete-path cond cons content
+    column command-misuse-status complete-path cond cons content
     current-command-line-arguments datum->syntax declaration define
-    define-syntax define-values directory? display dotenv-component?
+    datum-failure-expression? define-syntax define-values directory?
+    directory-exists? display dotenv-component?
     dotenv-path? dynamic-require else embedded-product-version eof-object?
-    eprintf eq? equal? exit exn:fail:filesystem? exn:fail:read?
-    exn:fail:syntax? exn:fail? explode-path failure file-or-directory-stat
-    file-type-bits for-syntax for/or hash-ref help-text if in-list input
-    invalid-source-status lambda language-declaration length let link-exists?
-    loop main matched member name newline next null? only-in or parent part path
-    mode path->complete-path path->string path-get-extension path-only path?
-    product-version quote racket/base racket/file racket/path
-    raise-syntax-error read-byte
-    read-bytes reason regexp-match regexp-match? remaining require
+    eprintf eq? equal? exit exn:fail:contract?
+    exn:fail:filesystem:missing-module-path
+    exn:fail:filesystem:missing-module? exn:fail:filesystem?
+    exn:fail:read-srclocs exn:fail:read? exn:fail:syntax-exprs
+    exn:fail:syntax? exn:fail? explode-path expression expressions failure
+    file-exists? file-or-directory-stat file-type-bits for-syntax for/or
+    format hash-ref help-text identifier? if in-list input invalid-declaration
+    invalid-encoding invalid-source-status lambda language-declaration length
+    let line link-exists? location locations loop main matched member
+    missing-path mode name newline next null? only-in or pair? parent part path
+    path->complete-path path->string path-get-extension path-only path?
+    port->bytes preflight-result product-version quote racket/base racket/file
+    racket/path racket/port raise-syntax-error read-byte read-bytes reason
+    regexp-match regexp-match? regular-file-type-bits regular-file? remaining
+    requested-source-missing? require
     resolve-parent-path resolve-path resolved resolved-parent resolved-source
-    run-source seen simplify-path source source-name source-path split-path
-    status stop string->path string-append string-downcase stx supplied-path
-    syntax-source terminator unavailable-source-status
-    unexpected-failure-status unless up regular-file-type-bits regular-file?
-    valid-language-declaration?
-    validate-source vector->list when with-handlers))
+    run-source seen simplify-path source source-name source-path
+    source-preflight-result split-path srcloc-column srcloc-line status stop
+    string->path string-append string-downcase stx supplied-path syntax-column
+    syntax-e syntax-failure-expression syntax-failure-reason syntax-line
+    syntax-source syntax? terminator unavailable-source-status
+    unexpected-failure-status unless up valid validate-source value
+    vector->list when with-handlers))
 
 (define expected-runner-requires
   '((require (only-in racket/file file-type-bits regular-file-type-bits)
              (only-in racket/path path-get-extension)
+             (only-in racket/port port->bytes)
              (for-syntax racket/base
                          (only-in racket/path path-only)))))
 
@@ -138,9 +147,13 @@
     dotenv-component?
     dotenv-path?
     resolve-parent-path
-    valid-language-declaration?
+    source-preflight-result
     regular-file?
     validate-source
+    syntax-failure-expression
+    datum-failure-expression?
+    syntax-failure-reason
+    requested-source-missing?
     run-source
     main))
 
@@ -153,6 +166,28 @@
 (define expected-runner-input-targets
   '((build-path (path-only source) (quote up) "VERSION")
     source))
+
+(define expected-runner-stop-definition
+  '(define (stop status source line column reason)
+     (cond
+       ((and source line column)
+        (eprintf "Alone the Lambdas: ~s:~a:~a: ~a\n"
+                 source line column reason))
+       (source
+        (eprintf "Alone the Lambdas: ~s: ~a\n" source reason))
+       (else
+        (eprintf "Alone the Lambdas: ~a\n" reason)))
+     (exit status)))
+
+(define expected-runner-syntax-reason-definition
+  '(define (syntax-failure-reason expression)
+     (cond
+       ((and expression (identifier? expression))
+        (format "unknown ATL name: ~s" (syntax-e expression)))
+       ((datum-failure-expression? expression)
+        "unsupported literal; only nonnegative Nat and String literals are supported")
+       (else
+        "source has invalid syntax"))))
 
 ;; Readers may turn completed values into host values for tests and people,
 ;; but they are not another effects layer. Host control flow and data are
@@ -1319,6 +1354,15 @@
                       unavailable-source-status
                       unexpected-failure-status)))
             (module-info-forms info)))
+  (define stop-definition
+    (findf (lambda (form)
+             (eq? (top-level-binding-name form) 'stop))
+           (module-info-forms info)))
+  (define syntax-reason-definition
+    (findf (lambda (form)
+             (eq? (top-level-binding-name form)
+                  'syntax-failure-reason))
+           (module-info-forms info)))
   (append
    (exact-language-violations path
                               info
@@ -1339,6 +1383,15 @@
        (list (violation path
                         'invalid-runner-definition-set
                         definitions)))
+   (if (and (equal? stop-definition
+                    expected-runner-stop-definition)
+            (equal? syntax-reason-definition
+                    expected-runner-syntax-reason-definition))
+       '()
+       (list (violation path
+                        'invalid-runner-diagnostic-formatter
+                        (list stop-definition
+                              syntax-reason-definition))))
    (if (equal? status-definitions expected-runner-status-definitions)
        '()
        (list (violation path
@@ -1349,7 +1402,11 @@
                      (module-info-forms info))
                     expected-runner-input-targets)
             (= (datum-occurrence-count
-                '(valid-language-declaration? resolved-source)
+                '(source-preflight-result resolved-source)
+                (module-info-forms info))
+               1)
+            (= (datum-occurrence-count
+                '(bytes->string/utf-8 (port->bytes input) #f)
                 (module-info-forms info))
                1))
        '()

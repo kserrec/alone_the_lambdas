@@ -480,7 +480,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 23 next)
+Status: in progress (Phase 24 next)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -607,30 +607,41 @@ language-facade executable behavior changed.
 
 ## Phase 23 — User-facing launch diagnostics
 
-Status: planned
+Status: complete (2026-08-28)
 
-- [ ] Give command misuse, missing/unreadable source, invalid extension,
+- [x] Give command misuse, missing/unreadable source, invalid extension,
   malformed declaration, read/expansion failure, and unexpected launcher
   failure concise Alone the Lambdas diagnostics on stderr with documented,
   stable nonzero exit statuses.
-- [ ] Preserve the original `.atl` path and useful source position while
+- [x] Preserve the original `.atl` path and useful source position while
   removing checkout paths, temporary build paths, host procedure renderings,
   and irrelevant Racket implementation stack details from normal diagnostics.
-- [ ] Keep lambda-encoded Error and Result semantics unchanged: a successfully
+- [x] Keep lambda-encoded Error and Result semantics unchanged: a successfully
   instantiated module exits successfully unless the program explicitly turns
   a value into an effect or the approved design establishes a one-way final
   observation rule that cannot affect object-language computation.
-- [ ] Test syntax errors, unbound identifiers, unsupported datums, wrong public
+- [x] Test syntax errors, unbound identifiers, unsupported datums, wrong public
   names, ordinary contract Errors, Result Err values, real-host failures, and
   internal launcher failures separately so the CLI never disguises one class
   as another.
-- [ ] Synchronize the architecture and acceptance evidence with the exact
+- [x] Synchronize the architecture and acceptance evidence with the exact
   distinction between launcher failure, completed language data, and requested
   host failure.
 
 Acceptance: a user who does not know Racket receives actionable ATL-level
 launch diagnostics without changing Error/Result behavior, effect order, or
 the sole-host claim.
+
+Completion evidence: `./run-all-tests.sh` passed on 2026-08-28 with 4,449
+assertions across 31 test files, the unchanged expanded purity scan over all
+16 `core/` modules, and a zero-finding structural inventory of all 79 source
+files. The 161-check runner suite pins every diagnostic byte and exit status,
+strict UTF-8 rejection, original relative path plus source position, absence
+of temporary/package/raw host detail, and separate contract Error, pure Result
+Err, real-host Result Err, and injected internal-failure behavior. The
+112-check boundary suite pins the exact safe formatter and sole encoding
+preflight in addition to the existing non-exporting one-loader class. No core,
+effect, codec, host, reader, expander, or public-language executable changed.
 
 ## Phase 24 — Self-contained Linux distribution
 

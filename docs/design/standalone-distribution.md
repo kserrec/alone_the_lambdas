@@ -1,14 +1,14 @@
 # Standalone distribution design
 
-Status: approved 2026-08-27; feasibility proven; Phase 22 implemented
+Status: approved 2026-08-27; feasibility proven; Phases 22 and 23 implemented
 
 Date: 2026-08-27
 
 This document fixes the contract for distributing Alone the Lambdas as an
 independently runnable language. It is subordinate to the three canonical
 [specifications](../specifications/README.md) and to the already approved
-[host boundary](host-boundary.md). Approval authorizes the implementation
-work in Phase 22; it does not authorize a public release.
+[host boundary](host-boundary.md). Approval authorized the implementation
+work that began in Phase 22; it does not authorize a public release.
 
 ## Verified starting state
 
@@ -188,11 +188,46 @@ unless it separately encounters a launcher-level failure. A schema-valid real
 host request that the operating system rejects still returns Result Err under
 the approved host contract; it does not become status `70`.
 
-Normal diagnostics must name Alone the Lambdas, the user's source spelling,
-and an actionable reason. They must not expose raw host procedures, exception
-object renderings, Racket stack traces, package registry paths, source-checkout
-paths, or build paths. Phase 23 will implement and freeze the exact message
-templates without changing the status classifications above.
+Normal diagnostics name Alone the Lambdas, the user's source spelling, and an
+actionable reason. They do not expose raw host procedures, exception object
+renderings, Racket stack traces, package registry paths, source-checkout
+paths, or build paths. Phase 23 freezes the exact templates below without
+changing the status classifications above.
+
+The three output shapes are:
+
+```text
+Alone the Lambdas: REASON
+Alone the Lambdas: "SOURCE": REASON
+Alone the Lambdas: "SOURCE":LINE:COLUMN: REASON
+```
+
+`SOURCE` is the original command-line spelling. It is quoted, with control
+characters, quotes, and backslashes escaped, so one diagnostic remains one
+line. The canonical reader supplies one-based lines and zero-based columns.
+No resolved source location is used. The exact reasons are:
+
+| Class | Status | Exact reason |
+| --- | ---: | --- |
+| command misuse | 64 | `expected atl run FILE.atl, atl --help, or atl --version` |
+| supplied or resolved dotenv path | 66 | `refused source path because dotenv files are never read` |
+| wrong extension | 65 | `source file name must end in lowercase .atl` |
+| source-entry symlink | 66 | `refused symbolic-link source; choose a regular .atl file` |
+| uninspectable path metadata | 66 | `source path could not be inspected` |
+| missing source | 66 | `source file was not found` |
+| nonregular source | 66 | `source path is not a regular file` |
+| unreadable source | 66 | `source file could not be read` |
+| malformed declaration | 65 | `line 1 must be exactly #lang alone_the_lambdas` |
+| invalid byte encoding | 65 | `source is not valid UTF-8` |
+| reader failure | 65 | `source could not be read; check delimiters and UTF-8 encoding` |
+| unavailable identifier | 65 | `unknown ATL name: IDENTIFIER` |
+| unsupported datum | 65 | `unsupported literal; only nonnegative Nat and String literals are supported` |
+| other expansion failure | 65 | `source has invalid syntax` |
+| unexpected launcher failure | 70 | `unexpected launcher failure; verify the ATL installation` |
+
+`IDENTIFIER` is written as a safely escaped source symbol. A missing internal
+language module is an unexpected launcher failure; a missing requested source
+remains unavailable input. No exception message is copied into a diagnostic.
 
 ## Trusted launcher boundary
 
@@ -209,7 +244,8 @@ purposes:
 - set its process exit status;
 - perform lexical path, suffix, and dotenv-name checks;
 - resolve and inspect metadata for the one supplied source path;
-- read only enough of that source to validate the exact language declaration;
+- read the exact language declaration and validate the remaining source bytes
+  only as strict UTF-8, without tokenizing or interpreting them;
 - dynamically load that same source path once;
 - categorize reader, syntax, expansion, input, and unexpected implementation
   exceptions for the exit table;
@@ -477,10 +513,45 @@ public version literal, and performs one validated module load; `examples/`
 contains exactly the four canonical `.atl` files. The complete suite passed
 4,412 assertions across 31 test files,
 the unchanged 16-module expanded purity scan, and the 79-source boundary
-inventory. Phase 23 still owns the final user-facing diagnostic templates and
-path/source-position sanitization. Phases 24 through 27 still own native
-artifacts, clean consumer proof, novice documentation, license approval, and
-release-candidate work; nothing in Phase 22 authorizes publication.
+inventory. At that historical boundary, Phase 23 still owned the final
+user-facing templates and path/source-position sanitization. Phases 24 through
+27 still own native artifacts, clean consumer proof, novice documentation,
+license approval, and release-candidate work; nothing in Phase 22 authorizes
+publication.
+
+## Phase 23 implementation record
+
+Phase 23 implemented the diagnostic contract on 2026-08-28. The runner now
+emits only the exact ATL templates above, quotes the original source spelling,
+uses canonical reader line/column metadata without printing its resolved
+source path, distinguishes requested-source loss from a missing internal
+language module, and never renders an exception object or message.
+
+An implementation probe established that Racket's ordinary source port
+replaces malformed UTF-8 bytes with `U+FFFD` instead of raising a read failure.
+`source-preflight-result` therefore validates the bytes after the already
+exact ASCII declaration with strict `bytes->string/utf-8` before the existing
+reader runs. This is encoding validation, not a tokenizer, parser, expander,
+or evaluator. It reads no path other than the one already supplied and does
+not retain or expose the temporary host String. The implementation adds one
+direct `racket/port` standard-library import for `port->bytes`, no third-party
+package, and no package-metadata dependency; Phase 24 will measure whether it
+changes the eventual embedded file closure or artifact size.
+
+Focused tests pin every diagnostic byte and status, preserve relative and
+Unicode path spelling, reject invalid encoding, and keep contract Error, pure
+Result Err, and real-host Result Err completion at status 0. A disposable
+runner copy injects raw host detail at the sole loader call and proves the
+status-70 handler emits none of it. The boundary gate separately pins the
+formatter, strict encoding operation, imports, definitions, vocabulary, one
+loader call, no exports, and every forbidden dependency direction. Phase 23
+changes no core/effect/runtime/language executable, object representation,
+effect order, or host authority.
+
+Completion verification passed 4,449 assertions across all 31 test files, the
+unchanged expanded purity scan over 16 `core/` modules, and the complete
+79-source boundary inventory. The focused runner suite passed 161 assertions;
+the adversarial boundary suite passed 112.
 
 ## Approval record
 

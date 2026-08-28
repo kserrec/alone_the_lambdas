@@ -1093,6 +1093,30 @@
 
    (write-datum
     runner-file
+    (replace-datum
+     '(format "unknown ATL name: ~s" (syntax-e expression))
+     '(format "unknown ATL name: ~s" expression)
+     clean-runner-datum))
+   (check-not-false
+    (member 'invalid-runner-diagnostic-formatter
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (replace-datum
+     '(bytes->string/utf-8 (port->bytes input) #f)
+     '(bytes->string/utf-8 #"" #f)
+     clean-runner-datum))
+   (check-not-false
+    (member 'invalid-runner-input-targets
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
     (append-module-form clean-runner-datum
                         '(define copied-version "0.2.0-dev")))
    (check-not-false
