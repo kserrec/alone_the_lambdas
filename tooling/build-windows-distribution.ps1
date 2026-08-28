@@ -609,8 +609,19 @@ try {
     Write-LfUtf8 $manifestPath $manifest.ToString()
 
     $artifactFiles = @((Get-SafeTreeEntries -Root $artifactRoot -RejectDotenv) | Where-Object { -not $_.IsDirectory } | ForEach-Object { $_.FullPath })
-    $toolchainRoot = Get-FullPath ([IO.Path]::Combine([IO.Path]::GetDirectoryName($racket.Source), '..'))
-    Assert-NoForbiddenBuildPaths $artifactFiles @($ProjectRoot, $BuildTempRoot, $isolatedUserHome, $packageSource, $rawDistribution, $toolchainRoot)
+    $forbiddenBuildPaths = [Collections.Generic.List[string]]::new()
+    foreach ($path in @($ProjectRoot, $BuildTempRoot, $isolatedUserHome, $packageSource, $rawDistribution)) {
+        $forbiddenBuildPaths.Add($path)
+    }
+    $toolchainRoot = Get-FullPath ([IO.Path]::GetDirectoryName($racket.Source))
+    $standardToolchainRoots = @(
+        (Get-FullPath ([IO.Path]::Combine([Environment]::GetFolderPath('ProgramFiles'), 'Racket'))),
+        (Get-FullPath ([IO.Path]::Combine([Environment]::GetFolderPath('ProgramFilesX86'), 'Racket')))
+    )
+    if (@($standardToolchainRoots | Where-Object { $_.Equals($toolchainRoot, [StringComparison]::OrdinalIgnoreCase) }).Count -ne 1) {
+        $forbiddenBuildPaths.Add($toolchainRoot)
+    }
+    Assert-NoForbiddenBuildPaths $artifactFiles $forbiddenBuildPaths.ToArray()
 
     New-DeterministicZip $artifactParent $artifactRootName $StagedArchive
     $archiveDigest = Get-Sha256 $StagedArchive
