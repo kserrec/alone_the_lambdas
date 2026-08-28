@@ -158,7 +158,8 @@ function Get-PeMachine([string] $Path) {
 }
 
 function Find-Dumpbin {
-    $command = Get-Command dumpbin.exe -CommandType Application -ErrorAction SilentlyContinue
+    $command = Get-Command dumpbin.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($null -ne $command) {
         return $command.Source
     }

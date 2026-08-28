@@ -198,6 +198,10 @@
 (check-true (regexp-match? #rx"PE32[+] machine 0x8664" windows-build-source))
 (check-true (regexp-match? #rx"dumpbin[.]exe" windows-build-source))
 (check-true (regexp-match? #rx"Get-AuthenticodeSignature" windows-build-source))
+(check-true
+ (regexp-match?
+  #px"Get-Command git[.]exe[^\n]*[|]\n[ ]*Select-Object -First 1"
+  windows-build-source))
 (check-true (regexp-match? #rx"1980, 1, 1" windows-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" windows-build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME" windows-build-source))

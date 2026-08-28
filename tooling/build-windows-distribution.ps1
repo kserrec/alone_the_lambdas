@@ -156,7 +156,8 @@ function Get-PeMachine([string] $Path) {
 }
 
 function Find-Dumpbin {
-    $command = Get-Command dumpbin.exe -CommandType Application -ErrorAction SilentlyContinue
+    $command = Get-Command dumpbin.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($null -ne $command) {
         return $command.Source
     }
@@ -331,8 +332,10 @@ try {
         Fail "refusing to replace existing output: $ChecksumPath"
     }
 
-    $racket = Get-Command racket.exe -CommandType Application -ErrorAction SilentlyContinue
-    $raco = Get-Command raco.exe -CommandType Application -ErrorAction SilentlyContinue
+    $racket = Get-Command racket.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    $raco = Get-Command raco.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($null -eq $racket -or $null -eq $raco) {
         Fail 'build requires racket.exe and raco.exe on PATH'
     }
@@ -393,7 +396,8 @@ try {
         Fail 'build requires the full Racket distribution'
     }
 
-    $git = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue
+    $git = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($null -eq $git) {
         Fail 'build requires git.exe on PATH'
     }
