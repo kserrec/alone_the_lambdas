@@ -386,7 +386,15 @@ scan_for_build_path() {
 
 scan_for_build_path "$project_root"
 scan_for_build_path "$build_temp_root"
-scan_for_build_path "$(dirname "$(dirname "$(realpath "$racket_executable")")")"
+toolchain_root="$(dirname "$(dirname "$(realpath "$racket_executable")")")"
+case "$toolchain_root" in
+  /usr|/usr/local)
+    # A system-wide Unix-style installation uses an ordinary system prefix. The
+    # no-Racket consumer proves that the artifact does not depend on it.
+    :
+    ;;
+  *) scan_for_build_path "$toolchain_root" ;;
+esac
 
 [[ "$(env -u PLTCOLLECTS -u PLTADDONDIR -u PLTCONFIGDIR \
           "$artifact_root/bin/atl" --version)" == \
