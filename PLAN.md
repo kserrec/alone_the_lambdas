@@ -480,7 +480,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 25 next)
+Status: in progress (Phase 26 next)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -700,27 +700,64 @@ sources. The focused distribution contract suite passed 43 assertions.
 
 ## Phase 25 — Native macOS distributions
 
-Status: planned
+Status: complete (2026-08-28)
 
-- [ ] Add pinned native macOS x86-64 and arm64 build jobs using the same
+- [x] Add pinned native macOS x86-64 and arm64 build jobs using the same
   version and audited build contract as Linux; do not treat a launcher tied to
   a CI Racket installation as a distributable executable.
-- [ ] Produce predictably named `.tar.gz` archives that preserve the runtime-
+- [x] Produce predictably named `.tar.gz` archives that preserve the runtime-
   relative layout and canonical `atl` entry point on both architectures.
-- [ ] Transfer each archive to a separate same-architecture consumer job that
+- [x] Transfer each archive to a separate same-architecture consumer job that
   does not install Racket, then run the CLI, canonical stdout/file
   applications, and loopback-network acceptance from a writable temporary
   directory.
-- [ ] Verify archive contents, executable permissions, paths containing spaces,
+- [x] Verify archive contents, executable permissions, paths containing spaces,
   clean stderr, version agreement, checksums, and absence of checkout,
   package-registry, or build-runner dependencies on both targets.
-- [ ] Record the oldest macOS versions actually demonstrated by clean consumer
+- [x] Record the oldest macOS versions actually demonstrated by clean consumer
   jobs; do not claim an untested release, architecture, signing state, or
   minimum version.
 
 Acceptance: both macOS architectures provide the same ATL behavior as Linux
 without a preinstalled Racket environment, and each passes its acceptance
 suite after a build-to-consumer job boundary.
+
+Completion evidence: validation commit
+`ed0db7df9ca17d4e7b2ea458069f7861c1207a2d` passed the complete
+[GitHub Actions run](https://github.com/kserrec/alone_the_lambdas/actions/runs/33181962284).
+Native Racket CS 9.3 builds produced the predictably named Intel and Apple
+Silicon archives, and separate same-architecture jobs received only each
+archive, its external `SHA256SUMS`, and the consumer harness. The consumers
+had no `racket` command, `raco` command, or checkout and passed exact
+help/version/source/stdout/file/loopback-HTTP behavior, hostile collection-path
+precedence, paths containing spaces, and relocation.
+
+The demonstrated Apple Silicon consumer was macOS 15.7.7 arm64. Its 9-file
+payload was `13,698,161` compressed bytes and `62,117,801` unpacked
+regular-file bytes, with SHA-256
+`8f428ff16be4acbf4a8ad41ce7241a40a623931ef9b5451c81b83e2fd2aad63f`;
+first and relocated startup observations were 194 ms and 121 ms. The
+demonstrated Intel consumer was macOS 15.7.9 x86_64. Its 9-file payload was
+`13,669,470` compressed bytes and `59,412,300` unpacked regular-file bytes,
+with SHA-256
+`7ac92ca6aa49ce2882e43ab0d318d034932cc06cfe88e9554048b018ec0742ab`;
+first and relocated startup observations were 1,170 ms and 319 ms. Each
+archive contained one Mach-O runtime file and observed only CoreFoundation,
+`libSystem`, `libiconv`, and `libncurses` as system-library assumptions.
+These versions, timings, sizes, and digests are observations for those
+disposable validation artifacts, not compatibility floors, performance
+guarantees, release checksums, signing claims, or public downloads.
+
+Kyle explicitly approved temporary public GitHub Actions transfer for these
+two unpublished artifacts. Both uploads used one-day retention only as a
+cleanup-failure fallback; the final cleanup job deleted them immediately, and
+the run artifact API reported zero remaining artifacts. Phase 25 changed only
+CI, shell packaging/consumer tooling, focused tests, and documentation. It
+changed no production Racket source, language operation, representation, or
+host authority. Completion verification passed 4,541 assertions across all
+32 test files, the unchanged expanded purity scan over 16 `core/` modules,
+and the complete zero-finding structural inventory of all 80 Racket and
+`.atl` sources. The focused distribution contract suite passed 92 assertions.
 
 ## Phase 26 — Native Windows distribution
 

@@ -58,7 +58,10 @@ changing the object language or its effect boundary. Phase 24 adds one
 deterministic Linux x86-64 build entry point, a self-contained Racket CS 9.3
 runtime tree, an external checksum manifest, provisional internal notices, and
 a locked-down no-Racket consumer/relocation proof without adding a production
-module or language capability.
+module or language capability. Phase 25 adds isolated native macOS x86_64 and
+arm64 builds, separate same-architecture no-Racket consumer jobs, Mach-O and
+system-library verification, and immediately deleted workflow-artifact
+transfer without changing the product's runtime authority.
 
 ## Computational boundary
 
@@ -258,6 +261,29 @@ external same-named reader cannot replace the embedded language; performs
 stdout, isolated file, and one-request loopback HTTP effects; then moves the
 tree to a path with spaces and reruns it. This harness constrains the test, not
 the authority of an ordinary distributed ATL process.
+
+`tooling/build-macos-distribution.sh` is the corresponding native macOS build
+boundary for exact `macos-x86_64` and `macos-arm64` targets. It requires the
+matching native hardware and full Racket CS 9.3, uses the same copied-package
+and isolated-registry discipline, and emits one predictably named `.tar.gz`
+plus external `SHA256SUMS`. It rejects symlinks and unexpected layout,
+normalizes an empty `lib/` when `raco distribute` needs no separate support
+files, inventories every Mach-O file and architecture, accepts only relative
+or macOS system dynamic dependencies, strips nondeterministic archive
+metadata, and scans every payload file for private build paths.
+
+`tooling/test-macos-distribution.sh` contains no repository dependency and is
+transferred alongside one archive and checksum to a separate native consumer
+job. That job performs no checkout and installs no Racket. The harness verifies
+the checksum before extraction, exact layout/manifest/permissions, native
+Mach-O architecture and dependencies, help/version bytes and clean stderr, a
+source created after packaging, hostile collection-path precedence,
+stdout/file/loopback HTTP effects, and a move between paths containing spaces.
+The workflow transfer is
+not a release channel: it uses commit-pinned GitHub upload/download actions,
+one-day fallback retention, and an always-run cleanup job with only
+`actions: write` authority that deletes both artifacts and verifies their
+absence.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -569,9 +595,11 @@ distribution/
 tests/
 tooling/
   build-linux-distribution.sh
+  build-macos-distribution.sh
   check-purity.rkt
   check-boundaries.rkt
   test-linux-distribution.sh
+  test-macos-distribution.sh
 VERSION
 info.rkt
 run-all-tests.sh
@@ -766,9 +794,20 @@ stdout bytes, a source created after packaging, hostile collection-path
 precedence, isolated file replacement/readback, loopback HTTP with external
 networking disabled, and execution after relocation. This proves a current
 Linux development artifact, not a minimum Linux version or public release.
-The completion suite passed 4,492 assertions across 32 test files, retained
-the unchanged 16-module expanded core proof, and inventoried all 80 Racket and
-`.atl` sources with zero boundary findings.
+
+The macOS distribution suite applies that contract independently on native
+x86_64 and arm64 runners, then crosses a workflow-job boundary to consumers
+with neither a checkout nor Racket commands. Validation commit `ed0db7d`
+passed exact CLI, generated-source, stdout, file, loopback HTTP, hostile
+collection-path, checksum, dependency, and relocation checks on macOS 15.7.9
+x86_64 and macOS 15.7.7 arm64. Those are the only demonstrated versions, not
+minimum-version claims. The approved temporary uploads were deleted by the
+same successful workflow, whose artifact query returned zero remaining
+artifacts.
+
+The current completion suite passed 4,541 assertions across 32 test files,
+retained the unchanged 16-module expanded core proof, and inventoried all 80
+Racket and `.atl` sources with zero boundary findings.
 
 ## Completed milestone boundary
 

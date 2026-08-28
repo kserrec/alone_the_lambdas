@@ -34,9 +34,12 @@ variables, unary lambdas, and application.
 > source encoding, original-path/source-position reporting, and stable failure
 > statuses without changing the object language or its host authority; Phase
 > 24 adds a deterministic, self-contained Linux x86-64 development archive and
-> proves it in a transferred no-Racket Ubuntu container. That artifact remains
-> unpublished: macOS, Windows, the final legal inventory, and explicit release
-> approval still belong to later phases. Separate structural gates enforce
+> proves it in a transferred no-Racket Ubuntu container; Phase 25 adds native
+> Intel and Apple Silicon macOS development archives and proves each in a
+> separate same-architecture no-Racket consumer job before immediately
+> deleting the temporary transfer artifacts. All artifacts remain unpublished:
+> Windows, the final legal inventory, and explicit release approval still
+> belong to later phases. Separate structural gates enforce
 > every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
@@ -194,6 +197,16 @@ precedence over conflicting examples in the base specification.
   with no Racket command and no external network, then proves CLI, arbitrary
   source, stdout, file, loopback HTTP, embedded-reader precedence, and
   relocation behavior.
+- `tooling/build-macos-distribution.sh` applies the same isolated Racket CS 9.3
+  contract on native Intel and Apple Silicon runners, verifies every Mach-O
+  architecture and dynamic dependency, and emits normalized versioned
+  `.tar.gz` archives with external checksums.
+- `tooling/test-macos-distribution.sh` is the self-contained clean-consumer
+  harness. Separate native jobs receive only one archive, its checksum, and
+  this harness; with no Racket command or checkout they prove exact CLI,
+  arbitrary-source, stdout, file, loopback HTTP, embedded-reader precedence,
+  and relocation behavior. The workflow then deletes both temporary transfer
+  artifacts immediately.
 - `distribution/` contains only the internal getting-started and provisional
   notice templates. Until Phase 27 approves a repository license, generated
   archives carry `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE`.
@@ -265,11 +278,11 @@ surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
-Phase 24 proves a native Linux x86-64 `atl` executable with its private
-runtime, but that development artifact is neither checked in nor published.
-After the fresh setup above, invoke the source-checkout development entry
-point through Racket. Later phases still own the other native platforms,
-license approval, and an authorized public download.
+Phases 24 and 25 prove native Linux x86-64, macOS x86_64, and macOS arm64 `atl`
+executables with their private runtimes, but those development artifacts are
+neither checked in nor published. After the fresh setup above, invoke the
+source-checkout development entry point through Racket. Later phases still own
+Windows, license approval, and an authorized public download.
 
 The minimal hello application emits one line:
 

@@ -66,6 +66,18 @@ expanded core scan, and the complete 79-source classification with the exact
 diagnostic formatter and strict source-encoding preflight added to the closed
 runner class.
 
+Phase 24 was verified on 2026-08-28 with `./run-all-tests.sh`: 4,492 passing
+assertions across 32 test files, the unchanged clean 16-module expanded core
+scan, and the complete 80-source classification. Its separate digest-pinned
+Ubuntu 24.04 consumer passed with no Racket command or checkout.
+
+Phase 25 was verified on 2026-08-28 with `./run-all-tests.sh`: 4,541 passing
+assertions across the same 32 test files, the unchanged clean 16-module
+expanded core scan, and the complete 80-source classification. The separate
+native macOS 15.7.7 arm64 and macOS 15.7.9 x86_64 consumers passed with no
+Racket command or checkout, and the workflow deleted both temporary transfer
+artifacts.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -193,6 +205,18 @@ runner class.
 | The unoptimized Linux baseline is measured without becoming a release claim. | The disposable validation archive was `13,679,991` compressed bytes and `59,299,555` unpacked regular-file bytes. Its runtime tree was exactly `bin/atl` (`7,853,237` bytes) plus `lib/plt/racketcs-9.3` (`51,412,696` bytes); the full payload had 10 files. Final pinned-container runs observed 290–344 ms for the first `atl --version` process and 294–302 ms after relocation. Both ELF files resolved the loader, `libc`, `libdl`, `libm`, `libpthread`, `librt`, and `libz`. Every recorded internal dirty-tree build had SHA-256 `a5e43c54467fa4afe0bb74aeeda962ae617de26b35c6cf50d65891de81b64cf0`; this is reproducibility evidence for those disposable artifacts, not a public or final-commit checksum. No demodularizer or new dependency was added. |
 | Packaging changes no language or host boundary. | [`distribution-test.rkt`](../tests/distribution-test.rkt) contributes 43 focused shell/asset/contract assertions. The final suite passed 4,492 assertions across 32 test files, the unchanged 16-module expanded core-purity proof, and a zero-finding inventory of all 80 Racket and `.atl` sources. No production Racket source changed; shell tooling remains nonproduction and cannot enter the structural dependency graph. |
 
+## Phase 25 native macOS distribution evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Both macOS architectures use pinned native builds. | [The test workflow](../.github/workflows/tests.yml) maps `macos-x86_64` to `macos-15-intel` plus Racket `x64`, and `macos-arm64` to `macos-15` plus Racket `arm64`. [`build-macos-distribution.sh`](../tooling/build-macos-distribution.sh) independently requires Darwin, the matching native `uname -m`, full Racket CS 9.3, the closed version projection, clean nonsymlink inputs, an isolated `PLTUSERHOME`, and `--deps fail` before invoking `raco exe ++lang alone_the_lambdas` and `raco distribute`. |
+| The archives have exact portable structure and native dependencies. | Each predictably named `.tar.gz` has one versioned root, canonical `bin/atl`, stable `lib/` directory, the four examples, guide, build manifest, provisional notices, and unpublished warning; final SHA-256 and filename live only in sibling `SHA256SUMS`. The build rejects symlinks and unexpected native architectures, records every Mach-O file, permits only relative or `/usr/lib`/`/System/Library` dependencies, scans for private build paths, and normalizes timestamps, ownership, ordering, and gzip metadata. Racket CS 9.3 emitted no separate support files on either demonstrated target, so the build safely normalized an empty `lib/`; each archive's only Mach-O runtime file was `bin/atl`. |
+| Each artifact crosses into an independent clean native consumer. | The build matrix uploads only one archive, `SHA256SUMS`, and a self-contained copy of [`test-macos-distribution.sh`](../tooling/test-macos-distribution.sh). Separate same-architecture jobs perform no checkout and install no Racket. Both consumers reported absent `racket`, absent `raco`, and absent checkout, then verified the checksum before extraction, exact layout/manifest/permissions, native Mach-O inventory, clean stderr, exact help/version bytes, a canonical source created after packaging, and hostile collection-path precedence. |
+| All approved effects and relocation work on both targets. | Both consumers reproduced exact stdout, isolated file replacement/readback, and one ephemeral-loopback HTTP response from the transferred payload. Each extracted into a path containing spaces, then moved to a second such path and reran both version and the post-package source. Validation commit `ed0db7df9ca17d4e7b2ea458069f7861c1207a2d` passed all jobs in [run 33181962284](https://github.com/kserrec/alone_the_lambdas/actions/runs/33181962284). |
+| Measurements remain observations rather than compatibility or release claims. | The macOS 15.7.7 arm64 consumer validated a 9-file, `13,698,161`-byte compressed, `62,117,801`-byte unpacked payload with SHA-256 `8f428ff16be4acbf4a8ad41ce7241a40a623931ef9b5451c81b83e2fd2aad63f`; startup observations were 194 ms initially and 121 ms after relocation. The macOS 15.7.9 x86_64 consumer validated a 9-file, `13,669,470`-byte compressed, `59,412,300`-byte unpacked payload with SHA-256 `7ac92ca6aa49ce2882e43ab0d318d034932cc06cfe88e9554048b018ec0742ab`; startup observations were 1,170 ms and 319 ms. Both observed CoreFoundation, `libSystem`, `libiconv`, and `libncurses`. These exact versions are the oldest and only macOS versions demonstrated; no lower compatibility floor, signing state, performance guarantee, public checksum, or release is claimed. |
+| The narrowly approved public transfer leaves no artifact behind. | Kyle explicitly approved only temporary GitHub Actions transfer of the two unpublished archives and their consumer harnesses. Upload and download use exact commit-pinned official GitHub actions, with one-day retention only as a cleanup-failure fallback. An `always()` cleanup job has `actions: write` and `contents: none`, deletes both exact artifact names, and fails if either remains. The successful validation run's artifact API returned `total_count: 0` immediately afterward. |
+| Packaging changes no production behavior. | [`distribution-test.rkt`](../tests/distribution-test.rkt) now contributes 92 focused shell/asset/workflow assertions. The completion suite passed 4,541 assertions across 32 test files, the unchanged 16-module expanded core-purity proof, and a zero-finding inventory of all 80 Racket and `.atl` sources. Phase 25 changed CI, shell tooling, tests, and documentation only; it changed no production Racket source, operation, representation, or host authority. |
+
 ## Explicit one-bridge evidence map
 
 | Boundary fact | Sole allowed production location | Enforced evidence |
@@ -209,10 +233,11 @@ runner class.
 
 The completed milestone deliberately does not claim sandboxing or per-program
 permission prompts: a real-host program inherits the launching process's
-relevant authority. Phase 24 now proves one unpublished self-contained Linux
-x86-64 development archive, but not a public download, a Linux compatibility
-floor beyond the pinned Ubuntu 24.04 consumer, a macOS or Windows artifact, an
-approved repository license, signing, or release authority. The language has no
+relevant authority. Phases 24 and 25 now prove unpublished self-contained Linux
+x86-64, macOS x86_64, and macOS arm64 development archives, but not a public
+download, a compatibility floor below the exact demonstrated consumers, a
+Windows artifact, an approved repository license, signing, or release
+authority. The language has no
 program-argument API, general parser, optimizer, compiler, records, JSON,
 environment or process access, directory operations, atomic file replacement,
 TLS, UDP, timeouts, asynchronous server, production concurrency, or general

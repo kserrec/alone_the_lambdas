@@ -1,6 +1,6 @@
 # Standalone distribution design
 
-Status: approved 2026-08-27; feasibility proven; Phases 22 through 24 implemented
+Status: approved 2026-08-27; feasibility proven; Phases 22 through 25 implemented
 
 Date: 2026-08-27
 
@@ -372,7 +372,7 @@ alone-the-lambdas-VERSION-TARGET/
   bin/
     atl                 Unix
     atl.exe             Windows instead of atl
-  lib/                  files emitted by raco distribute
+  lib/                  runtime support files, empty when none are required
   examples/
     hello.atl
     stdout.atl
@@ -390,8 +390,10 @@ self-referential checksum and lets a user verify the download before
 extraction. Kyle approved this correction on 2026-08-28.
 
 Only the platform's one executable spelling is present. The internal `lib/`
-shape may differ by platform because `raco distribute` is authoritative, but
-the executable must resolve it relative to the relocated archive root.
+contents may differ by platform because `raco distribute` is authoritative;
+the directory remains present for a stable archive shape and is empty when
+Racket emits no separate support files. The executable must resolve any
+support files relative to the relocated archive root.
 
 Before an Alone the Lambdas license is approved, an internal development
 artifact substitutes `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` for `LICENSE` and
@@ -508,8 +510,10 @@ Phase 24 now supplies the Linux archive manifest, reproducible build, startup
 measurement, canonical application/effect checks, hostile collection-path
 probe, and relocation automation described below. Its consumer evidence is
 limited to one digest-pinned Ubuntu 24.04 image; it establishes no older Linux
-floor. Native macOS/Windows artifacts, their compatibility floors, the final
-legal inventory, signing, and publication remain unproven.
+floor. Phase 25 supplies native macOS x86_64 and arm64 artifacts plus clean
+same-architecture consumer proof on macOS 15.7.9 and 15.7.7 respectively; it
+establishes no older macOS floor. The Windows artifact, lower compatibility
+floors, final legal inventory, signing, and publication remain unproven.
 
 ## Phase 22 implementation record
 
@@ -615,6 +619,84 @@ Completion verification passed 4,492 assertions across all 32 test files, the
 unchanged expanded purity scan over 16 `core/` modules, and the complete
 80-source boundary inventory. The focused distribution contract suite passed
 43 assertions, and the no-Racket consumer harness passed independently.
+
+## Phase 25 implementation record
+
+Phase 25 implemented `tooling/build-macos-distribution.sh` for exact native
+`macos-x86_64` and `macos-arm64` targets. It requires Darwin, matching native
+hardware, and full Racket CS 9.3; verifies the same version projection,
+clean-source, nonsymlink-input, isolated-registry, and no-dependency-download
+contracts as the Linux builder; invokes the same `raco exe ++lang
+alone_the_lambdas` and `raco distribute` path; and emits a predictably named
+`.tar.gz` plus external `SHA256SUMS`. It additionally validates every Mach-O
+file with `file`, `lipo`, and `otool`; rejects unexpected architecture and
+non-system absolute dependencies; normalizes tar/gzip metadata; and scans all
+payload bytes for checkout, temporary-build, package-home, and nonstandard
+toolchain paths.
+
+The first native run observed that Racket CS 9.3 returned success and produced
+`bin/atl` on both architectures but no `lib/`. Racket documents that support
+directories contain the separate files needed by the executable, and the
+later clean consumers proved these executables needed none. The builder had
+incorrectly required Racket itself to create that directory. The corrected
+builder rejects an existing symlink or non-directory and otherwise creates an
+empty mode-0755 `lib/`, preserving the approved stable archive layout without
+inventing a runtime dependency. A focused regression assertion pins that
+normalization.
+
+`tooling/test-macos-distribution.sh` is self-contained so a consumer job needs
+no checkout. It verifies no `racket` or `raco` command is present, validates
+the external checksum before extraction, rejects unsafe paths and symlinks,
+checks the exact layout/manifest/permissions and native dependency inventory,
+and exercises exact help/version bytes with clean stderr. It then runs a source
+created after packaging, proves a hostile external collection path cannot
+replace the embedded language, performs the canonical stdout, isolated-file,
+and ephemeral-loopback HTTP effects, moves the tree between paths containing
+spaces, and repeats version plus generated-source runs.
+
+Validation commit `ed0db7df9ca17d4e7b2ea458069f7861c1207a2d`
+passed all jobs in [GitHub Actions run
+33181962284](https://github.com/kserrec/alone_the_lambdas/actions/runs/33181962284):
+
+| Observation | macOS Apple Silicon | macOS Intel |
+| --- | --- | --- |
+| Target | `macos-arm64` | `macos-x86_64` |
+| Clean consumer | macOS 15.7.7 arm64 | macOS 15.7.9 x86_64 |
+| Regular files | 9 | 9 |
+| Mach-O runtime files | 1 (`bin/atl`) | 1 (`bin/atl`) |
+| Compressed bytes | `13,698,161` | `13,669,470` |
+| Unpacked regular-file bytes | `62,117,801` | `59,412,300` |
+| SHA-256 | `8f428ff16be4acbf4a8ad41ce7241a40a623931ef9b5451c81b83e2fd2aad63f` | `7ac92ca6aa49ce2882e43ab0d318d034932cc06cfe88e9554048b018ec0742ab` |
+| First startup | 194 ms | 1,170 ms |
+| Relocated startup | 121 ms | 319 ms |
+
+Both executables observed only CoreFoundation, `libSystem`, `libiconv`, and
+`libncurses` as dynamic system-library assumptions. Both consumers reported no
+`racket` command, no `raco` command, no checkout, passed relocation, and passed
+all acceptance checks. These two exact operating-system versions are the oldest
+and only macOS versions demonstrated. The sizes, hashes, libraries, and timings
+describe only the disposable artifacts from the named validation commit; they
+are not minimum-version claims, performance guarantees, signing claims,
+release checksums, or public downloads.
+
+The workflow uses the existing pinned setup/checkout actions plus two narrowly
+justified CI-only transfer dependencies: official `actions/upload-artifact`
+v7.0.1 and `actions/download-artifact` v8.0.1, each pinned by full commit. Their
+cost is transient GitHub artifact storage and two action implementations in
+the CI dependency surface; they add no package or runtime dependency. Kyle's
+explicit approval permits only these temporary unpublished transfers. The
+workflow sets one-day retention as a cleanup-failure fallback, then an
+`always()` job with `actions: write` and `contents: none` deletes both exact
+artifact names and verifies no matching artifact ID remains. The successful
+run's artifact API reported zero artifacts immediately after cleanup.
+
+Phase 25 changed CI, shell build/consumer tooling, focused tests, and
+documentation. It changed no production Racket source, object-language
+operation, representation, effect order, or host authority. Completion
+verification passed 4,541 assertions across all 32 test files, the unchanged
+expanded purity scan over 16 `core/` modules, and the complete 80-source
+boundary inventory. The focused distribution contract suite passed 92
+assertions, and both independent no-Racket macOS consumer jobs passed.
 
 ## Approval record
 
