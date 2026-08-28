@@ -218,10 +218,10 @@ function Get-PeDependencies([string] $Dumpbin, [string] $Path) {
 
 function Assert-NoBuildRunnerPaths([string[]] $Files) {
     # The builder rejects the complete checkout, build-root, package-source,
-    # and isolated-user-home paths while those paths are known. The Windows
-    # executable can retain only the isolated user home's directory basename
-    # as inert Racket source metadata, so relocation below—not that basename—
-    # is the independent dependency check.
+    # and isolated-user-home paths while those paths are known. An observed
+    # Windows executable retained only the isolated user home's directory
+    # basename; the cross-drive no-Racket run below proves that basename is not
+    # an operational dependency.
     $forbiddenFragments = [ordered]@{
         'github-checkout-segment' = '\a\alone_the_lambdas\alone_the_lambdas\'
         'runner-temp-segment' = '\_temp\'

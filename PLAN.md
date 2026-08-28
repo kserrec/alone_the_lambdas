@@ -480,7 +480,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 26 next)
+Status: in progress (Phase 27 next)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -761,27 +761,77 @@ and the complete zero-finding structural inventory of all 80 Racket and
 
 ## Phase 26 — Native Windows distribution
 
-Status: planned
+Status: complete (2026-08-28)
 
-- [ ] Add a pinned native Windows x86-64 build job using the same version and
+- [x] Add a pinned native Windows x86-64 build job using the same version and
   audited build contract as Linux and macOS, including every DLL and runtime
   file required by a machine without Racket.
-- [ ] Produce a predictably named `.zip` archive with the canonical `atl.exe`
+- [x] Produce a predictably named `.zip` archive with the canonical `atl.exe`
   entry point and a runtime-relative layout that survives extraction to a
   different drive and a path containing spaces.
-- [ ] Transfer the archive to a separate Windows consumer job that does not
+- [x] Transfer the archive to a separate Windows consumer job that does not
   install Racket, then run help, version, stdout, isolated file round trip,
   and ephemeral-loopback HTTP acceptance from the extracted tree.
-- [ ] Verify archive contents, exit statuses, clean stderr, version agreement,
+- [x] Verify archive contents, exit statuses, clean stderr, version agreement,
   checksum, absence of checkout/package-registry/build-runner dependencies,
   and the exact unsigned or signed executable status.
-- [ ] Record the oldest Windows version actually demonstrated by a clean
+- [x] Record the oldest Windows version actually demonstrated by a clean
   consumer environment; do not claim an untested release, architecture,
   signing state, or installer experience.
 
 Acceptance: the Windows archive runs the same canonical `.atl` programs as
 the Linux and macOS archives with no external Racket installation, survives
 relocation, and passes its independent consumer suite.
+
+Completion evidence: validation commit
+`a9f2bdc7d07a0283871ede548aa0c33cee0a3b78` passed the Windows build,
+independent consumer, and immediate-cleanup jobs in [GitHub Actions run
+33193791101](https://github.com/kserrec/alone_the_lambdas/actions/runs/33193791101).
+The pinned `windows-2025` build used full x86-64 Racket CS 9.3, staged only
+approved nonsymlink production inputs under an isolated user home with
+`--deps fail`, invoked `raco exe --embed-dlls ++lang alone_the_lambdas` and
+`raco distribute`, and produced the predictable
+`alone-the-lambdas-0.2.0-dev-windows-x86_64.zip` plus external
+`SHA256SUMS`.
+
+The separate consumer performed no checkout and installed no Racket. It
+reported absent `racket` and `raco` commands, verified the external checksum
+before extraction, rejected unsafe ZIP paths, checked the exact nine-file
+payload and one x86-64 PE runtime, and matched the build's `dumpbin` system-DLL
+inventory and Authenticode result. It then passed exact help/version/status
+and clean-stderr checks, a source created after packaging, hostile collection-
+path precedence, stdout, isolated file replacement/readback, ephemeral-
+loopback HTTP, and relocation from the runner's `D:` drive to a path containing
+spaces on `C:`.
+
+The demonstrated consumer was Microsoft Windows Server 2025 Datacenter
+10.0.26100, build 26100, x86-64. The disposable nine-file artifact was
+`15,251,225` compressed bytes and `23,875,480` unpacked regular-file bytes,
+with SHA-256
+`32323a72bb4dad11690f5189cdc543fcc49bb6138d1e1abe19e4694c0595b397`.
+Its only PE/runtime file was `bin/atl.exe`; Racket emitted no loose runtime
+files, so `lib/` was empty. The executable was `NotSigned` and observed only
+`KERNEL32.dll`, `msvcrt.dll`, and `USER32.dll` as system-DLL assumptions.
+Startup observations were 282 ms before relocation and 360 ms afterward.
+These are observations for that disposable validation artifact, not a lower
+Windows compatibility floor, performance guarantee, signing promise, release
+checksum, installer, or public download.
+
+Kyle explicitly approved only the temporary public transfer of this one
+unpublished archive, its checksum, and its self-contained harness. The
+workflow reused the existing full-commit-pinned official upload/download
+actions; their Phase 26 cost is one transient artifact and no new package or
+runtime dependency. Retention was one day only as a cleanup-failure fallback;
+the `always()` cleanup deleted the exact artifact immediately, and the run
+artifact API reported zero remaining artifacts.
+
+Phase 26 changed CI, PowerShell build/consumer tooling, focused tests, and
+documentation only. It changed no production Racket source, language
+operation, representation, effect order, or host authority. Completion
+verification passed 4,589 assertions across all 32 test files, the unchanged
+expanded purity scan over 16 `core/` modules, and the complete 80-source
+boundary inventory. The focused distribution contract suite passed 140
+assertions.
 
 ## Phase 27 — Downloadable release candidate and novice documentation
 

@@ -78,6 +78,13 @@ native macOS 15.7.7 arm64 and macOS 15.7.9 x86_64 consumers passed with no
 Racket command or checkout, and the workflow deleted both temporary transfer
 artifacts.
 
+Phase 26 was verified on 2026-08-28 with `./run-all-tests.sh`: 4,589 passing
+assertions across the same 32 test files, the unchanged clean 16-module
+expanded core scan, and the complete 80-source classification. A separate
+Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 consumer passed
+with no Racket command or checkout, including cross-drive relocation, and the
+workflow immediately deleted its temporary transfer artifact.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -217,6 +224,18 @@ artifacts.
 | The narrowly approved public transfer leaves no artifact behind. | Kyle explicitly approved only temporary GitHub Actions transfer of the two unpublished archives and their consumer harnesses. Upload and download use exact commit-pinned official GitHub actions, with one-day retention only as a cleanup-failure fallback. An `always()` cleanup job has `actions: write` and `contents: none`, deletes both exact artifact names, and fails if either remains. The successful validation run's artifact API returned `total_count: 0` immediately afterward. |
 | Packaging changes no production behavior. | [`distribution-test.rkt`](../tests/distribution-test.rkt) now contributes 92 focused shell/asset/workflow assertions. The completion suite passed 4,541 assertions across 32 test files, the unchanged 16-module expanded core-purity proof, and a zero-finding inventory of all 80 Racket and `.atl` sources. Phase 25 changed CI, shell tooling, tests, and documentation only; it changed no production Racket source, operation, representation, or host authority. |
 
+## Phase 26 native Windows distribution evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Windows uses a pinned native build. | [The test workflow](../.github/workflows/tests.yml) runs on `windows-2025` and installs full x86-64 Racket CS 9.3 with the setup action pinned by full commit. [`build-windows-distribution.ps1`](../tooling/build-windows-distribution.ps1) independently requires the native target and exact toolchain, verifies the version projection and clean nonsymlink inputs, installs an approved source copy under an isolated `PLTUSERHOME` with `--deps fail`, then invokes `raco exe --embed-dlls ++lang alone_the_lambdas` and `raco distribute`. |
+| The ZIP has exact portable structure and native evidence. | The predictable `.zip` has one versioned root, canonical `bin/atl.exe`, stable empty `lib/`, four examples, guide, manifest, provisional notices, and unpublished warning; it has exactly nine regular files and no unapproved `LICENSE`. The builder fixes ZIP timestamps and ordering, keeps SHA-256 only in external `SHA256SUMS`, requires PE x86-64 machine value `0x8664`, matches the native `dumpbin` inventory, records Authenticode state, and rejects complete known checkout, package-registry, temporary-build, package-source, and nonstandard-toolchain paths. |
+| The artifact crosses into an independent clean consumer. | The build uploads only one archive, `SHA256SUMS`, and a self-contained copy of [`test-windows-distribution.ps1`](../tooling/test-windows-distribution.ps1). The separate consumer performs no checkout and installs no Racket. It reported absent `racket`, absent `raco`, and absent checkout; verified the checksum before extraction; rejected unsafe ZIP paths; matched the exact layout, manifest, PE architecture, DLL assumptions, Authenticode status, exit codes, stderr, help/version bytes, generated-after-packaging source, and hostile collection-path behavior. |
+| All approved effects and cross-drive relocation work. | The consumer reproduced exact stdout, isolated file replacement/readback, and one ephemeral-loopback HTTP response. It extracted under a path containing spaces on the runner's `D:` drive, copied the tree to a path containing spaces on `C:`, deleted the first tree, and reran version plus the generated source. Validation commit `a9f2bdc7d07a0283871ede548aa0c33cee0a3b78` passed these jobs in [run 33193791101](https://github.com/kserrec/alone_the_lambdas/actions/runs/33193791101). |
+| Measurements and platform claims stay exact. | The demonstrated consumer was Microsoft Windows Server 2025 Datacenter 10.0.26100, build 26100, x86-64. Builder and consumer agreed on 9 files, `15,251,225` compressed bytes, `23,875,480` unpacked regular-file bytes, and SHA-256 `32323a72bb4dad11690f5189cdc543fcc49bb6138d1e1abe19e4694c0595b397`. The one PE/runtime file was `bin/atl.exe`; it observed `KERNEL32.dll`, `msvcrt.dll`, and `USER32.dll`, was exactly `NotSigned`, and started in 282 ms initially and 360 ms after relocation. These values describe only the disposable artifact; no older/client Windows, performance, signing, installer, release-checksum, or download claim follows. |
+| The narrowly approved public transfer leaves no artifact behind. | Kyle explicitly approved only temporary transfer of the unpublished Windows archive, checksum, and consumer harness. The workflow reuses full-commit-pinned official upload/download actions, with one-day retention only as a cleanup-failure fallback. Its `always()` cleanup has `actions: write` and `contents: none`, deletes the exact artifact, and fails if it remains. The completed validation run's artifact API returned `total_count: 0`. The cost is one transient CI artifact and no new package or runtime dependency. |
+| Packaging changes no production behavior. | [`distribution-test.rkt`](../tests/distribution-test.rkt) contributes 140 focused shell/PowerShell/asset/workflow assertions. The completion suite passed 4,589 assertions across 32 test files, the unchanged 16-module expanded core-purity proof, and a zero-finding inventory of all 80 Racket and `.atl` sources. Phase 26 changed CI, PowerShell tooling, tests, and documentation only; it changed no production Racket source, operation, representation, or host authority. |
+
 ## Explicit one-bridge evidence map
 
 | Boundary fact | Sole allowed production location | Enforced evidence |
@@ -231,13 +250,14 @@ artifacts.
 
 ## What this milestone does not claim
 
-The completed milestone deliberately does not claim sandboxing or per-program
+The completed phases deliberately do not claim sandboxing or per-program
 permission prompts: a real-host program inherits the launching process's
-relevant authority. Phases 24 and 25 now prove unpublished self-contained Linux
-x86-64, macOS x86_64, and macOS arm64 development archives, but not a public
-download, a compatibility floor below the exact demonstrated consumers, a
-Windows artifact, an approved repository license, signing, or release
-authority. The language has no
+relevant authority. Phases 24 through 26 now prove unpublished self-contained
+Linux x86-64, macOS x86_64, macOS arm64, and Windows x86-64 development
+archives, but not a public download, a compatibility floor below the exact
+demonstrated consumers, Windows client-edition support, an approved repository
+license, a signed artifact, installer behavior, or release authority. The
+language has no
 program-argument API, general parser, optimizer, compiler, records, JSON,
 environment or process access, directory operations, atomic file replacement,
 TLS, UDP, timeouts, asynchronous server, production concurrency, or general

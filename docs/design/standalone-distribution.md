@@ -512,8 +512,12 @@ probe, and relocation automation described below. Its consumer evidence is
 limited to one digest-pinned Ubuntu 24.04 image; it establishes no older Linux
 floor. Phase 25 supplies native macOS x86_64 and arm64 artifacts plus clean
 same-architecture consumer proof on macOS 15.7.9 and 15.7.7 respectively; it
-establishes no older macOS floor. The Windows artifact, lower compatibility
-floors, final legal inventory, signing, and publication remain unproven.
+establishes no older macOS floor. Phase 26 supplies a native Windows x86-64
+artifact plus clean cross-drive consumer proof on Microsoft Windows Server
+2025 Datacenter 10.0.26100, build 26100; it establishes no older Windows floor
+or Windows client-edition support. Lower compatibility floors, the final legal
+inventory, a signed artifact, installer behavior, and publication remain
+unproven.
 
 ## Phase 22 implementation record
 
@@ -697,6 +701,88 @@ verification passed 4,541 assertions across all 32 test files, the unchanged
 expanded purity scan over 16 `core/` modules, and the complete 80-source
 boundary inventory. The focused distribution contract suite passed 92
 assertions, and both independent no-Racket macOS consumer jobs passed.
+
+## Phase 26 implementation record
+
+Phase 26 implemented `tooling/build-windows-distribution.ps1` for the exact
+native `windows-x86_64` target. It requires x86-64 Windows and full Racket CS
+9.3; verifies the closed version projection and clean nonsymlink inputs; copies
+only the approved production package into a disposable tree; isolates
+`PLTUSERHOME` and temporary directories; and installs with `--deps fail`.
+The workflow installs Racket before checkout so setup-action residue cannot
+make the checked-out source tree appear dirty. The builder invokes `raco exe
+--embed-dlls ++lang alone_the_lambdas` followed by `raco distribute` and
+accepts exactly one resulting runtime file, `bin/atl.exe`.
+
+The builder creates a stable empty `lib/` because Racket CS 9.3 embedded the
+required DLLs and emitted no loose support file on the demonstrated target. It
+generates the approved guide, provisional notices, four examples, and build
+manifest; fixes ZIP entry timestamps at 1980-01-01; orders entries
+deterministically; and writes the archive digest only to external
+`SHA256SUMS`. It parses the executable's PE header and requires machine value
+`0x8664`, inventories DLL dependencies with native `dumpbin`, records the
+exact Authenticode status, and scans every payload file for complete known
+checkout, isolated-user-home, package-source, temporary-build, and
+nonstandard-toolchain paths.
+
+An observed Windows executable retained the isolated user home's directory
+basename, `racket-user`, without retaining the complete disposable path. That
+retained fragment is not an operational runtime dependency: the builder still
+rejects the complete known path, and the clean consumer subsequently ran after
+cross-drive relocation with neither Racket nor the registry available. The
+consumer therefore retains precise checkout,
+runner-temporary, runner-profile, build-root, and package-source byte scans,
+while the exact builder-side scan plus independent relocation own the
+package-registry dependency proof.
+
+`tooling/test-windows-distribution.ps1` is self-contained and receives only
+the archive, external checksum, and itself. It requires no source checkout or
+Racket installation; validates the checksum before extraction; rejects unsafe
+ZIP names; checks the exact layout, manifest, PE machine, DLL inventory, and
+Authenticode status; and exercises exact help/version/status and clean-stderr
+behavior. It runs a canonical source created after packaging, proves a hostile
+external collection cannot replace the embedded language, performs stdout,
+isolated file replacement/readback, and ephemeral-loopback HTTP effects, then
+copies the extracted tree from the runner's `D:` drive to a path containing
+spaces on `C:`, deletes the first tree, and repeats version and generated-source
+runs.
+
+Validation commit `a9f2bdc7d07a0283871ede548aa0c33cee0a3b78`
+passed the Windows build, independent consumer, and cleanup jobs in [GitHub
+Actions run
+33193791101](https://github.com/kserrec/alone_the_lambdas/actions/runs/33193791101).
+The clean consumer was Microsoft Windows Server 2025 Datacenter 10.0.26100,
+build 26100, x86-64. It reported no `racket` command, no `raco` command, and no
+checkout. Builder and consumer agreed on a 9-file payload, `15,251,225`
+compressed bytes, `23,875,480` unpacked regular-file bytes, and SHA-256
+`32323a72bb4dad11690f5189cdc543fcc49bb6138d1e1abe19e4694c0595b397`.
+The payload had one PE/runtime file, `bin/atl.exe`, with observed system-DLL
+assumptions `KERNEL32.dll`, `msvcrt.dll`, and `USER32.dll`; its Authenticode
+status was exactly `NotSigned`. Startup observations were 282 ms initially and
+360 ms after cross-drive relocation.
+
+These operating-system, size, hash, dependency, signing, and timing values
+describe only that disposable validation artifact. They are not a lower
+Windows compatibility floor, client-Windows claim, performance guarantee,
+signing promise, release checksum, installer, or public download.
+
+The workflow reused the existing full-commit-pinned official
+`actions/upload-artifact` v7.0.1 and `actions/download-artifact` v8.0.1
+dependencies. Their Phase 26 cost is one transient workflow artifact and two
+existing CI action implementations; they add no package or runtime dependency.
+Kyle's narrow approval covered only this unpublished archive, checksum, and
+harness. The upload used one-day retention solely as a cleanup-failure
+fallback; an `always()` job with `actions: write` and `contents: none` deleted
+the exact artifact immediately and verified it was absent. The completed run's
+artifact API reported zero artifacts.
+
+Phase 26 changed CI, PowerShell build/consumer tooling, focused tests, and
+documentation. It changed no production Racket source, object-language
+operation, representation, effect order, or host authority. Completion
+verification passed 4,589 assertions across all 32 test files, the unchanged
+expanded purity scan over 16 `core/` modules, and the complete 80-source
+boundary inventory. The focused distribution contract suite passed 140
+assertions, and the independent no-Racket Windows consumer passed.
 
 ## Approval record
 
