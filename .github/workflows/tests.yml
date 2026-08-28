@@ -175,10 +175,6 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: Install native Racket
         uses: Bogdanp/setup-racket@2466913449df77df2bad149d1f2fc4e1ea4795dd # v1.15
         with:
@@ -186,6 +182,10 @@ jobs:
           distribution: full
           version: '9.3'
           variant: CS
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build unpublished native Windows distribution
         shell: pwsh

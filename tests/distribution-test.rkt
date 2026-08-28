@@ -245,6 +245,10 @@
 (check-true (regexp-match? #rx"windows-distribution-artifact-cleanup" workflow-source))
 (check-true (regexp-match? #rx"runs-on: windows-2025" workflow-source))
 (check-true (regexp-match? #rx"architecture: x64" workflow-source))
+(check-true
+ (regexp-match?
+  #px"(?s:windows-distribution-build:.*Install native Racket.*actions/checkout)"
+  workflow-source))
 (check-true (regexp-match? #rx"atl-windows-x86_64-[$][{][{] github[.]sha [}][}]" workflow-source))
 
 (for ([template-name
