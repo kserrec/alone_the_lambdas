@@ -217,18 +217,23 @@ function Get-PeDependencies([string] $Dumpbin, [string] $Path) {
 }
 
 function Assert-NoBuildRunnerPaths([string[]] $Files) {
-    $forbiddenFragments = @(
-        '\a\', '\_temp\', '\runneradmin\',
-        'alone-the-lambdas-windows-build-', '\racket-user\', '\package-source\'
-    )
+    $forbiddenFragments = [ordered]@{
+        'github-checkout-segment' = '\a\'
+        'runner-temp-segment' = '\_temp\'
+        'runner-profile-segment' = '\runneradmin\'
+        'build-root-name' = 'alone-the-lambdas-windows-build-'
+        'isolated-registry-segment' = '\racket-user\'
+        'package-source-segment' = '\package-source\'
+    }
     foreach ($file in $Files) {
         $bytes = [IO.File]::ReadAllBytes($file)
         $latin = [Text.Encoding]::Latin1.GetString($bytes)
         $utf16 = [Text.Encoding]::Unicode.GetString($bytes)
-        foreach ($fragment in $forbiddenFragments) {
+        foreach ($entry in $forbiddenFragments.GetEnumerator()) {
+            $fragment = $entry.Value
             if ($latin.Contains($fragment, [StringComparison]::OrdinalIgnoreCase) -or
                 $utf16.Contains($fragment, [StringComparison]::OrdinalIgnoreCase)) {
-                Fail 'artifact retains a checkout, package-registry, or build-runner path'
+                Fail "artifact matched forbidden path marker $($entry.Key) in $([IO.Path]::GetFileName($file))"
             }
         }
     }
