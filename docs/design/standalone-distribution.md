@@ -733,6 +733,19 @@ separate native consumer jobs to finish. The workflow must delete both
 artifacts immediately afterward and set one-day retention only as a cleanup-
 failure fallback.
 
+Kyle explicitly approved the temporary Phase 26 GitHub Actions transfer on
+2026-08-28 by replying:
+
+```text
+Approve temporary public GitHub Actions artifact transfer and immediate deletion for Phase 26.
+```
+
+That approval permits only the one unpublished Windows x86-64 development
+archive, its external checksum, and its self-contained consumer harness to
+exist as a workflow artifact long enough for the separate Windows consumer
+job to finish. The workflow must delete that exact artifact immediately
+afterward and set one-day retention only as a cleanup-failure fallback.
+
 This approval does not authorize a public release, license selection, tag,
 upload, signing operation, or publication claim. Those later gates remain in
 force exactly as specified above; the one narrow CI-transfer upload is the
