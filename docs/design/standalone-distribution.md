@@ -1,16 +1,23 @@
 # Standalone distribution design
 
-Status: approved 2026-08-27; feasibility proven; Phases 22 through 25 implemented
+Status: original contract approved 2026-08-27; Phases 22 through 26
+implemented; Phase 27 naming locally implemented and verified 2026-08-28,
+with remote rename and CI pending
 
 Date: 2026-08-27
 
-This document fixes the contract for distributing Alone the Lambdas as an
+This document fixes the current contract for distributing AttaLambda as an
 independently runnable language. It is subordinate to the three canonical
 [specifications](../specifications/README.md) and to the already approved
 [host boundary](host-boundary.md). Approval authorized the implementation
 work that began in Phase 22; it does not authorize a public release.
 
 ## Verified starting state
+
+This section and the Phase 21 through 26 implementation records preserve the
+literal pre-rename names because they describe what existed and what was
+actually tested at those times. The Phase 27 record supersedes those names for
+every current public surface.
 
 The following facts were observed before this design was written:
 
@@ -38,15 +45,15 @@ A supported release is a native archive that a user can download, extract,
 and run without installing or knowing Racket. The primary workflow is:
 
 ```text
-atl run FILE.atl
+attalambda FILE.attl
 ```
 
 The archive carries the Racket runtime, reader, expander, compiler support,
-all Alone the Lambdas production modules, and every non-system runtime file
+all AttaLambda production modules, and every non-system runtime file
 needed to load an external source file. At run time it must not require:
 
 - a `racket` or `raco` command;
-- an installed Alone the Lambdas package;
+- an installed AttaLambda package;
 - a Racket user package registry or collection tree;
 - this repository or another source checkout;
 - the build directory or its absolute paths;
@@ -56,26 +63,26 @@ This is a distribution promise, not a sandbox promise. A program run with the
 real host has the launching process's already documented stdout, filesystem,
 name-resolution, connection, and listening authority.
 
-## `.atl` source contract
+## `.attl` source contract
 
-`.atl` is the canonical public source extension. It changes the public file
+`.attl` is the canonical public source extension. It changes the public file
 name, not the language grammar or evaluator.
 
 A runnable source must satisfy all of these rules:
 
-- The supplied final path component ends in the exact lowercase bytes `.atl`.
-  The check is case-sensitive on every platform, including Windows. `.ATL`,
-  `.Atl`, and a missing suffix are invalid.
+- The supplied final path component ends in the exact lowercase bytes `.attl`.
+  The check is case-sensitive on every platform, including Windows. `.ATTL`,
+  `.Attl`, and a missing suffix are invalid.
 - The source is a regular file. Directories, devices, FIFOs, and other special
   inputs are not source files.
-- The first logical line is exactly `#lang alone_the_lambdas`, with no byte
+- The first logical line is exactly `#lang attalambda`, with no byte
   order mark, leading whitespace, trailing whitespace, shebang, alternate
   spelling, or version suffix. It may end with LF, CRLF, or end of file.
 - The remaining source is read by the existing `lang/reader.rkt` and expanded
   by the existing `lang/expander.rkt`. The launcher does not contain a second
-  ATL tokenizer, parser, expander, evaluator, or literal implementation.
+  AttaLambda tokenizer, parser, expander, evaluator, or literal implementation.
 - Source text follows Racket's UTF-8 source convention. Invalid source bytes
-  are a source-read failure. ATL String literals continue to lower
+  are a source-read failure. AttaLambda String literals continue to lower
   mechanically to their UTF-8 bytes exactly as the existing expander defines.
 - Paths containing spaces and non-ASCII characters are supported. Relative
   source paths resolve from the caller's current working directory; absolute
@@ -91,7 +98,7 @@ A runnable source must satisfy all of these rules:
 The dotenv rule is intentionally stricter than the extension rule. A path
 component is forbidden, case-insensitively, when its name matches
 `(^|\.)env($|\.)`. This rejects `.env`, `service.env`, `.env.local`,
-`service.env.local`, `program.env.atl`, and equivalent spellings before file
+`service.env.local`, `program.env.attl`, and equivalent spellings before file
 content is accessed. Metadata needed to reject or resolve the path may be
 observed; content may not.
 
@@ -105,7 +112,7 @@ every platform:
 
 1. reject command misuse;
 2. reject a dotenv spelling in the supplied path without content access;
-3. reject a non-lowercase `.atl` extension without content access;
+3. reject a non-lowercase `.attl` extension without content access;
 4. reject a symlinked source entry without target access;
 5. resolve parent directories and reject a dotenv spelling in that resolved
    parent path;
@@ -121,37 +128,37 @@ as the approved host design already specifies.
 The complete initial command grammar is:
 
 ```text
-atl run FILE.atl
-atl --help
-atl --version
+attalambda FILE.attl
+attalambda --help
+attalambda --version
 ```
 
-On Windows, `atl` in this grammar names `atl.exe`. There are no aliases,
-combined flags, short flags, implicit `run`, program arguments, REPL mode,
+On Windows, `attalambda` in this grammar names `attalambda.exe`. There are no
+aliases, combined flags, short flags, retired `run` subcommand, program arguments, REPL mode,
 stdin-source mode, compiler mode, or package-manager mode in this milestone.
 A path beginning with `-` is supplied with an explicit directory component,
-such as `./-example.atl`.
+such as `./-example.attl`.
 
-`atl --help` writes exactly this text to stdout and exits successfully:
+`attalambda --help` writes exactly this text to stdout and exits successfully:
 
 ```text
 Usage:
-  atl run FILE.atl
-  atl --help
-  atl --version
+  attalambda FILE.attl
+  attalambda --help
+  attalambda --version
 ```
 
-`atl --version` writes `Alone the Lambdas VERSION` followed by one newline,
+`attalambda --version` writes `AttaLambda VERSION` followed by one newline,
 where `VERSION` is the exact canonical product version described below. The
 initial development output is therefore:
 
 ```text
-Alone the Lambdas 0.2.0-dev
+AttaLambda 0.2.0-dev
 ```
 
 Help and version write nothing to stderr and do not inspect a user source
-path. A successful `run` reserves stdout for effects explicitly requested by
-the ATL program. Launcher diagnostics use stderr only.
+path. Successful source execution reserves stdout for effects explicitly requested by
+the AttaLambda program. Launcher diagnostics use stderr only.
 
 ## Completion and exit statuses
 
@@ -161,7 +168,7 @@ Launcher-controlled completion uses this closed status table on every target:
 | --- | --- | --- |
 | `0` | successful command | help/version completed, or the source module instantiated without an uncaught host-level failure |
 | `64` | command misuse | missing command, unknown command/flag, missing source argument, or extra argument |
-| `65` | invalid ATL source | wrong extension, malformed language declaration, invalid source encoding, reader failure, syntax failure, or expansion failure |
+| `65` | invalid AttaLambda source | wrong extension, malformed language declaration, invalid source encoding, reader failure, syntax failure, or expansion failure |
 | `66` | unavailable or refused input | dotenv path, symlinked source, missing path, non-regular input, inaccessible path, or source-open/read permission failure |
 | `70` | unexpected implementation failure | a catchable Racket failure outside the command, source-read, syntax, expansion, and approved host Result paths |
 
@@ -175,7 +182,7 @@ table; the launcher does not disguise them.
 
 The object-language distinction is exact:
 
-- a lambda-encoded Error is a completed ATL value, not a Racket exception;
+- a lambda-encoded Error is a completed AttaLambda value, not a Racket exception;
 - `Result Err` is a completed expected-failure value, not a launcher failure;
 - `Result Ok` is likewise ordinary completed data;
 - the existing module wrapper forces each top-level expression for its
@@ -188,7 +195,7 @@ unless it separately encounters a launcher-level failure. A schema-valid real
 host request that the operating system rejects still returns Result Err under
 the approved host contract; it does not become status `70`.
 
-Normal diagnostics name Alone the Lambdas, the user's source spelling, and an
+Normal diagnostics name AttaLambda, the user's source spelling, and an
 actionable reason. They do not expose raw host procedures, exception object
 renderings, Racket stack traces, package registry paths, source-checkout
 paths, or build paths. Phase 23 freezes the exact templates below without
@@ -197,9 +204,9 @@ changing the status classifications above.
 The three output shapes are:
 
 ```text
-Alone the Lambdas: REASON
-Alone the Lambdas: "SOURCE": REASON
-Alone the Lambdas: "SOURCE":LINE:COLUMN: REASON
+AttaLambda: REASON
+AttaLambda: "SOURCE": REASON
+AttaLambda: "SOURCE":LINE:COLUMN: REASON
 ```
 
 `SOURCE` is the original command-line spelling. It is quoted, with control
@@ -209,21 +216,21 @@ No resolved source location is used. The exact reasons are:
 
 | Class | Status | Exact reason |
 | --- | ---: | --- |
-| command misuse | 64 | `expected atl run FILE.atl, atl --help, or atl --version` |
+| command misuse | 64 | `expected attalambda FILE.attl, attalambda --help, or attalambda --version` |
 | supplied or resolved dotenv path | 66 | `refused source path because dotenv files are never read` |
-| wrong extension | 65 | `source file name must end in lowercase .atl` |
-| source-entry symlink | 66 | `refused symbolic-link source; choose a regular .atl file` |
+| wrong extension | 65 | `source file name must end in lowercase .attl` |
+| source-entry symlink | 66 | `refused symbolic-link source; choose a regular .attl file` |
 | uninspectable path metadata | 66 | `source path could not be inspected` |
 | missing source | 66 | `source file was not found` |
 | nonregular source | 66 | `source path is not a regular file` |
 | unreadable source | 66 | `source file could not be read` |
-| malformed declaration | 65 | `line 1 must be exactly #lang alone_the_lambdas` |
+| malformed declaration | 65 | `line 1 must be exactly #lang attalambda` |
 | invalid byte encoding | 65 | `source is not valid UTF-8` |
 | reader failure | 65 | `source could not be read; check delimiters and UTF-8 encoding` |
-| unavailable identifier | 65 | `unknown ATL name: IDENTIFIER` |
+| unavailable identifier | 65 | `unknown AttaLambda name: IDENTIFIER` |
 | unsupported datum | 65 | `unsupported literal; only nonnegative Nat and String literals are supported` |
 | other expansion failure | 65 | `source has invalid syntax` |
-| unexpected launcher failure | 70 | `unexpected launcher failure; verify the ATL installation` |
+| unexpected launcher failure | 70 | `unexpected launcher failure; verify the AttaLambda installation` |
 
 `IDENTIFIER` is written as a safely escaped source symbol. A missing internal
 language module is an unexpected launcher failure; a missing requested source
@@ -234,9 +241,9 @@ remains unavailable input. No exception message is copied into a diagnostic.
 The launcher is module-loading scaffolding, which the specifications permit
 separately from object-language computation. Loading a language necessarily
 reads and expands the one source file the user asked to run. That launch-time
-read is not a second effect function callable by ATL code.
+read is not a second effect function callable by AttaLambda code.
 
-The future `runner/` class may use host facilities only for these closed
+The `runner/` class may use host facilities only for these closed
 purposes:
 
 - observe its own command-line argument vector;
@@ -255,7 +262,7 @@ This allows the narrowly required Racket command-line, path, file-metadata,
 byte/header, exception, and `dynamic-require` machinery. Host Strings,
 Booleans, lists, regex matching, conditionals, and exit codes used inside this
 class decide only whether and how the host process loads a requested module.
-They never become object-language values and never determine an ATL
+They never become object-language values and never determine an AttaLambda
 computational result.
 
 The class must satisfy all of these isolation rules:
@@ -264,25 +271,25 @@ The class must satisfy all of these isolation rules:
   source port, parsed syntax, or conversion function;
 - no `core/`, `effects/`, `runtime/`, `codec`, macro, reader, expander, or
   language-facade module may import it;
-- ATL source cannot name, require, or invoke it;
+- AttaLambda source cannot name, require, or invoke it;
 - it cannot import a reader, test, tooling, application, or object-value codec
   to interpret a completed value;
-- it cannot implement ATL parsing, type checks, arithmetic, routing, Result
+- it cannot implement AttaLambda parsing, type checks, arithmetic, routing, Result
   control flow, or another effect operation;
 - it cannot enumerate environment variables, run a process, invoke a shell,
   use FFI, contact a network service, scan a directory, or discover another
   source file;
 - it cannot broaden the real host operation set or bypass `host` for an
-  effect requested by ATL code.
+  effect requested by AttaLambda code.
 
-Phase 22 must add an exact structural classification for this path and fail
+Phase 22 added an exact structural classification for this path and fails
 closed on unknown files or capabilities. The existing production ban on
 dynamic loading remains in every other class. The sole-language-visible-host
 proof therefore stays literally true.
 
 ## Version authority
 
-Phase 22 creates a root `VERSION` text file as the only manually edited product
+Phase 22 created a root `VERSION` text file as the only manually edited product
 version source. It contains exactly one supported semantic version followed
 by one LF and no whitespace or comment. This milestone has exactly three
 planned states:
@@ -324,7 +331,7 @@ implementation path is:
 1. install or expose a sanitized package-source copy in an isolated temporary
    Racket user home;
 2. compile the trusted runner with `raco exe`, retaining the default `-U`
-   embedded flag and adding `++lang alone_the_lambdas` explicitly;
+   embedded flag and adding `++lang attalambda` explicitly;
 3. assemble the native runtime with `raco distribute`;
 4. inventory, archive, and test the resulting tree after a build-to-consumer
    transfer boundary.
@@ -361,23 +368,23 @@ The four initial target identifiers and archive formats are fixed:
 An archive is named:
 
 ```text
-alone-the-lambdas-VERSION-TARGET.EXTENSION
+attalambda-VERSION-TARGET.EXTENSION
 ```
 
-It contains one root directory named `alone-the-lambdas-VERSION-TARGET` and
+It contains one root directory named `attalambda-VERSION-TARGET` and
 this logical layout:
 
 ```text
-alone-the-lambdas-VERSION-TARGET/
+attalambda-VERSION-TARGET/
   bin/
-    atl                 Unix
-    atl.exe             Windows instead of atl
+    attalambda                 Unix
+    attalambda.exe             Windows instead of attalambda
   lib/                  runtime support files, empty when none are required
   examples/
-    hello.atl
-    stdout.atl
-    file-round-trip.atl
-    http-server.atl
+    hello.attl
+    stdout.attl
+    file-round-trip.attl
+    http-server.attl
   GETTING_STARTED.md
   BUILD-MANIFEST.txt
   LICENSE
@@ -395,12 +402,12 @@ the directory remains present for a stable archive shape and is empty when
 Racket emits no separate support files. The executable must resolve any
 support files relative to the relocated archive root.
 
-Before an Alone the Lambdas license is approved, an internal development
-artifact substitutes `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` for `LICENSE` and
-must still carry the exact provisional notices required by the bundled Racket
-runtime. Such an artifact is not a public download. The final license and
-runtime notice text require the Phase 27 legal inventory and Kyle's explicit
-approval.
+The repository now has an approved Apache License 2.0. Internal development
+artifacts still substitute `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` for
+`LICENSE` and carry provisional bundled-Racket notices until Phase 28 approves
+the exact runtime notice set and release-candidate contents. Such an artifact
+is not a public download, and repository-license approval does not authorize
+its publication.
 
 `BUILD-MANIFEST.txt` records at least the product version, source commit,
 target identifier, Racket version/variant, artifact file inventory, and
@@ -415,14 +422,18 @@ Building and testing development or release-candidate archives does not grant
 permission to publish them. Publication remains blocked until all of these are
 true:
 
-- Kyle has explicitly approved the repository license and bundled-runtime
-  notices after seeing their exact terms;
+- Kyle has explicitly approved the repository license, and later explicitly
+  approves the bundled-runtime notices after seeing their exact terms;
 - all four native build and no-Racket consumer jobs pass for one source
   commit;
 - the complete source purity, boundary, behavior, and acceptance suites pass;
 - the final artifact names, sizes, checksums, supported systems, known limits,
   and signed/unsigned status have been presented literally;
 - Kyle explicitly authorizes the exact public tag, GitHub Release, and files.
+
+Any cross-job GitHub Actions artifact transfer is itself a temporary public
+upload and requires phase-specific explicit approval even when the cleanup job
+deletes it immediately.
 
 Approval of this document authorizes only Phase 22 implementation. It does not
 authorize a tag, release, upload, license choice, signing operation, account
@@ -784,13 +795,50 @@ expanded purity scan over 16 `core/` modules, and the complete 80-source
 boundary inventory. The focused distribution contract suite passed 140
 assertions, and the independent no-Racket Windows consumer passed.
 
+## Phase 27 implementation record
+
+Phase 27 adopts `AttaLambda` for the public project and language name;
+`attalambda` for the repository, Racket package and collection, executable,
+runner, artifact roots, and workflow artifacts; `.attl` for source files; and
+exact `#lang attalambda` declarations. Execution is direct:
+`attalambda FILE.attl`. The old `atl`, `.atl`, `#lang alone_the_lambdas`, and
+`run` subcommand spellings are rejected rather than retained as aliases.
+
+The implementation renames the runner and four examples; changes collection
+resolution in `info.rkt` and `lang/reader.rkt`; synchronizes build and consumer
+tooling for Linux, macOS, and Windows; updates workflow artifact and cleanup
+names; and updates current specifications, architecture, acceptance evidence,
+and guides. The structural scanner uses an in-memory collection link from
+`attalambda` to its already validated project root, so source inspection does
+not depend on the private checkout directory name or mutate a Racket package
+registry. Historical Phase 21 through 26 artifact names, measurements, run
+URLs, and verbatim approvals remain literal records of the pre-rename work.
+
+Local completion verification passed 4,617 assertions across all 32 test
+files, the unchanged expanded purity proof over 16 `core/` modules, and the
+complete zero-finding 80-source boundary inventory. Focused runner,
+fresh-language, boundary, distribution-contract, and real-application suites
+passed 181, 78, 113, 144, and 22 assertions respectively. The public GitHub
+repository has now been renamed to `kserrec/attalambda`, and the verified local
+`origin` points to that destination. The tested commit has not yet been pushed,
+and the renamed native artifacts remain unverified until the now-authorized CI
+run completes and deletes its temporary transfer artifacts.
+
+No core, effect, runtime, macro, or expander executable changed. The reader
+changes only its collection target; the runner intentionally changes its
+public launch contract; the examples intentionally change their declaration,
+branding bytes, and round-trip filename. Product version remains
+`0.2.0-dev`. This work creates no release candidate, binary release, tag,
+GitHub Release, signature, or public download.
+
 ## Approval record
 
-Approval accepts the `.atl` source rules, exact command surface, completion and
-exit-status distinction, separately classified trusted-loader capability,
-single-version authority and Racket metadata projection, artifact names and
-layouts, four native targets, unsandboxed real-host authority, and release
-approval gates defined above.
+The original Phase 21 approval accepted the pre-rename `.atl`, `atl run`, and
+`#lang alone_the_lambdas` spellings alongside the completion and exit-status
+distinction, trusted-loader capability, version projection, native targets,
+unsandboxed real-host authority, and release gates. Phase 27 supersedes only
+those public names and the direct command shape; the other approved contracts
+remain in force.
 
 Kyle explicitly approved this design and authorized Phase 22 on 2026-08-27 by
 replying:
@@ -849,5 +897,38 @@ That approval authorizes the root `LICENSE`, the `Apache-2.0` Racket package
 metadata, the copyright and approval records, and pushing those source changes
 to the existing repository. It does not approve the final bundled-runtime
 notices or authorize any release-candidate build, workflow artifact, tag,
-GitHub Release, signing operation, or binary publication. Those Phase 27 and
-Phase 28 gates remain in force.
+GitHub Release, signing operation, or binary publication. Those Phase 28 and
+Phase 29 gates remain in force.
+
+Kyle then selected `AttaLambda` as the public name, `attalambda` as the
+machine-facing and command name, `.attl` as the source extension, and direct
+`attalambda FILE.attl` execution without compatibility aliases. After that
+teaching and naming discussion, Kyle explicitly authorized implementation on
+2026-08-28 by replying:
+
+```text
+let's do the name change now
+```
+
+That authorization covers renaming the current source, package, collection,
+runner, examples, tooling, documentation, workflow names, and GitHub
+repository. It does not broaden the earlier license authorization into a
+binary release, Git tag, GitHub Release, release-candidate publication,
+signing operation, or cross-job artifact transfer. The temporary Phase 27
+transfer was therefore approved separately below.
+
+Kyle explicitly approved the temporary Phase 27 GitHub Actions transfer on
+2026-08-28 by replying:
+
+```text
+Approve temporary public GitHub Actions artifact transfer and immediate deletion for Phase 27.
+```
+
+This approval permits only the two renamed unpublished macOS development
+archives and one renamed unpublished Windows x86-64 development archive,
+their external checksums, and their self-contained consumer harnesses to exist
+as workflow artifacts long enough for the separate clean consumer jobs. The
+workflow must delete all three artifacts immediately afterward; one-day
+retention is only a cleanup-failure fallback. This approval does not authorize
+a release candidate, binary release, Git tag, GitHub Release, signing
+operation, or public download.

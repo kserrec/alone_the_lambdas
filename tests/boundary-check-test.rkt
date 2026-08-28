@@ -133,7 +133,7 @@
 
 (define (temporary-project procedure)
   (define root
-    (make-temporary-file "alone-the-lambdas-boundary-~a"
+    (make-temporary-file "attalambda-boundary-~a"
                          'directory
                          (current-directory)))
   (dynamic-wind
@@ -151,12 +151,12 @@
                  (build-path root "info.rkt"))
       (copy-file (build-path project-root "VERSION")
                  (build-path root "VERSION"))
-      (copy-file (build-path project-root "runner" "atl.rkt")
-                 (build-path root "runner" "atl.rkt"))
-      (for ([name (in-list '("hello.atl"
-                             "stdout.atl"
-                             "file-round-trip.atl"
-                             "http-server.atl"))])
+      (copy-file (build-path project-root "runner" "attalambda.rkt")
+                 (build-path root "runner" "attalambda.rkt"))
+      (for ([name (in-list '("hello.attl"
+                             "stdout.attl"
+                             "file-round-trip.attl"
+                             "http-server.attl"))])
         (copy-file (build-path project-root "examples" name)
                    (build-path root "examples" name)))
       (write-datum
@@ -277,12 +277,12 @@
     '(invalid-application-extension unexpected-application-language))
    (delete-file nonlanguage-application)
 
-   ;; The official application inventory is exact and uses only `.atl`.
+   ;; The official application inventory is exact and uses only `.attl`.
    (define unknown-application
-     (build-path root "examples" "unknown.atl"))
+     (build-path root "examples" "unknown.attl"))
    (write-exact-bytes
     unknown-application
-    #"#lang alone_the_lambdas\n\n(stdout \"unknown\")\n")
+    #"#lang attalambda\n\n(stdout \"unknown\")\n")
    (check-not-false
     (member 'unknown-application-source
             (kinds (project-boundary-violations root))))
@@ -290,7 +290,7 @@
 
    (define unknown-application-input
      (build-path root "examples" "notes.txt"))
-   (write-exact-bytes unknown-application-input #"not an ATL source\n")
+   (write-exact-bytes unknown-application-input #"not an AttaLambda source\n")
    (check-not-false
     (member 'unknown-application-source
             (kinds (project-boundary-violations root))))
@@ -299,9 +299,9 @@
    ;; A canonical application symlink is rejected from link metadata without
    ;; reading the linked source target.
    (define canonical-application
-     (build-path root "examples" "hello.atl"))
+     (build-path root "examples" "hello.attl"))
    (define saved-canonical-application
-     (build-path root "examples" "hello.atl.backup"))
+     (build-path root "examples" "hello.attl.backup"))
    (rename-file-or-directory canonical-application
                              saved-canonical-application)
    (make-directory canonical-application)
@@ -313,12 +313,12 @@
                              canonical-application)
 
    (define application-target
-     (make-temporary-file "atl-application-target-~a.atl"
+     (make-temporary-file "attalambda-application-target-~a.attl"
                           #f
                           (path-only root)))
    (write-exact-bytes
     application-target
-    #"#lang alone_the_lambdas\n\n(stdout \"target\")\n")
+    #"#lang attalambda\n\n(stdout \"target\")\n")
    (rename-file-or-directory canonical-application
                              saved-canonical-application)
    (make-file-or-directory-link application-target
@@ -1070,7 +1070,7 @@
    (define saved-version-file
      (build-path root "VERSION.backup"))
    (define version-target
-     (make-temporary-file "atl-version-target-~a"
+     (make-temporary-file "attalambda-version-target-~a"
                           #f
                           (path-only root)))
    (write-exact-bytes version-target #"0.2.0-dev\n")
@@ -1093,7 +1093,7 @@
    ;; call must receive the validated source path; process, environment, and
    ;; additional-module surfaces all fail closed.
    (define runner-file
-     (build-path root "runner" "atl.rkt"))
+     (build-path root "runner" "attalambda.rkt"))
    (define clean-runner-datum
      (read-datum runner-file))
    (check-equal?
@@ -1103,8 +1103,8 @@
    (write-datum
     runner-file
     (replace-datum
-     '(format "unknown ATL name: ~s" (syntax-e expression))
-     '(format "unknown ATL name: ~s" expression)
+     '(format "unknown AttaLambda name: ~s" (syntax-e expression))
+     '(format "unknown AttaLambda name: ~s" expression)
      clean-runner-datum))
    (check-not-false
     (member 'invalid-runner-diagnostic-formatter

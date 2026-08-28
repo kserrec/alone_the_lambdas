@@ -1,4 +1,4 @@
-#lang alone_the_lambdas
+#lang attalambda
 
 ; Bind an ephemeral loopback port, print its URL, serve one request, close the
 ; caller-owned listener, and exit. All number formatting below is ordinary
@@ -48,7 +48,7 @@
   (make-http-path-handler
    "/lambda"
    HTTP-STATUS-OK
-   "Hello from Alone the Lambdas.\n"
+   "Hello from AttaLambda.\n"
    HTTP-STATUS-NOT-FOUND
    "Not found.\n"))
 

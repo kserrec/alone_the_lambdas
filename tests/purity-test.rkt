@@ -26,7 +26,7 @@
       (write datum output))))
 
 (define (temporary-tree prefix)
-  (make-temporary-file (string-append "alone-the-lambdas-" prefix "-~a")
+  (make-temporary-file (string-append "attalambda-" prefix "-~a")
                        'directory
                        (current-directory)))
 

@@ -36,7 +36,7 @@ run_inside_consumer() {
   local transfer_directory="/transfer"
   local archive_path="$transfer_directory/$archive_name"
   local checksum_path="$transfer_directory/SHA256SUMS"
-  local scratch_root="/tmp/alone-the-lambdas-consumer"
+  local scratch_root="/tmp/attalambda-consumer"
   local first_parent="$scratch_root/first path with spaces"
   local first_root="$first_parent/$artifact_root_name"
   local second_parent="$scratch_root/second relocated path"
@@ -84,11 +84,11 @@ run_inside_consumer() {
   )
 
   for required_path in \
-    bin/atl \
-    examples/hello.atl \
-    examples/stdout.atl \
-    examples/file-round-trip.atl \
-    examples/http-server.atl \
+    bin/attalambda \
+    examples/hello.attl \
+    examples/stdout.attl \
+    examples/file-round-trip.attl \
+    examples/http-server.attl \
     GETTING_STARTED.md \
     BUILD-MANIFEST.txt \
     UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
@@ -97,7 +97,7 @@ run_inside_consumer() {
       die "artifact is missing required file: $required_path"
   done
   [[ -d "$first_root/lib" && ! -L "$first_root/lib" ]] || die "artifact is missing lib/"
-  [[ -x "$first_root/bin/atl" ]] || die "bin/atl is not executable"
+  [[ -x "$first_root/bin/attalambda" ]] || die "bin/attalambda is not executable"
   [[ ! -e "$first_root/LICENSE" && ! -L "$first_root/LICENSE" ]] ||
     die "development artifact must not contain an unapproved repository license"
 
@@ -125,14 +125,14 @@ run_inside_consumer() {
     \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
     -printf '%f\n' |
     sort > "$actual_bin"
-  printf '%s\n' atl > "$scratch_root/expected-bin.txt"
+  printf '%s\n' attalambda > "$scratch_root/expected-bin.txt"
   cmp -s "$actual_bin" "$scratch_root/expected-bin.txt" ||
     die "artifact bin/ inventory differs from the contract"
   find "$first_root/examples" -mindepth 1 -maxdepth 1 \
     \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
     -printf '%f\n' |
     sort > "$actual_examples"
-  printf '%s\n' file-round-trip.atl hello.atl http-server.atl stdout.atl \
+  printf '%s\n' file-round-trip.attl hello.attl http-server.attl stdout.attl \
     > "$scratch_root/expected-examples.txt"
   cmp -s "$actual_examples" "$scratch_root/expected-examples.txt" ||
     die "artifact examples/ inventory differs from the contract"
@@ -168,7 +168,7 @@ run_inside_consumer() {
   grep -Fq 'LICENSE-APACHE.txt' "$first_root/THIRD_PARTY_NOTICES.md" ||
     die "provisional Racket notice is incomplete"
 
-  local atl="$first_root/bin/atl"
+  local attalambda="$first_root/bin/attalambda"
   local stdout_file="$scratch_root/stdout.txt"
   local stderr_file="$scratch_root/stderr.txt"
   local expected_file="$scratch_root/expected-output.txt"
@@ -185,46 +185,46 @@ run_inside_consumer() {
   local first_startup_end
   local first_startup_milliseconds
   first_startup_begin="$(date +%s%N)"
-  "$atl" --version >"$stdout_file" 2>"$stderr_file"
+  "$attalambda" --version >"$stdout_file" 2>"$stderr_file"
   first_startup_end="$(date +%s%N)"
   first_startup_milliseconds=$(( (first_startup_end - first_startup_begin + 999999) / 1000000 ))
-  check_captured_output "Alone the Lambdas $product_version"$'\n' "packaged version"
+  check_captured_output "AttaLambda $product_version"$'\n' "packaged version"
 
-  "$atl" --help >"$stdout_file" 2>"$stderr_file"
+  "$attalambda" --help >"$stdout_file" 2>"$stderr_file"
   check_captured_output \
-    $'Usage:\n  atl run FILE.atl\n  atl --help\n  atl --version\n' \
+    $'Usage:\n  attalambda FILE.attl\n  attalambda --help\n  attalambda --version\n' \
     "packaged help"
 
-  local generated_source="$scratch_root/generated-after-packaging.atl"
+  local generated_source="$scratch_root/generated-after-packaging.attl"
   printf '%s\n' \
-    '#lang alone_the_lambdas' \
+    '#lang attalambda' \
     '' \
     '(stdout "Generated after packaging.\n")' \
     > "$generated_source"
-  "$atl" run "$generated_source" >"$stdout_file" 2>"$stderr_file"
+  "$attalambda" "$generated_source" >"$stdout_file" 2>"$stderr_file"
   check_captured_output $'Generated after packaging.\n' "generated source"
 
   local decoy_root="$scratch_root/decoy-collections"
-  mkdir -p -- "$decoy_root/alone_the_lambdas/lang"
+  mkdir -p -- "$decoy_root/attalambda/lang"
   printf '%s\n' 'this external reader must never be loaded' \
-    > "$decoy_root/alone_the_lambdas/lang/reader.rkt"
-  PLTCOLLECTS="$decoy_root" "$atl" run "$generated_source" \
+    > "$decoy_root/attalambda/lang/reader.rkt"
+  PLTCOLLECTS="$decoy_root" "$attalambda" "$generated_source" \
     >"$stdout_file" 2>"$stderr_file"
   check_captured_output $'Generated after packaging.\n' "embedded-language precedence run"
 
   local stdout_work="$scratch_root/stdout-work"
   mkdir -p -- "$stdout_work"
-  (cd "$stdout_work" && "$atl" run "$first_root/examples/stdout.atl" \
+  (cd "$stdout_work" && "$attalambda" "$first_root/examples/stdout.attl" \
     >"$stdout_file" 2>"$stderr_file")
-  check_captured_output $'Hello from Alone the Lambdas.\n' "stdout example"
+  check_captured_output $'Hello from AttaLambda.\n' "stdout example"
 
   local file_work="$scratch_root/file-work"
   mkdir -p -- "$file_work"
-  (cd "$file_work" && "$atl" run "$first_root/examples/file-round-trip.atl" \
+  (cd "$file_work" && "$attalambda" "$first_root/examples/file-round-trip.attl" \
     >"$stdout_file" 2>"$stderr_file")
-  check_captured_output $'Alone the Lambdas file round trip.\n' "file round trip"
-  printf '%s' $'Alone the Lambdas file round trip.\n' > "$expected_file"
-  cmp -s "$file_work/alone-the-lambdas-round-trip.txt" "$expected_file" ||
+  check_captured_output $'AttaLambda file round trip.\n' "file round trip"
+  printf '%s' $'AttaLambda file round trip.\n' > "$expected_file"
+  cmp -s "$file_work/attalambda-round-trip.txt" "$expected_file" ||
     die "packaged file round trip wrote the wrong bytes"
 
   local http_work="$scratch_root/http-work"
@@ -232,7 +232,7 @@ run_inside_consumer() {
   local http_error_file="$scratch_root/http-stderr.txt"
   local response_file="$scratch_root/http-response.txt"
   mkdir -p -- "$http_work"
-  (cd "$http_work" && timeout 20 "$atl" run "$first_root/examples/http-server.atl" \
+  (cd "$http_work" && timeout 20 "$attalambda" "$first_root/examples/http-server.attl" \
     > "$announcement_file" 2> "$http_error_file") &
   server_pid="$!"
   for _attempt in $(seq 1 200); do
@@ -254,22 +254,22 @@ run_inside_consumer() {
   [[ ! -s "$http_error_file" ]] || die "HTTP example wrote stderr"
   grep -Fq $'HTTP/1.1 200 OK\r' "$response_file" || die "HTTP response status mismatch"
   sed -n '/^\r$/,$p' "$response_file" | sed '1d' > "$scratch_root/http-body.txt"
-  printf '%s' $'Hello from Alone the Lambdas.\n' > "$expected_file"
+  printf '%s' $'Hello from AttaLambda.\n' > "$expected_file"
   cmp -s "$scratch_root/http-body.txt" "$expected_file" ||
     die "HTTP response body mismatch"
 
   mkdir -p -- "$second_parent"
   mv -- "$first_root" "$second_root"
-  atl="$second_root/bin/atl"
+  attalambda="$second_root/bin/attalambda"
   local relocated_startup_begin
   local relocated_startup_end
   local relocated_startup_milliseconds
   relocated_startup_begin="$(date +%s%N)"
-  "$atl" --version >"$stdout_file" 2>"$stderr_file"
+  "$attalambda" --version >"$stdout_file" 2>"$stderr_file"
   relocated_startup_end="$(date +%s%N)"
   relocated_startup_milliseconds=$(( (relocated_startup_end - relocated_startup_begin + 999999) / 1000000 ))
-  check_captured_output "Alone the Lambdas $product_version"$'\n' "relocated version"
-  "$atl" run "$generated_source" >"$stdout_file" 2>"$stderr_file"
+  check_captured_output "AttaLambda $product_version"$'\n' "relocated version"
+  "$attalambda" "$generated_source" >"$stdout_file" 2>"$stderr_file"
   check_captured_output $'Generated after packaging.\n' "relocated source"
 
   printf 'consumer_image=%s\n' "$consumer_image"
@@ -306,7 +306,7 @@ output_directory="$(realpath -- "$1")"
 version_file="$project_root/VERSION"
 [[ -f "$version_file" && ! -L "$version_file" ]] || die "VERSION is unavailable or symlinked"
 product_version="$(<"$version_file")"
-artifact_root_name="alone-the-lambdas-$product_version-linux-x86_64"
+artifact_root_name="attalambda-$product_version-linux-x86_64"
 archive_name="$artifact_root_name.tar.gz"
 archive_path="$output_directory/$archive_name"
 checksum_path="$output_directory/SHA256SUMS"
@@ -320,10 +320,10 @@ expected_checksum_line="$(<"$checksum_path")"
   die "SHA256SUMS must contain exactly the versioned Linux archive"
 (cd "$output_directory" && sha256sum --check --strict SHA256SUMS >/dev/null)
 
-consumer_transfer_root="$(mktemp -d /tmp/alone-the-lambdas-linux-transfer-XXXXXX)"
+consumer_transfer_root="$(mktemp -d /tmp/attalambda-linux-transfer-XXXXXX)"
 cleanup_host() {
   if [[ -n "${consumer_transfer_root:-}" &&
-        "$consumer_transfer_root" == /tmp/alone-the-lambdas-linux-transfer-* &&
+        "$consumer_transfer_root" == /tmp/attalambda-linux-transfer-* &&
         -d "$consumer_transfer_root" ]]; then
     rm -rf -- "$consumer_transfer_root"
   fi

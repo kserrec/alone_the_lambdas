@@ -128,7 +128,7 @@ expected_version_bytes=$(( ${#product_version} + 1 ))
 [[ "$(grep -Fxc "(define version \"$expected_package_version\")" "$info_file")" -eq 1 ]] ||
   die "info.rkt does not contain the approved VERSION projection"
 
-artifact_root_name="alone-the-lambdas-$product_version-$target_identifier"
+artifact_root_name="attalambda-$product_version-$target_identifier"
 archive_name="$artifact_root_name.tar.gz"
 archive_path="$output_directory/$archive_name"
 checksum_path="$output_directory/SHA256SUMS"
@@ -152,7 +152,7 @@ if [[ "$build_temp_parent" == "$project_root" ||
   die "temporary directory parent must be outside the source checkout"
 fi
 
-build_temp_root="$(mktemp -d "$build_temp_parent/alone-the-lambdas-macos-build-XXXXXX")"
+build_temp_root="$(mktemp -d "$build_temp_parent/attalambda-macos-build-XXXXXX")"
 staged_archive=""
 staged_checksum=""
 archive_created_by_script=false
@@ -161,7 +161,7 @@ outputs_complete=false
 
 cleanup() {
   if [[ -n "${build_temp_root:-}" &&
-        "$build_temp_root" == "$build_temp_parent/alone-the-lambdas-macos-build-"* &&
+        "$build_temp_root" == "$build_temp_parent/attalambda-macos-build-"* &&
         -d "$build_temp_root" ]]; then
     rm -rf "$build_temp_root"
   fi
@@ -188,7 +188,7 @@ staged_checksum="$(mktemp "$output_directory/.SHA256SUMS.building.XXXXXX")"
 isolated_user_home="$build_temp_root/racket-user"
 isolated_temp_directory="$build_temp_root/tmp"
 package_source="$build_temp_root/package-source"
-compiled_executable="$build_temp_root/atl"
+compiled_executable="$build_temp_root/attalambda"
 artifact_parent="$build_temp_root/artifact"
 artifact_root="$artifact_parent/$artifact_root_name"
 mkdir -p "$isolated_user_home" "$isolated_temp_directory" "$package_source" "$artifact_parent"
@@ -273,7 +273,7 @@ done < <(
   --batch \
   --scope user \
   --copy \
-  --name alone_the_lambdas \
+  --name attalambda \
   --deps fail \
   --no-docs \
   --fail-fast \
@@ -281,30 +281,30 @@ done < <(
 
 "${racket_environment[@]}" "$raco_executable" exe \
   -o "$compiled_executable" \
-  ++lang alone_the_lambdas \
-  "$package_source/runner/atl.rkt"
+  ++lang attalambda \
+  "$package_source/runner/attalambda.rkt"
 
 [[ "$("${racket_environment[@]}" "$compiled_executable" --version)" == \
-    "Alone the Lambdas $product_version" ]] ||
+    "AttaLambda $product_version" ]] ||
   die "compiled runner version does not match VERSION"
 
 "${racket_environment[@]}" "$raco_executable" distribute \
   "$artifact_root" \
   "$compiled_executable"
 
-[[ -x "$artifact_root/bin/atl" && ! -L "$artifact_root/bin/atl" ]] ||
-  die "raco distribute did not produce bin/atl"
+[[ -x "$artifact_root/bin/attalambda" && ! -L "$artifact_root/bin/attalambda" ]] ||
+  die "raco distribute did not produce bin/attalambda"
 if [[ -e "$artifact_root/lib" || -L "$artifact_root/lib" ]]; then
   [[ -d "$artifact_root/lib" && ! -L "$artifact_root/lib" ]] ||
     die "raco distribute produced an invalid lib/ path"
 else
   # Racket omits lib/ when the executable needs no separate support files.
-  # Keep the Alone the Lambdas archive layout stable across native targets.
+  # Keep the AttaLambda archive layout stable across native targets.
   mkdir -m 0755 "$artifact_root/lib"
 fi
 
 mkdir -p "$artifact_root/examples"
-for example_name in hello.atl stdout.atl file-round-trip.atl http-server.atl; do
+for example_name in hello.attl stdout.attl file-round-trip.attl http-server.attl; do
   example_source="$project_root/examples/$example_name"
   [[ -f "$example_source" && ! -L "$example_source" ]] ||
     die "canonical example is unavailable or symlinked: $example_name"
@@ -411,7 +411,7 @@ done < <(
 ) | sort > "$artifact_inventory_file"
 
 {
-  printf 'Alone the Lambdas build manifest\n'
+  printf 'AttaLambda build manifest\n'
   printf 'Manifest format: 1\n'
   printf 'Product version: %s\n' "$product_version"
   printf 'Source commit: %s\n' "$source_commit"
@@ -456,8 +456,8 @@ case "$toolchain_root" in
 esac
 
 [[ "$(env -u PLTCOLLECTS -u PLTADDONDIR -u PLTCONFIGDIR \
-          "$artifact_root/bin/atl" --version)" == \
-    "Alone the Lambdas $product_version" ]] ||
+          "$artifact_root/bin/attalambda" --version)" == \
+    "AttaLambda $product_version" ]] ||
   die "distributed runner version does not match VERSION"
 
 while IFS= read -r -d '' artifact_path; do

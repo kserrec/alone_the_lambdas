@@ -321,7 +321,7 @@ try {
         Fail 'info.rkt does not contain the approved VERSION projection'
     }
 
-    $artifactRootName = "alone-the-lambdas-$productVersion-$TargetIdentifier"
+    $artifactRootName = "attalambda-$productVersion-$TargetIdentifier"
     $archiveName = "$artifactRootName.zip"
     $ArchivePath = [IO.Path]::Combine($OutputDirectory, $archiveName)
     $ChecksumPath = [IO.Path]::Combine($OutputDirectory, 'SHA256SUMS')
@@ -360,7 +360,7 @@ try {
     if (Test-PathWithin $tempParent $ProjectRoot) {
         Fail 'temporary directory parent must be outside the source checkout'
     }
-    $BuildTempRoot = [IO.Path]::Combine($tempParent, "alone-the-lambdas-windows-build-$([Guid]::NewGuid().ToString('N'))")
+    $BuildTempRoot = [IO.Path]::Combine($tempParent, "attalambda-windows-build-$([Guid]::NewGuid().ToString('N'))")
     [IO.Directory]::CreateDirectory($BuildTempRoot) | Out-Null
 
     $StagedArchive = [IO.Path]::Combine($OutputDirectory, ".$archiveName.building.$([Guid]::NewGuid().ToString('N'))")
@@ -369,7 +369,7 @@ try {
     $isolatedTemp = [IO.Path]::Combine($BuildTempRoot, 'tmp')
     $packageSource = [IO.Path]::Combine($BuildTempRoot, 'package-source')
     $compiledDirectory = [IO.Path]::Combine($BuildTempRoot, 'compiled-executable')
-    $compiledExecutable = [IO.Path]::Combine($compiledDirectory, 'atl.exe')
+    $compiledExecutable = [IO.Path]::Combine($compiledDirectory, 'attalambda.exe')
     $rawDistribution = [IO.Path]::Combine($BuildTempRoot, 'raco-distribution')
     $artifactParent = [IO.Path]::Combine($BuildTempRoot, 'artifact')
     $artifactRoot = [IO.Path]::Combine($artifactParent, $artifactRootName)
@@ -455,21 +455,21 @@ try {
         }
     }
 
-    Invoke-NativeChecked $raco.Source @('pkg', 'install', '--batch', '--scope', 'user', '--copy', '--name', 'alone_the_lambdas', '--deps', 'fail', '--no-docs', '--fail-fast', $packageSource) 'isolated package installation'
-    Invoke-NativeChecked $raco.Source @('exe', '--embed-dlls', '-o', $compiledExecutable, '++lang', 'alone_the_lambdas', [IO.Path]::Combine($packageSource, 'runner', 'atl.rkt')) 'native executable build'
+    Invoke-NativeChecked $raco.Source @('pkg', 'install', '--batch', '--scope', 'user', '--copy', '--name', 'attalambda', '--deps', 'fail', '--no-docs', '--fail-fast', $packageSource) 'isolated package installation'
+    Invoke-NativeChecked $raco.Source @('exe', '--embed-dlls', '-o', $compiledExecutable, '++lang', 'attalambda', [IO.Path]::Combine($packageSource, 'runner', 'attalambda.rkt')) 'native executable build'
 
     $compiledVersion = (& $compiledExecutable --version | Out-String).TrimEnd("`r", "`n")
-    if ($LASTEXITCODE -ne 0 -or $compiledVersion -cne "Alone the Lambdas $productVersion") {
+    if ($LASTEXITCODE -ne 0 -or $compiledVersion -cne "AttaLambda $productVersion") {
         Fail 'compiled runner version does not match VERSION'
     }
 
     Invoke-NativeChecked $raco.Source @('distribute', $rawDistribution, $compiledExecutable) 'native distribution build'
     $rawEntries = @(Get-SafeTreeEntries -Root $rawDistribution -RejectDotenv)
     $rawFiles = @($rawEntries | Where-Object { -not $_.IsDirectory })
-    $rawExecutables = @($rawFiles | Where-Object { [IO.Path]::GetFileName($_.FullPath) -ceq 'atl.exe' })
+    $rawExecutables = @($rawFiles | Where-Object { [IO.Path]::GetFileName($_.FullPath) -ceq 'attalambda.exe' })
     if ($rawExecutables.Count -ne 1 -or $rawFiles.Count -ne 1) {
         $observed = ($rawFiles.RelativePath -join ', ')
-        Fail "raco distribute produced unexpected support files instead of one embedded atl.exe: $observed"
+        Fail "raco distribute produced unexpected support files instead of one embedded attalambda.exe: $observed"
     }
 
     $artifactBin = [IO.Path]::Combine($artifactRoot, 'bin')
@@ -478,9 +478,9 @@ try {
     [IO.Directory]::CreateDirectory($artifactBin) | Out-Null
     [IO.Directory]::CreateDirectory($artifactLib) | Out-Null
     [IO.Directory]::CreateDirectory($artifactExamples) | Out-Null
-    [IO.File]::Move($rawExecutables[0].FullPath, [IO.Path]::Combine($artifactBin, 'atl.exe'))
+    [IO.File]::Move($rawExecutables[0].FullPath, [IO.Path]::Combine($artifactBin, 'attalambda.exe'))
 
-    foreach ($exampleName in @('hello.atl', 'stdout.atl', 'file-round-trip.atl', 'http-server.atl')) {
+    foreach ($exampleName in @('hello.attl', 'stdout.attl', 'file-round-trip.attl', 'http-server.attl')) {
         Copy-RegularFile ([IO.Path]::Combine($ProjectRoot, 'examples', $exampleName)) ([IO.Path]::Combine($artifactExamples, $exampleName)) "canonical example $exampleName"
     }
     foreach ($assetName in @('GETTING_STARTED.md.in', 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt', 'THIRD_PARTY_NOTICES.md.in')) {
@@ -490,10 +490,10 @@ try {
     $guide = [IO.File]::ReadAllText([IO.Path]::Combine($ProjectRoot, 'distribution', 'GETTING_STARTED.md.in'))
     $guide = $guide.Replace('@VERSION@', $productVersion).Replace('@ROOT_NAME@', $artifactRootName)
     $guide = $guide.Replace("on Linux`nx86-64", "on Windows`nx86-64")
-    $guide = $guide.Replace('`atl` executable', '`atl.exe` executable')
-    $guide = $guide.Replace('./bin/atl --help', '.\bin\atl.exe --help')
-    $guide = $guide.Replace('./bin/atl --version', '.\bin\atl.exe --version')
-    $guide = $guide.Replace('./bin/atl run examples/hello.atl', '.\bin\atl.exe run examples\hello.atl')
+    $guide = $guide.Replace('`attalambda` executable', '`attalambda.exe` executable')
+    $guide = $guide.Replace('./bin/attalambda --help', '.\bin\attalambda.exe --help')
+    $guide = $guide.Replace('./bin/attalambda --version', '.\bin\attalambda.exe --version')
+    $guide = $guide.Replace('./bin/attalambda examples/hello.attl', '.\bin\attalambda.exe examples\hello.attl')
     $guide = $guide.Replace('observed Linux system-library assumptions', 'observed Windows system-DLL assumptions')
     if ($guide.Contains('@')) {
         Fail 'unexpanded getting-started placeholder'
@@ -519,9 +519,9 @@ try {
     }
     Write-LfUtf8 ([IO.Path]::Combine($artifactRoot, 'THIRD_PARTY_NOTICES.md')) $noticeBuilder.ToString()
 
-    $atlExecutable = [IO.Path]::Combine($artifactBin, 'atl.exe')
-    $distributedVersion = (& $atlExecutable --version | Out-String).TrimEnd("`r", "`n")
-    if ($LASTEXITCODE -ne 0 -or $distributedVersion -cne "Alone the Lambdas $productVersion") {
+    $attalambdaExecutable = [IO.Path]::Combine($artifactBin, 'attalambda.exe')
+    $distributedVersion = (& $attalambdaExecutable --version | Out-String).TrimEnd("`r", "`n")
+    if ($LASTEXITCODE -ne 0 -or $distributedVersion -cne "AttaLambda $productVersion") {
         Fail 'distributed runner version does not match VERSION after canonical relocation'
     }
 
@@ -571,10 +571,10 @@ try {
     $bundledDependencies = @($bundledDependencies | Sort-Object -CaseSensitive -Unique)
     $systemDependencies = @($systemDependencies | Sort-Object)
 
-    $signature = Get-AuthenticodeSignature -LiteralPath $atlExecutable
+    $signature = Get-AuthenticodeSignature -LiteralPath $attalambdaExecutable
     $authenticodeStatus = [string] $signature.Status
     if ($authenticodeStatus -notin @('NotSigned', 'Valid')) {
-        Fail "atl.exe has an unacceptable Authenticode status: $authenticodeStatus"
+        Fail "attalambda.exe has an unacceptable Authenticode status: $authenticodeStatus"
     }
 
     $manifestPath = [IO.Path]::Combine($artifactRoot, 'BUILD-MANIFEST.txt')
@@ -582,7 +582,7 @@ try {
     $artifactEntries = @(Get-SafeTreeEntries -Root $artifactRoot -RejectDotenv)
     $artifactInventory = @($artifactEntries | Where-Object { -not $_.IsDirectory } | ForEach-Object { $_.RelativePath } | Sort-Object -CaseSensitive)
     $manifest = [Text.StringBuilder]::new()
-    [void] $manifest.Append("Alone the Lambdas build manifest`n")
+    [void] $manifest.Append("AttaLambda build manifest`n")
     [void] $manifest.Append("Manifest format: 1`n")
     [void] $manifest.Append("Product version: $productVersion`n")
     [void] $manifest.Append("Source commit: $sourceCommit`n")
@@ -667,7 +667,7 @@ finally {
         }
     }
     if ($null -ne $BuildTempRoot -and [IO.Directory]::Exists($BuildTempRoot)) {
-        $expectedPrefix = [IO.Path]::Combine((Get-FullPath ([IO.Path]::GetDirectoryName($BuildTempRoot))), 'alone-the-lambdas-windows-build-')
+        $expectedPrefix = [IO.Path]::Combine((Get-FullPath ([IO.Path]::GetDirectoryName($BuildTempRoot))), 'attalambda-windows-build-')
         if ((Get-FullPath $BuildTempRoot).StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase)) {
             Remove-Item -LiteralPath $BuildTempRoot -Recurse -Force
         }

@@ -13,7 +13,7 @@
   (simplify-path project-root-path #f))
 
 (define expected-help
-  #"Usage:\n  atl run FILE.atl\n  atl --help\n  atl --version\n")
+  #"Usage:\n  attalambda FILE.attl\n  attalambda --help\n  attalambda --version\n")
 
 (define (check-runner-failure result expected-status expected-stderr)
   (check-false (command-result-timed-out? result)
@@ -30,16 +30,16 @@
 
 (define (command-diagnostic reason)
   (string->bytes/utf-8
-   (format "Alone the Lambdas: ~a\n" reason)))
+   (format "AttaLambda: ~a\n" reason)))
 
 (define (source-diagnostic source reason
                            #:line [line #f]
                            #:column [column #f])
   (string->bytes/utf-8
    (if (and line column)
-       (format "Alone the Lambdas: ~s:~a:~a: ~a\n"
+       (format "AttaLambda: ~s:~a:~a: ~a\n"
                source line column reason)
-       (format "Alone the Lambdas: ~s: ~a\n"
+       (format "AttaLambda: ~s: ~a\n"
                source reason))))
 
 (define (write-exact-bytes path content)
@@ -59,7 +59,7 @@
    (define package-source
      (build-path temporary-root "package-source"))
    (define runner
-     (build-path package-source "runner" "atl.rkt"))
+     (build-path package-source "runner" "attalambda.rkt"))
    (define working-directory
      (build-path temporary-root "runner-work"))
    (make-directory working-directory)
@@ -76,20 +76,30 @@
    (check-command-success (run '("--help")) expected-help)
    (check-command-success
     (run '("--version"))
-    #"Alone the Lambdas 0.2.0-dev\n")
+    #"AttaLambda 0.2.0-dev\n")
 
    (for ([arguments
           (in-list '(()
-                     ("run")
-                     ("unknown")
                      ("--help" "extra")
                      ("--version" "extra")
-                     ("run" "program.atl" "extra")))])
+                     ("--unknown")
+                     ("-example.attl")
+                     ("run" "program.attl")
+                     ("program.attl" "extra")))])
      (check-runner-failure
       (run arguments)
       64
       (command-diagnostic
-       "expected atl run FILE.atl, atl --help, or atl --version")))
+       "expected attalambda FILE.attl, attalambda --help, or attalambda --version")))
+
+   ;; The retired subcommand is treated as a supplied filename, not retained
+   ;; as a compatibility alias.
+   (check-runner-failure
+    (run '("run"))
+    65
+    (source-diagnostic
+     "run"
+     "source file name must end in lowercase .attl"))
 
    ;; VERSION remains the sole CLI version source. Expansion embeds only an
    ;; approved state so the future native executable needs no runtime copy.
@@ -98,11 +108,11 @@
    (write-exact-bytes product-version-file #"0.2.0-rc.1\n")
    (check-command-success
     (run '("--version"))
-    #"Alone the Lambdas 0.2.0-rc.1\n")
+    #"AttaLambda 0.2.0-rc.1\n")
    (write-exact-bytes product-version-file #"0.2.0\n")
    (check-command-success
     (run '("--version"))
-    #"Alone the Lambdas 0.2.0\n")
+    #"AttaLambda 0.2.0\n")
    (write-exact-bytes product-version-file #"unsupported\n")
    (define invalid-version-build
      (run '("--version")))
@@ -125,118 +135,135 @@
    ;; Validation precedence rejects names and metadata before source content.
    ;; None of the dotenv-spelled paths below is created or opened.
    (check-runner-failure
-    (run '("run" "program.env.rkt"))
+    (run '("program.env.rkt"))
     66
     (source-diagnostic
      "program.env.rkt"
      "refused source path because dotenv files are never read"))
    (check-runner-failure
-    (run '("run" ".ENV.local/program.atl"))
+    (run '(".ENV.local/program.attl"))
     66
     (source-diagnostic
-     ".ENV.local/program.atl"
+     ".ENV.local/program.attl"
      "refused source path because dotenv files are never read"))
    (check-runner-failure
-    (run '("run" "missing.rkt"))
+    (run '("missing.rkt"))
     65
     (source-diagnostic
      "missing.rkt"
-     "source file name must end in lowercase .atl"))
+     "source file name must end in lowercase .attl"))
    (check-runner-failure
-    (run '("run" "missing.ATL"))
+    (run '("missing.atl"))
     65
     (source-diagnostic
-     "missing.ATL"
-     "source file name must end in lowercase .atl"))
+     "missing.atl"
+     "source file name must end in lowercase .attl"))
    (check-runner-failure
-    (run '("run" "missing.atl"))
+    (run '("missing.ATTL"))
+    65
+    (source-diagnostic
+     "missing.ATTL"
+     "source file name must end in lowercase .attl"))
+   (check-runner-failure
+    (run '("missing.attl"))
     66
     (source-diagnostic
-     "missing.atl"
+     "missing.attl"
      "source file was not found"))
 
    (define directory-source
-     (build-path working-directory "directory.atl"))
+     (build-path working-directory "directory.attl"))
    (make-directory directory-source)
    (check-runner-failure
-    (run (list "run" (path->string directory-source)))
+    (run (list (path->string directory-source)))
     66
     (source-diagnostic
      (path->string directory-source)
      "source path is not a regular file"))
 
    (define unreadable-source
-     (build-path working-directory "unreadable.atl"))
+     (build-path working-directory "unreadable.attl"))
    (write-source unreadable-source
-                 "#lang alone_the_lambdas\n(stdout \"no\")\n")
+                 "#lang attalambda\n(stdout \"no\")\n")
    (define unreadable-result
      (dynamic-wind
        (lambda ()
          (file-or-directory-permissions unreadable-source #o000))
        (lambda ()
-         (run '("run" "unreadable.atl")))
+         (run '("unreadable.attl")))
        (lambda ()
          (file-or-directory-permissions unreadable-source #o600))))
    (check-runner-failure
     unreadable-result
     66
     (source-diagnostic
-     "unreadable.atl"
+     "unreadable.attl"
      "source file could not be read"))
 
    (define malformed-header
-     (build-path working-directory "malformed.atl"))
+     (build-path working-directory "malformed.attl"))
    (write-source malformed-header
-                 " #lang alone_the_lambdas\n(stdout \"no\")\n")
+                 " #lang attalambda\n(stdout \"no\")\n")
    (check-runner-failure
-    (run (list "run" (path->string malformed-header)))
+    (run (list (path->string malformed-header)))
     65
     (source-diagnostic
      (path->string malformed-header)
-     "line 1 must be exactly #lang alone_the_lambdas"))
+     "line 1 must be exactly #lang attalambda"))
+
+   (define retired-language-header
+     (build-path working-directory "retired-language-header.attl"))
+   (write-source retired-language-header
+                 "#lang alone_the_lambdas\n(stdout \"no\")\n")
+   (check-runner-failure
+    (run (list (path->string retired-language-header)))
+    65
+    (source-diagnostic
+     (path->string retired-language-header)
+     "line 1 must be exactly #lang attalambda"))
 
    (define bare-carriage-return-header
-     (build-path working-directory "bare-carriage-return.atl"))
+     (build-path working-directory "bare-carriage-return.attl"))
    (write-exact-bytes
     bare-carriage-return-header
-    #"#lang alone_the_lambdas\r(stdout \"no\")\n")
+    #"#lang attalambda\r(stdout \"no\")\n")
    (check-runner-failure
-    (run (list "run" (path->string bare-carriage-return-header)))
+    (run (list (path->string bare-carriage-return-header)))
     65
     (source-diagnostic
      (path->string bare-carriage-return-header)
-     "line 1 must be exactly #lang alone_the_lambdas"))
+     "line 1 must be exactly #lang attalambda"))
 
    (for ([malformed-case
           (in-list
            (list
-            (cons "byte-order-mark.atl"
-                  #"\357\273\277#lang alone_the_lambdas\n")
-            (cons "trailing-space.atl"
-                  #"#lang alone_the_lambdas \n")))])
+            (cons "byte-order-mark.attl"
+                  #"\357\273\277#lang attalambda\n")
+            (cons "trailing-space.attl"
+                  #"#lang attalambda \n")))])
      (define malformed-path
        (build-path working-directory (car malformed-case)))
      (write-exact-bytes malformed-path (cdr malformed-case))
      (check-runner-failure
-      (run (list "run" (path->string malformed-path)))
+      (run (list (path->string malformed-path)))
       65
       (source-diagnostic
        (path->string malformed-path)
-       "line 1 must be exactly #lang alone_the_lambdas")))
+       "line 1 must be exactly #lang attalambda")))
 
    (define linked-target
-     (build-path working-directory "linked-target.atl"))
+     (build-path working-directory "linked-target.attl"))
    (define linked-source
-     (build-path working-directory "linked.atl"))
+     (build-path working-directory "linked.attl"))
    (write-source linked-target
-                 "#lang alone_the_lambdas\n(stdout \"target ran\")\n")
+                 "#lang attalambda\n(stdout \"target ran\")\n")
    (make-file-or-directory-link linked-target linked-source)
    (check-runner-failure
-    (run (list "run" (path->string linked-source)))
+    (run (list (path->string linked-source)))
     66
     (source-diagnostic
      (path->string linked-source)
-     "refused symbolic-link source; choose a regular .atl file"))
+     "refused symbolic-link source; choose a regular .attl file"))
 
    (define dotenv-parent
      (build-path working-directory "private.env.local"))
@@ -244,17 +271,16 @@
      (build-path working-directory "ordinary-parent"))
    (make-directory dotenv-parent)
    (write-source
-    (build-path dotenv-parent "program.atl")
-    "#lang alone_the_lambdas\n(stdout \"resolved target ran\")\n")
+    (build-path dotenv-parent "program.attl")
+    "#lang attalambda\n(stdout \"resolved target ran\")\n")
    (make-file-or-directory-link dotenv-parent ordinary-parent-link)
    (check-runner-failure
-    (run (list "run"
-               (path->string
-                (build-path ordinary-parent-link "program.atl"))))
+    (run (list (path->string
+                (build-path ordinary-parent-link "program.attl"))))
     66
     (source-diagnostic
      (path->string
-      (build-path ordinary-parent-link "program.atl"))
+      (build-path ordinary-parent-link "program.attl"))
      "refused source path because dotenv files are never read"))
 
    (define allowed-parent-target
@@ -263,13 +289,12 @@
      (build-path working-directory "allowed-parent"))
    (make-directory allowed-parent-target)
    (write-source
-    (build-path allowed-parent-target "program.atl")
-    "#lang alone_the_lambdas\n(stdout \"parent link allowed\")\n")
+    (build-path allowed-parent-target "program.attl")
+    "#lang attalambda\n(stdout \"parent link allowed\")\n")
    (make-file-or-directory-link allowed-parent-target allowed-parent-link)
    (check-command-success
-    (run (list "run"
-               (path->string
-                (build-path allowed-parent-link "program.atl"))))
+    (run (list (path->string
+                (build-path allowed-parent-link "program.attl"))))
     #"parent link allowed")
 
    ;; Paths containing spaces and non-ASCII characters retain the existing
@@ -279,71 +304,79 @@
      (build-path working-directory "source space lambda-λ"))
    (make-directory unicode-directory)
    (define unicode-source
-     (build-path unicode-directory "héllo λ.atl"))
+     (build-path unicode-directory "héllo λ.attl"))
    (write-source
     unicode-source
     (string-append
-     "#lang alone_the_lambdas\r\n"
+     "#lang attalambda\r\n"
      "(def choose first second = first)\r\n"
      "(stdout (choose \"héllo λ\\n\" \"ignored\"))\r\n"))
    (check-command-success
-    (run (list "run" (path->string unicode-source)))
+    (run (list (path->string unicode-source)))
     (string->bytes/utf-8 "héllo λ\n"))
 
    (define unicode-failure-name
      (path->string
-      (build-path "source space lambda-λ" "unknown λ.atl")))
+      (build-path "source space lambda-λ" "unknown λ.attl")))
    (define unicode-failure-source
      (build-path working-directory unicode-failure-name))
    (write-source unicode-failure-source
-                 "#lang alone_the_lambdas\n(display \"escape\")\n")
+                 "#lang attalambda\n(display \"escape\")\n")
    (check-runner-failure
-    (run (list "run" unicode-failure-name))
+    (run (list unicode-failure-name))
     65
     (source-diagnostic
      unicode-failure-name
-     "unknown ATL name: display"
+     "unknown AttaLambda name: display"
      #:line 2
      #:column 1))
 
    (define relative-source
-     (build-path working-directory "relative.atl"))
+     (build-path working-directory "relative.attl"))
    (write-source relative-source
-                 "#lang alone_the_lambdas\n(stdout \"relative path\")\n")
+                 "#lang attalambda\n(stdout \"relative path\")\n")
    (check-command-success
-    (run '("run" "relative.atl"))
+    (run '("relative.attl"))
     #"relative path")
 
-   (define header-only-source
-     (build-path working-directory "header-only.atl"))
-   (write-exact-bytes header-only-source #"#lang alone_the_lambdas")
+   (define dash-prefixed-source
+     (build-path working-directory "-example.attl"))
+   (write-source dash-prefixed-source
+                 "#lang attalambda\n(stdout \"dash-prefixed path\")\n")
    (check-command-success
-    (run (list "run" (path->string header-only-source)))
+    (run '("./-example.attl"))
+    #"dash-prefixed path")
+
+   (define header-only-source
+     (build-path working-directory "header-only.attl"))
+   (write-exact-bytes header-only-source #"#lang attalambda")
+   (check-command-success
+    (run (list (path->string header-only-source)))
     #"")
 
    ;; This is the checked-in hello program, loaded outside the installed
    ;; collection by the runner's one dynamic-require call.
    (define hello-source
-     (build-path package-source "examples" "hello.atl"))
+     (build-path package-source "examples" "hello.attl"))
    (check-command-success
-    (run (list "run" (path->string hello-source)))
-    #"Hello from Alone the Lambdas.\n")
+    (run (list (path->string hello-source)))
+    #"Hello from AttaLambda.\n")
 
-   ;; Unsupported identifiers still fail in the existing ATL expander. The
+   ;; Unsupported identifiers still fail in the existing AttaLambda expander. The
    ;; runner reports only the original spelling and source position, never the
    ;; resolved temporary/package path or Racket exception rendering.
    (define unbound-source
-     (build-path working-directory "unbound.atl"))
+     (build-path working-directory "unbound.attl"))
    (write-source unbound-source
-                 "#lang alone_the_lambdas\n(display \"escape\")\n")
+                 "#lang attalambda\n(display \"escape\")\n")
    (define unbound-result
-     (run '("run" "unbound.atl")))
+     (run '("unbound.attl")))
    (check-runner-failure
     unbound-result
     65
     (source-diagnostic
-     "unbound.atl"
-     "unknown ATL name: display"
+     "unbound.attl"
+     "unknown AttaLambda name: display"
      #:line 2
      #:column 1))
    (check-false
@@ -353,55 +386,55 @@
     (result-diagnostic unbound-result))
 
    (define wrong-public-name-source
-     (build-path working-directory "wrong-public-name.atl"))
+     (build-path working-directory "wrong-public-name.attl"))
    (write-source
     wrong-public-name-source
-    "#lang alone_the_lambdas\n(_if TRUE \"yes\" \"no\")\n")
+    "#lang attalambda\n(_if TRUE \"yes\" \"no\")\n")
    (check-runner-failure
-    (run '("run" "wrong-public-name.atl"))
+    (run '("wrong-public-name.attl"))
     65
     (source-diagnostic
-     "wrong-public-name.atl"
-     "unknown ATL name: _if"
+     "wrong-public-name.attl"
+     "unknown AttaLambda name: _if"
      #:line 2
      #:column 1))
 
    (define unsupported-datum-source
-     (build-path working-directory "unsupported-datum.atl"))
+     (build-path working-directory "unsupported-datum.attl"))
    (write-source unsupported-datum-source
-                 "#lang alone_the_lambdas\n#t\n")
+                 "#lang attalambda\n#t\n")
    (check-runner-failure
-    (run '("run" "unsupported-datum.atl"))
+    (run '("unsupported-datum.attl"))
     65
     (source-diagnostic
-     "unsupported-datum.atl"
+     "unsupported-datum.attl"
      "unsupported literal; only nonnegative Nat and String literals are supported"
      #:line 2
      #:column 0))
 
    (define reader-failure-source
-     (build-path working-directory "reader-failure.atl"))
+     (build-path working-directory "reader-failure.attl"))
    (write-source reader-failure-source
-                 "#lang alone_the_lambdas\n(stdout \"unterminated\"\n")
+                 "#lang attalambda\n(stdout \"unterminated\"\n")
    (check-runner-failure
-    (run '("run" "reader-failure.atl"))
+    (run '("reader-failure.attl"))
     65
     (source-diagnostic
-     "reader-failure.atl"
+     "reader-failure.attl"
      "source could not be read; check delimiters and UTF-8 encoding"
      #:line 2
      #:column 0))
 
    (define invalid-encoding-source
-     (build-path working-directory "invalid-encoding.atl"))
+     (build-path working-directory "invalid-encoding.attl"))
    (write-exact-bytes
     invalid-encoding-source
-    #"#lang alone_the_lambdas\n\377\n")
+    #"#lang attalambda\n\377\n")
    (check-runner-failure
-    (run '("run" "invalid-encoding.atl"))
+    (run '("invalid-encoding.attl"))
     65
     (source-diagnostic
-     "invalid-encoding.atl"
+     "invalid-encoding.attl"
      "source is not valid UTF-8"))
 
    ;; A disposable copy replaces only the runner's one loader expression with
@@ -417,7 +450,7 @@
                     runner-source))
     1)
    (define fault-runner
-     (build-path package-source "runner" "atl-phase-23-fault.rkt"))
+     (build-path package-source "runner" "attalambda-phase-23-fault.rkt"))
    (write-source
     fault-runner
     (string-replace
@@ -428,16 +461,15 @@
      (run-command environment
                   racket-executable
                   (list (path->string fault-runner)
-                        "run"
-                        "header-only.atl")
+                        "header-only.attl")
                   20
                   #:current-directory working-directory))
    (check-runner-failure
     internal-failure-result
     70
     (source-diagnostic
-     "header-only.atl"
-     "unexpected launcher failure; verify the ATL installation"))
+     "header-only.attl"
+     "unexpected launcher failure; verify the AttaLambda installation"))
    (check-false
     (regexp-match? #rx"raw host detail|#<procedure|package-source"
                    (bytes->string/utf-8
@@ -448,25 +480,25 @@
    ;; are three distinct successful completions. The runner neither observes
    ;; nor reclassifies any of them.
    (define object-error-source
-     (build-path working-directory "object-error.atl"))
+     (build-path working-directory "object-error.attl"))
    (write-source object-error-source
-                 "#lang alone_the_lambdas\n(stdout 0)\n")
+                 "#lang attalambda\n(stdout 0)\n")
    (check-command-success
-    (run '("run" "object-error.atl"))
+    (run '("object-error.attl"))
     #"")
 
    (define pure-result-error-source
-     (build-path working-directory "pure-result-error.atl"))
+     (build-path working-directory "pure-result-error.attl"))
    (write-source pure-result-error-source
-                 "#lang alone_the_lambdas\n(DIV ONE ZERO)\n")
+                 "#lang attalambda\n(DIV ONE ZERO)\n")
    (check-command-success
-    (run '("run" "pure-result-error.atl"))
+    (run '("pure-result-error.attl"))
     #"")
 
    (define host-result-error-source
-     (build-path working-directory "host-result-error.atl"))
+     (build-path working-directory "host-result-error.attl"))
    (write-source host-result-error-source
-                 "#lang alone_the_lambdas\n(read-file \"absent.txt\")\n")
+                 "#lang attalambda\n(read-file \"absent.txt\")\n")
    (check-command-success
-    (run '("run" "host-result-error.atl"))
+    (run '("host-result-error.attl"))
     #"")))

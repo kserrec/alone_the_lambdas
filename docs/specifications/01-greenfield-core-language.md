@@ -1,16 +1,16 @@
-# Alone the Lambdas — Greenfield Core Language Specification
+# AttaLambda — Greenfield Core Language Specification
 
 ## 1. Project
 
 Create a completely new repository and project:
 
 ```text
-alone_the_lambdas
+attalambda
 ```
 
 Human-facing name:
 
-**Alone the Lambdas**
+**AttaLambda**
 
 This is not a refactor or compatibility rewrite of `all_the_lambdas`.
 
@@ -28,12 +28,12 @@ The purpose of this project is to build the cleanest version we now know how to 
 
 # 2. Long-term objective
 
-Alone the Lambdas should eventually become a small but genuine general-purpose programming language whose computational world is built as faithfully as practical from **pure untyped lambda calculus**.
+AttaLambda should eventually become a small but genuine general-purpose programming language whose computational world is built as faithfully as practical from **pure untyped lambda calculus**.
 
 The intended eventual architecture is:
 
 ```text
-Alone the Lambdas program
+AttaLambda program
           ↓
 strong runtime-typed lambda values
           ↓
@@ -274,7 +274,7 @@ A reader may **never** determine an object-language result.
 Prefer a clear dependency-oriented structure such as:
 
 ```text
-alone_the_lambdas/
+attalambda/
 ├── README.md
 ├── ARCHITECTURE.md
 ├── ROADMAP.md
@@ -453,7 +453,7 @@ Important architectural rule:
 
 The strict typed layer is a **closed convention**.
 
-Its functions assume arguments are canonical Alone the Lambdas typed values or Error values.
+Its functions assume arguments are canonical AttaLambda typed values or Error values.
 
 Do not attempt to build a magical validator capable of safely classifying every arbitrary untyped lambda term.
 
@@ -841,7 +841,7 @@ in the final architecture.
 
 ## Signature representation
 
-Represent expected argument types as an Alone the Lambdas LIST:
+Represent expected argument types as an AttaLambda LIST:
 
 ```text
 [NAT-TYPE, NAT-TYPE]
@@ -1900,7 +1900,7 @@ The following must all be true:
 
 Only after the above foundation is stable, begin the next project:
 
-> **Alone the Lambdas: effects and standalone language**
+> **AttaLambda: effects and standalone language**
 
 That milestone should add exactly one privileged outside-world primitive:
 
@@ -1927,7 +1927,7 @@ Do not begin that work until this core milestone is coherent and tested.
 
 When making a design decision, prefer the option that makes the following sentence most literally true:
 
-> **Alone the Lambdas builds recognizable programming-language behavior out of pure untyped lambda calculus, adding structure through lambda encodings rather than borrowing computation from the host.**
+> **AttaLambda builds recognizable programming-language behavior out of pure untyped lambda calculus, adding structure through lambda encodings rather than borrowing computation from the host.**
 
 This is a toy language.
 

@@ -27,12 +27,24 @@
                   20)
      (string->bytes/utf-8 "λ🙂"))
 
+    (define retired-collection-program
+      (build-path temporary-root "retired-collection.rkt"))
+    (write-source
+     retired-collection-program
+     "#lang alone_the_lambdas\n")
+    (check-command-failure
+     (run-command isolated-environment
+                  racket-executable
+                  (list (path->string retired-collection-program))
+                  20)
+     #rx"collection not found|cannot open module file")
+
     (define currying-program
       (build-path temporary-root "currying.rkt"))
     (write-source
      currying-program
      #<<PROGRAM
-#lang alone_the_lambdas
+#lang attalambda
 
 (def add-two left right =
   (ADD left right))
@@ -59,7 +71,7 @@ PROGRAM
     (write-source
      lazy-branch-program
      #<<PROGRAM
-#lang alone_the_lambdas
+#lang attalambda
 
 (def loop value =
   (loop value))
@@ -85,7 +97,7 @@ PROGRAM
     (write-source
      representation-program
      #<<PROGRAM
-#lang alone_the_lambdas
+#lang attalambda
 
 (def nat-zero = 0)
 (def nat-one = 1)
@@ -104,7 +116,7 @@ PROGRAM
      #<<PROBE
 #lang racket/base
 
-(require alone_the_lambdas/runtime/codec)
+(require attalambda/runtime/codec)
 
 (define target
   (string->path
@@ -158,7 +170,7 @@ PROBE
                     (format "unsupported-~a.rkt" index)))
       (write-source
        unsupported-program
-       (string-append "#lang alone_the_lambdas\n" literal "\n"))
+       (string-append "#lang attalambda\n" literal "\n"))
       (check-command-failure
        (run-command isolated-environment
                     racket-executable
@@ -170,7 +182,7 @@ PROBE
       (build-path temporary-root "multi-lambda.rkt"))
     (write-source
      multi-lambda-program
-     "#lang alone_the_lambdas\n(lambda (left right) left)\n")
+     "#lang attalambda\n(lambda (left right) left)\n")
     (check-command-failure
      (run-command isolated-environment
                   racket-executable
@@ -194,7 +206,7 @@ PROBE
                     (format "isolated-~a.rkt" index)))
       (write-source
        isolated-program
-       (string-append "#lang alone_the_lambdas\n" source "\n"))
+       (string-append "#lang attalambda\n" source "\n"))
       (check-command-failure
        (run-command isolated-environment
                     racket-executable

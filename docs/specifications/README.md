@@ -1,7 +1,8 @@
 # Specifications
 
-These files are the canonical design inputs for Alone the Lambdas. They are
-preserved verbatim from the project brief.
+These files are the canonical design inputs for AttaLambda. Phase 27 updates
+only the superseded project identity from the original brief; the language
+requirements remain unchanged.
 
 Read them in this precedence order:
 

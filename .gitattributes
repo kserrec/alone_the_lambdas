@@ -2,3 +2,4 @@
 *.md text eol=lf
 *.rkt text eol=lf
 *.sh text eol=lf
+*.attl text eol=lf

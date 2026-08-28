@@ -1,6 +1,6 @@
 #lang info
 
-(define collection "alone_the_lambdas")
+(define collection "attalambda")
 (define deps '("base" "lazy"))
 (define build-deps '("rackunit-lib" "net-lib"))
 (define license 'Apache-2.0)

@@ -1,6 +1,6 @@
 # Addendum — Canonical Public Naming and Host-Language Isolation
 
-This addendum supplements the **Alone the Lambdas — Greenfield Core Language Specification** and the **Type Tags and Absolute Lambda Purity Addendum**.
+This addendum supplements the **AttaLambda — Greenfield Core Language Specification** and the **Type Tags and Absolute Lambda Purity Addendum**.
 
 Where this addendum affects naming decisions, it takes precedence over earlier examples.
 
@@ -16,9 +16,9 @@ _cons
 
 primarily to avoid collisions with bindings supplied by Racket.
 
-Do **not** carry that convention into Alone the Lambdas merely because Racket is the implementation host.
+Do **not** carry that convention into AttaLambda merely because Racket is the implementation host.
 
-Once Alone the Lambdas is surfaced as its own language, it controls what its identifiers mean.
+Once AttaLambda is surfaced as its own language, it controls what its identifiers mean.
 
 Therefore canonical programming-language names should be used where they are the natural names:
 
@@ -28,7 +28,7 @@ let
 cons
 ```
 
-The fact that Racket also has bindings with those names is an implementation detail and must not leak into the Alone the Lambdas user experience.
+The fact that Racket also has bindings with those names is an implementation detail and must not leak into the AttaLambda user experience.
 
 ---
 
@@ -77,7 +77,7 @@ typed-cons
 
 # C. Public language names
 
-When the standalone Alone the Lambdas language is surfaced, expose the canonical names:
+When the standalone AttaLambda language is surfaced, expose the canonical names:
 
 ```text
 lambda
@@ -162,7 +162,7 @@ The public:
 cons
 ```
 
-must construct the canonical Alone the Lambdas LIST representation.
+must construct the canonical AttaLambda LIST representation.
 
 It must not merely expose an arbitrary raw pair constructor.
 
@@ -253,7 +253,7 @@ lambda x.
 
 Every apparent argument remains curried into a separate unary lambda.
 
-`def` is an Alone the Lambdas language feature implemented as mechanical syntax sugar, not Racket's `define` exposed to users.
+`def` is an AttaLambda language feature implemented as mechanical syntax sugar, not Racket's `define` exposed to users.
 
 ---
 
@@ -283,7 +283,7 @@ eventual language surface
 
 This keeps the implementation clear now and gives users canonical names later.
 
-The public naming requirement applies to the **Alone the Lambdas language surface**, not necessarily to every internal Racket module identifier.
+The public naming requirement applies to the **AttaLambda language surface**, not necessarily to every internal Racket module identifier.
 
 ---
 
@@ -291,9 +291,9 @@ The public naming requirement applies to the **Alone the Lambdas language surfac
 
 As a general naming rule:
 
-> Do not prefix an Alone the Lambdas identifier with `_` merely because the obvious name already exists in Racket.
+> Do not prefix an AttaLambda identifier with `_` merely because the obvious name already exists in Racket.
 
-If an underscore is ever used in the future, it must have an actual Alone the Lambdas semantic meaning.
+If an underscore is ever used in the future, it must have an actual AttaLambda semantic meaning.
 
 Host-language namespace management should be handled using the implementation/module system, not exposed through awkward language vocabulary.
 
@@ -333,7 +333,7 @@ cons
 
 and similar future names.
 
-Alone the Lambdas should look like a language designed on its own terms, not a collection of functions trying not to collide with Racket.
+AttaLambda should look like a language designed on its own terms, not a collection of functions trying not to collide with Racket.
 
 ---
 
@@ -403,7 +403,7 @@ Do not delay foundational implementation for cosmetic global renaming.
 
 # M. Future standalone language requirement
 
-When Alone the Lambdas eventually becomes its own language, a normal program should be able to look conceptually like:
+When AttaLambda eventually becomes its own language, a normal program should be able to look conceptually like:
 
 ```text
 (def choose x condition =
@@ -423,7 +423,7 @@ It should **not** need to look like:
 
 The latter exposes a historical Racket-hosting workaround.
 
-The former expresses the language Alone the Lambdas is intended to be.
+The former expresses the language AttaLambda is intended to be.
 
 ---
 
@@ -431,8 +431,8 @@ The former expresses the language Alone the Lambdas is intended to be.
 
 Use this rule whenever naming questions arise:
 
-> **Public Alone the Lambdas names should describe the programming concept. Internal names should describe the implementation layer. Neither should be distorted merely because Racket happens to use the same identifier.**
+> **Public AttaLambda names should describe the programming concept. Internal names should describe the implementation layer. Neither should be distorted merely because Racket happens to use the same identifier.**
 
 Racket is the host.
 
-It does not own the vocabulary of Alone the Lambdas.
+It does not own the vocabulary of AttaLambda.

@@ -151,7 +151,7 @@
 
 (define build-source
   (file->string build-script))
-(check-true (regexp-match? #rx"[+][+]lang alone_the_lambdas" build-source))
+(check-true (regexp-match? #rx"[+][+]lang attalambda" build-source))
 (check-true (regexp-match? #rx"raco_executable.*distribute" build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME=" build-source))
 (check-true (regexp-match? #rx"gzip -n -9" build-source))
@@ -171,7 +171,7 @@
 (check-true (regexp-match? #rx"macos-x86_64" macos-build-source))
 (check-true (regexp-match? #rx"macos-arm64" macos-build-source))
 (check-true (regexp-match? #rx"uname -s.*Darwin" macos-build-source))
-(check-true (regexp-match? #rx"[+][+]lang alone_the_lambdas" macos-build-source))
+(check-true (regexp-match? #rx"[+][+]lang attalambda" macos-build-source))
 (check-true (regexp-match? #rx"raco_executable.*distribute" macos-build-source))
 (check-true (regexp-match? #rx"mkdir -m 0755 \"[$]artifact_root/lib\"" macos-build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME=" macos-build-source))
@@ -186,7 +186,7 @@
   (file->string macos-consumer-script))
 (check-true (regexp-match? #rx"consumer unexpectedly has a racket command" macos-consumer-source))
 (check-true (regexp-match? #rx"consumer unexpectedly has a source checkout" macos-consumer-source))
-(check-true (regexp-match? #rx"generated-after-packaging[.]atl" macos-consumer-source))
+(check-true (regexp-match? #rx"generated-after-packaging[.]attl" macos-consumer-source))
 (check-true (regexp-match? #rx"decoy-collections" macos-consumer-source))
 (check-true (regexp-match? #rx"/dev/tcp/127[.]0[.]0[.]1" macos-consumer-source))
 (check-true (regexp-match? #rx"second relocated path" macos-consumer-source))
@@ -196,7 +196,7 @@
   (file->string windows-build-script))
 (check-true (regexp-match? #rx"windows-x86_64" windows-build-source))
 (check-true (regexp-match? #rx"--embed-dlls" windows-build-source))
-(check-true (regexp-match? #rx"[+][+]lang.*alone_the_lambdas" windows-build-source))
+(check-true (regexp-match? #rx"[+][+]lang.*attalambda" windows-build-source))
 (check-true (regexp-match? #rx"'distribute'.*rawDistribution" windows-build-source))
 (check-true (regexp-match? #rx"PE32[+] machine 0x8664" windows-build-source))
 (check-true (regexp-match? #rx"dumpbin[.]exe" windows-build-source))
@@ -220,17 +220,18 @@
   (file->string windows-consumer-script))
 (check-true (regexp-match? #rx"consumer unexpectedly has a racket command" windows-consumer-source))
 (check-true (regexp-match? #rx"consumer unexpectedly has a source checkout" windows-consumer-source))
-(check-true (regexp-match? #rx"generated-after-packaging[.]atl" windows-consumer-source))
+(check-true (regexp-match? #rx"generated-after-packaging[.]attl" windows-consumer-source))
 (check-true (regexp-match? #rx"decoy-collections" windows-consumer-source))
 (check-true (regexp-match? #rx"TcpClient" windows-consumer-source))
 (check-true (regexp-match? #rx"LocalApplicationData" windows-consumer-source))
 (check-true (regexp-match? #rx"relocation_drives=different" windows-consumer-source))
 (check-true (regexp-match? #rx"Get-AuthenticodeSignature" windows-consumer-source))
+(check-false (regexp-match? #rx"ArgumentList[.]Add[(]'run'[)]" windows-consumer-source))
 (check-false (regexp-match? #rx"LASTEXITCODE" windows-consumer-source))
 (check-true (regexp-match? #rx"forbidden path marker" windows-consumer-source))
 (check-true
  (regexp-match?
-  #rx"'github-checkout-segment' = '\\\\a\\\\alone_the_lambdas\\\\alone_the_lambdas\\\\'"
+  #rx"'github-checkout-segment' = '\\\\a\\\\attalambda\\\\attalambda\\\\'"
   windows-consumer-source))
 (check-false
  (regexp-match?
@@ -273,7 +274,7 @@
  (regexp-match?
   #px"(?s:windows-distribution-build:.*Install native Racket.*actions/checkout)"
   workflow-source))
-(check-true (regexp-match? #rx"atl-windows-x86_64-[$][{][{] github[.]sha [}][}]" workflow-source))
+(check-true (regexp-match? #rx"attalambda-windows-x86_64-[$][{][{] github[.]sha [}][}]" workflow-source))
 
 (for ([template-name
        (in-list '("GETTING_STARTED.md.in"

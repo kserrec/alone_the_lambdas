@@ -14,12 +14,12 @@
 (define help-text
   (string-append
    "Usage:\n"
-   "  atl run FILE.atl\n"
-   "  atl --help\n"
-   "  atl --version\n"))
+   "  attalambda FILE.attl\n"
+   "  attalambda --help\n"
+   "  attalambda --version\n"))
 
 (define language-declaration
-  #"#lang alone_the_lambdas")
+  #"#lang attalambda")
 
 (define-syntax (embedded-product-version stx)
   (define source (syntax-source stx))
@@ -42,12 +42,12 @@
 (define (stop status source line column reason)
   (cond
     [(and source line column)
-     (eprintf "Alone the Lambdas: ~s:~a:~a: ~a\n"
+     (eprintf "AttaLambda: ~s:~a:~a: ~a\n"
               source line column reason)]
     [source
-     (eprintf "Alone the Lambdas: ~s: ~a\n" source reason)]
+     (eprintf "AttaLambda: ~s: ~a\n" source reason)]
     [else
-     (eprintf "Alone the Lambdas: ~a\n" reason)])
+     (eprintf "AttaLambda: ~a\n" reason)])
   (exit status))
 
 (define (dotenv-component? part)
@@ -122,13 +122,13 @@
     (when (dotenv-path? supplied-path)
       (stop unavailable-source-status source-name #f #f
             "refused source path because dotenv files are never read"))
-    (unless (equal? (path-get-extension supplied-path) #".atl")
+    (unless (equal? (path-get-extension supplied-path) #".attl")
       (stop invalid-source-status source-name #f #f
-            "source file name must end in lowercase .atl"))
+            "source file name must end in lowercase .attl"))
     (define complete-path (path->complete-path supplied-path))
     (when (link-exists? complete-path)
       (stop unavailable-source-status source-name #f #f
-            "refused symbolic-link source; choose a regular .atl file"))
+            "refused symbolic-link source; choose a regular .attl file"))
     (define-values (parent name directory?)
       (split-path complete-path))
     (define resolved-parent (resolve-parent-path parent))
@@ -156,7 +156,7 @@
     (cond
       [(eq? preflight-result 'invalid-declaration)
        (stop invalid-source-status source-name #f #f
-             "line 1 must be exactly #lang alone_the_lambdas")]
+             "line 1 must be exactly #lang attalambda")]
       [(eq? preflight-result 'invalid-encoding)
        (stop invalid-source-status source-name #f #f
              "source is not valid UTF-8")])
@@ -178,7 +178,7 @@
 (define (syntax-failure-reason expression)
   (cond
     [(and expression (identifier? expression))
-     (format "unknown ATL name: ~s" (syntax-e expression))]
+     (format "unknown AttaLambda name: ~s" (syntax-e expression))]
     [(datum-failure-expression? expression)
      "unsupported literal; only nonnegative Nat and String literals are supported"]
     [else
@@ -219,7 +219,7 @@
               (stop unavailable-source-status source-name #f #f
                     "source file was not found")
               (stop unexpected-failure-status source-name #f #f
-                    "unexpected launcher failure; verify the ATL installation")))]
+                    "unexpected launcher failure; verify the AttaLambda installation")))]
        [exn:fail:filesystem?
         (lambda (failure)
           (stop unavailable-source-status source-name #f #f
@@ -227,7 +227,7 @@
        [exn:fail?
         (lambda (failure)
           (stop unexpected-failure-status source-name #f #f
-                "unexpected launcher failure; verify the ATL installation"))])
+                "unexpected launcher failure; verify the AttaLambda installation"))])
     (dynamic-require source-path #f)))
 
 (define (main)
@@ -238,14 +238,14 @@
      (display help-text)]
     [(equal? arguments '("--version"))
      (define product-version (embedded-product-version))
-     (display "Alone the Lambdas ")
+     (display "AttaLambda ")
      (display product-version)
      (newline)]
-    [(and (= (length arguments) 2)
-          (equal? (car arguments) "run"))
-     (run-source (cadr arguments))]
+    [(and (= (length arguments) 1)
+          (not (regexp-match? #px"^-" (car arguments))))
+     (run-source (car arguments))]
     [else
      (stop command-misuse-status #f #f #f
-           "expected atl run FILE.atl, atl --help, or atl --version")]))
+           "expected attalambda FILE.attl, attalambda --help, or attalambda --version")]))
 
 (main)

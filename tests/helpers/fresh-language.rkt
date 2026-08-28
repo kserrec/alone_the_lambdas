@@ -144,10 +144,10 @@
             source)]))
 
 (define canonical-application-names
-  '("hello.atl"
-    "stdout.atl"
-    "file-round-trip.atl"
-    "http-server.atl"))
+  '("hello.attl"
+    "stdout.attl"
+    "file-round-trip.attl"
+    "http-server.attl"))
 
 (define (regular-file-path? path)
   (with-handlers ([exn:fail? (lambda (failure) #f)])
@@ -188,7 +188,7 @@
 (define (call-with-fresh-language-install project-root procedure)
   (define temporary-root
     (make-temporary-file
-     "alone-the-lambdas-language-~a"
+     "attalambda-language-~a"
      'directory
      (if (directory-exists? "/tmp")
          (string->path "/tmp")
@@ -241,7 +241,7 @@
                "--batch"
                "--scope" "user"
                "--copy"
-               "--name" "alone_the_lambdas"
+               "--name" "attalambda"
                "--deps" "fail"
                "--no-docs"
                "--fail-fast"

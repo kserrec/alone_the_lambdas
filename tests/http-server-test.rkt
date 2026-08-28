@@ -643,7 +643,7 @@
                           #"/lambda"
                           #:port bound-port
                           #:headers
-                          (list #"User-Agent: ATL-phase-18")
+                          (list #"User-Agent: AttaLambda-phase-18")
                           #:content-decode '()))
          (list status headers (port->bytes body)))))
     (define response

@@ -1,4 +1,4 @@
-#lang alone_the_lambdas
+#lang attalambda
 
 (def choose x condition =
   (if condition

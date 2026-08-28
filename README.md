@@ -1,6 +1,6 @@
-# Alone the Lambdas
+# AttaLambda
 
-Alone the Lambdas is a greenfield language project pursuing the most faithful
+AttaLambda is a greenfield language project pursuing the most faithful
 pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
@@ -22,24 +22,28 @@ variables, unary lambdas, and application.
 > connection registry inside that same closed host; Phase 17 adds pure HTTP/1.1
 > request parsing and deterministic response rendering without changing the
 > host; Phase 18 adds pure path routing, one-connection serving, and a blocking
-> sequential HTTP loop over the same TCP wrappers; Phase 19 adds the
-> fresh-installable `#lang alone_the_lambdas` reader and facade, canonical
+> sequential HTTP loop over the same TCP wrappers; Phase 19 added the
+> fresh-installable standalone reader and facade, canonical
 > public syntax, host-bound effect names, and pure Nat/String literal lowering;
 > Phase 20 adds runnable stdout, isolated file-round-trip, and ephemeral-port
 > HTTP applications plus the final cross-class and milestone acceptance sweep.
-> Phase 21 then approves the independent-distribution contract and proves the
-> Racket 9.3 embedding path; Phase 22 adds the canonical `.atl` source names,
-> one separately trusted development runner, and the `0.2.0-dev` product
-> version source; Phase 23 freezes concise ATL launch diagnostics, strict
+> Phase 21 then approved the original independent-distribution contract and
+> proved the Racket 9.3 embedding path; Phase 22 added the separately trusted
+> development runner and the `0.2.0-dev` product
+> version source; Phase 23 freezes concise AttaLambda launch diagnostics, strict
 > source encoding, original-path/source-position reporting, and stable failure
 > statuses without changing the object language or its host authority; Phase
-> 24 adds a deterministic, self-contained Linux x86-64 development archive and
-> proves it in a transferred no-Racket Ubuntu container; Phase 25 adds native
+> 24 added a deterministic, self-contained Linux x86-64 development archive and
+> proved it in a transferred no-Racket Ubuntu container; Phase 25 added native
 > Intel and Apple Silicon macOS development archives and proves each in a
 > separate same-architecture no-Racket consumer job before immediately
-> deleting the temporary transfer artifacts. All artifacts remain unpublished:
-> Windows, the final legal inventory, and explicit release approval still
-> belong to later phases. Separate structural gates enforce
+> deleting the temporary transfer artifacts; Phase 26 did the same for native
+> Windows x86-64. Those observations retain their literal pre-rename artifact
+> names as history. Phase 27 approved Apache License 2.0 and adopts
+> `AttaLambda`, `attalambda`, `.attl`, `#lang attalambda`, and direct
+> `attalambda FILE.attl` execution across the project. All artifacts remain
+> unpublished; the final bundled-runtime inventory, release candidate, and
+> explicit release approval still belong to later phases. Separate structural gates enforce
 > every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
@@ -53,7 +57,7 @@ variables, unary lambdas, and application.
 - Racket is limited to modules, lazy evaluation, mechanical macros, readers,
   tests, tooling, deterministic boundary conversion in `runtime/codec.rkt`,
   the one approved privileged bridge in `runtime/host.rkt`, and the isolated
-  command/path/module-loading scaffolding in `runner/atl.rkt`.
+  command/path/module-loading scaffolding in `runner/attalambda.rkt`.
 - Church numerals are used only for tiny fixed discriminants such as type
   tags, Error kinds, and argument positions—not ordinary numbers.
 - Public natural numbers are normalized, most-significant-bit-first binary
@@ -88,7 +92,7 @@ precedence over conflicting examples in the base specification.
   file, TCP, pure HTTP-message/server, standalone-language, and runnable-
   application slices.
 - [docs/design/standalone-distribution.md](docs/design/standalone-distribution.md)
-  fixes the approved `.atl`, runner, version, artifact, platform, and release
+  fixes the approved `.attl`, runner, version, artifact, platform, and release
   contracts for the independent-distribution milestone.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
@@ -172,7 +176,7 @@ precedence over conflicting examples in the base specification.
   and returns canonical Result/Error values without exposing ports or host
   collections.
 - `VERSION` is the sole product-version source and currently contains
-  `0.2.0-dev`; `info.rkt` declares the single `alone_the_lambdas` collection
+  `0.2.0-dev`; `info.rkt` declares the single `attalambda` collection
   and carries its mechanically verified Racket-package projection `0.1.900`.
 - `lang/reader.rkt` retains Racket's Lisp reader syntax and selects the
   standalone expander without adding a parser or reader-time effect.
@@ -181,10 +185,10 @@ precedence over conflicting examples in the base specification.
   lowers only nonnegative Nat and UTF-8 String literals into pure existing
   encodings, binds the nine public effect wrappers once to the real `host`,
   and suppresses Racket printing of final lambda values.
-- `runner/atl.rkt` implements only the approved `run`, `--help`, and
-  `--version` development entry point. It validates the one explicit `.atl`
+- `runner/attalambda.rkt` implements only direct `.attl` execution, `--help`,
+  and `--version`. It validates the one explicit `.attl`
   path, declaration, and UTF-8 bytes; delegates once to the existing
-  reader/expander with `dynamic-require`; and emits only fixed ATL diagnostics
+  reader/expander with `dynamic-require`; and emits only fixed AttaLambda diagnostics
   with the quoted original path and canonical source position. It exports no
   binding and cannot enter an object-language dependency path.
 - `tooling/build-linux-distribution.sh` verifies full Racket CS 9.3, stages the
@@ -210,11 +214,11 @@ precedence over conflicting examples in the base specification.
 - `distribution/` contains only the internal getting-started and provisional
   notice templates. The repository is licensed under Apache License 2.0, but
   generated development archives continue to carry
-  `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE` until Phase 27
+  `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE` until Phase 28
   completes and receives approval for the exact bundled-runtime notices and
   release-candidate staging.
-- `examples/hello.atl`, `examples/stdout.atl`,
-  `examples/file-round-trip.atl`, and `examples/http-server.atl` are the exact
+- `examples/hello.attl`, `examples/stdout.attl`,
+  `examples/file-round-trip.attl`, and `examples/http-server.attl` are the exact
   runnable language programs. The HTTP program uses an ephemeral loopback
   port, prints its URL, serves one request, closes its caller-owned listener,
   and exits.
@@ -255,7 +259,7 @@ precedence over conflicting examples in the base specification.
   runner's exact imports, diagnostic formatter, UTF-8 preflight, and closed
   vocabulary, its sole validated loader call, and the four-file application
   inventory. Its repository-wide
-  inventory classifies all 80 Racket and `.atl` sources: readers may
+  inventory classifies all 80 Racket and `.attl` sources: readers may
   observe through a closed source vocabulary but cannot perform effects or
   import upward; tests and tooling retain normal host authority but cannot
   enter a production dependency path; standalone examples must use the public
@@ -268,7 +272,7 @@ the current Racket user installation. It changes that user-level package
 registry but does not require administrator privileges:
 
 ```sh
-raco pkg install --auto --name alone_the_lambdas .
+raco pkg install --auto --name attalambda .
 ```
 
 The package declares only Racket's `base` and `lazy` runtime packages, plus
@@ -276,31 +280,32 @@ The package declares only Racket's `base` and `lazy` runtime packages, plus
 
 ## Runnable applications
 
-Every application uses only `#lang alone_the_lambdas` and the public language
+Every application uses only `#lang attalambda` and the public language
 surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
-Phases 24 and 25 prove native Linux x86-64, macOS x86_64, and macOS arm64 `atl`
-executables with their private runtimes, but those development artifacts are
-neither checked in nor published. After the fresh setup above, invoke the
-source-checkout development entry point through Racket. Later phases still own
-Windows, license approval, and an authorized public download.
+Phases 24 through 26 proved native Linux x86-64, macOS x86_64, macOS arm64,
+and Windows x86-64 development artifacts under the former public names. Those
+disposable artifacts were neither checked in nor published. After the fresh
+setup above, invoke the renamed source-checkout development entry point through
+Racket. Phase 28 still owns the renamed release candidate and novice download
+guide; Phase 29 owns any authorized public release.
 
 The minimal hello application emits one line:
 
 ```sh
-racket runner/atl.rkt run examples/hello.atl
+racket runner/attalambda.rkt examples/hello.attl
 ```
 
 The stdout application has no side effect beyond these emitted bytes:
 
 ```sh
-racket runner/atl.rkt run examples/stdout.atl
+racket runner/attalambda.rkt examples/stdout.attl
 ```
 
 The file application creates or truncates
-`alone-the-lambdas-round-trip.txt` in its current directory. This invocation
+`attalambda-round-trip.txt` in its current directory. This invocation
 runs it in a newly created empty temporary directory, so it cannot replace an
 existing project file:
 
@@ -309,8 +314,8 @@ repository_directory="$(pwd)"
 scratch_directory="$(mktemp -d)"
 (
   cd "$scratch_directory"
-  racket "$repository_directory/runner/atl.rkt" run \
-    "$repository_directory/examples/file-round-trip.atl"
+  racket "$repository_directory/runner/attalambda.rkt" \
+    "$repository_directory/examples/file-round-trip.attl"
 )
 ```
 
@@ -318,7 +323,7 @@ The HTTP application binds an operating-system-selected loopback port, prints
 the exact `/lambda` URL, serves one request, closes the listener, and exits:
 
 ```sh
-racket runner/atl.rkt run examples/http-server.atl
+racket runner/attalambda.rkt examples/http-server.attl
 ```
 
 ## Development
@@ -343,12 +348,13 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,449 assertions across 31 test files,
+green. The repository currently has 4,617 assertions across 32 test files,
 plus the independent expanded scan of all 16 core modules and the complete
 repository boundary-classification gate. The application acceptance test
 installs a copied package under an isolated Racket user home before running
 the exact three effect examples through the copied runner; the focused runner
-suite separately covers `hello.atl` and the complete command/source contract.
+suite separately covers `hello.attl`, the complete command/source contract,
+and explicit rejection of the retired public spellings.
 GitHub Actions runs the same suite for pushes and pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
@@ -358,7 +364,7 @@ phase.
 
 Copyright 2026 Kyle Serrecchia.
 
-Alone the Lambdas is licensed under the
+AttaLambda is licensed under the
 [Apache License 2.0](LICENSE). Bundled Racket runtime components retain their
-separate licenses. Phase 27 has not yet approved their final target-specific
+separate licenses. Phase 28 has not yet approved their final target-specific
 notices or any release-candidate artifact.

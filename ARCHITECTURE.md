@@ -39,7 +39,7 @@ coverage without extending the host. Phase 18 composes those message functions
 with the injected-host TCP wrappers into one-connection serving and a blocking
 sequential loop, with routing and status/body selection performed by an
 ordinary unary lambda handler.
-Phase 19 adds the single-collection `#lang alone_the_lambdas` reader and
+Phase 19 adds the single-collection `#lang attalambda` reader and
 facade, canonical public syntax, one-time real-host injection for the nine
 effect wrappers, mechanical currying of multi-operand source applications,
 and canonical Nat/String literal expansion. Phase 20 adds three exact runnable
@@ -49,9 +49,9 @@ support-code dependency rules, and closes the milestone evidence map without
 changing production semantics or host authority. Phase 21 fixes and approves
 the independent-distribution contract and proves Racket 9.3 can embed the
 dynamic language closure. Phase 22 adds one exact development runner, the
-canonical `.atl` application names, and a single `0.2.0-dev` version source;
+canonical `.attl` application names, and a single `0.2.0-dev` version source;
 the runner delegates to the existing reader/expander and remains outside every
-object-language dependency path. Phase 23 freezes ATL-level launch diagnostics,
+object-language dependency path. Phase 23 freezes AttaLambda-level launch diagnostics,
 strict UTF-8 preflight, source-position sanitization, and the distinction among
 launcher failure, completed language data, and requested host failure without
 changing the object language or its effect boundary. Phase 24 adds one
@@ -81,10 +81,10 @@ Racket supplies the enclosing module system, lazy evaluation, syntactic sugar,
 readers, tests, development tooling, deterministic private conversion in
 `runtime/codec.rkt`, the approved effects in `runtime/host.rkt`, and the
 separately classified command/path/module-loading scaffolding in
-`runner/atl.rkt`. It must not decide ordinary object-language results or
+`runner/attalambda.rkt`. It must not decide ordinary object-language results or
 become an object-language representation.
 
-> Alone the Lambdas does not merely avoid using host libraries for major
+> AttaLambda does not merely avoid using host libraries for major
 > algorithms. Its production computational terms are built exclusively from
 > unary lambda abstraction and application. Every multi-argument function is
 > represented by nested one-argument lambdas. Racket is used only to
@@ -106,7 +106,7 @@ become an object-language representation.
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
-| Runner scaffolding | Exact command, path/header/UTF-8 validation, sanitized ATL diagnostics, version display, and one existing-language module instantiation; no exports or object values |
+| Runner scaffolding | Exact command, path/header/UTF-8 validation, sanitized AttaLambda diagnostics, version display, and one existing-language module instantiation; no exports or object values |
 | Runnable applications | Public-language hello/stdout, isolated file round trip, and one-request ephemeral-loopback HTTP server |
 | Distribution tooling | Isolated native build, deterministic archive assembly, external checksum, and no-Racket consumer verification; never a production dependency |
 | Human boundary | Readers and test diagnostics; never object-language computation |
@@ -216,12 +216,12 @@ repository's approved `Apache-2.0` SPDX license identifier. Root `VERSION` is
 the sole product-version source; the current `0.2.0-dev` state projects
 mechanically to Racket package version `0.1.900`.
 
-`runner/atl.rkt` is host launch scaffolding, not an effect primitive. It
-accepts only `run`, `--help`, and `--version`; validates the one supplied path,
-exact `.atl` suffix, dotenv exclusions, final-entry symlink rule, resolved
+`runner/attalambda.rkt` is host launch scaffolding, not an effect primitive. It
+accepts only direct `.attl` execution, `--help`, and `--version`; validates the one supplied path,
+exact `.attl` suffix, dotenv exclusions, final-entry symlink rule, resolved
 parent, regular-file metadata, exact declaration, and strict UTF-8 bytes; then
 invokes `dynamic-require` once on that source. Launcher failures use fixed
-ATL-only stderr templates with the quoted original path and canonical reader
+AttaLambda-only stderr templates with the quoted original path and canonical reader
 position. Raw exception messages, resolved paths, stack details, and host
 procedure renderings never enter those templates. It exports nothing, imports
 no project module, observes no completed lambda value, and has no environment,
@@ -230,11 +230,11 @@ import. Its sole new Phase 23 import is standard-library `racket/port` for
 `port->bytes`; no package dependency was added.
 
 The four files under `examples/` import nothing and run only through that
-public language. `hello.atl` and `stdout.atl` each emit one String.
-`file-round-trip.atl` makes
+public language. `hello.attl` and `stdout.attl` each emit one String.
+`file-round-trip.attl` makes
 write-before-read sequencing explicit by inspecting the first Result; tests
 run it only in an empty temporary directory because `write-file` deliberately
-truncates its target. `http-server.atl` listens on loopback port zero, formats
+truncates its target. `http-server.attl` listens on loopback port zero, formats
 the returned bound Nat as decimal using public lambda operations, announces
 the exact URL, serves one request through `make-http-serve-one`, explicitly
 closes the caller-owned listener, and exits. No example adds a production
@@ -243,10 +243,10 @@ module, primitive, wrapper, or authority.
 `tooling/build-linux-distribution.sh` is host-only build infrastructure. It
 requires full Racket CS 9.3, copies only nonsymlink production sources into a
 temporary package, installs that copy under an isolated `PLTUSERHOME`, invokes
-`raco exe ++lang alone_the_lambdas` and `raco distribute`, and normalizes the
+`raco exe ++lang attalambda` and `raco distribute`, and normalizes the
 resulting tar/gzip metadata. Its output directory must resolve outside the
 checkout, and it never uses the developer's Racket package registry. The
-archive contains only `bin/atl`, its private runtime, the canonical examples,
+archive contains only `bin/attalambda`, its private runtime, the canonical examples,
 an internal guide, a path-free build manifest, exact provisional Racket
 license text, and an unpublished-artifact warning. Its final digest lives in a
 sibling `SHA256SUMS`, because a file inside an archive cannot authenticate the
@@ -261,7 +261,7 @@ output bytes; creates and runs a canonical source after packaging; proves an
 external same-named reader cannot replace the embedded language; performs
 stdout, isolated file, and one-request loopback HTTP effects; then moves the
 tree to a path with spaces and reruns it. This harness constrains the test, not
-the authority of an ordinary distributed ATL process.
+the authority of an ordinary distributed AttaLambda process.
 
 `tooling/build-macos-distribution.sh` is the corresponding native macOS build
 boundary for exact `macos-x86_64` and `macos-arm64` targets. It requires the
@@ -285,6 +285,24 @@ not a release channel: it uses commit-pinned GitHub upload/download actions,
 one-day fallback retention, and an always-run cleanup job with only
 `actions: write` authority that deletes both artifacts and verifies their
 absence.
+
+`tooling/build-windows-distribution.ps1` and
+`tooling/test-windows-distribution.ps1` apply the corresponding isolated
+Racket CS 9.3 contract to native Windows x86-64. The builder embeds required
+DLLs, emits one `bin/attalambda.exe`, records PE architecture, system-DLL, and
+Authenticode evidence, and creates a deterministic `.zip` with an external
+checksum. The no-checkout consumer validates safe extraction and the exact
+payload, runs the direct command grammar and all approved effects, then copies
+the tree from the runner's temporary drive to a path containing spaces on a
+different drive before repeating smoke checks. Its workflow artifact has the
+same one-day fallback retention and immediate verified deletion contract.
+
+The native Phase 24 through 26 measurements in the plan and distribution
+design belong to disposable pre-rename `atl`/`.atl` artifacts. The current
+tooling is structurally verified for `attalambda`/`.attl`, but no renamed
+macOS or Windows artifact is claimed until a newly authorized cross-job CI run
+passes. This distinction changes delivery evidence, not the object-language
+or host boundary.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -495,7 +513,7 @@ operation participates in equality, append, prefix, or substring search.
 ## Runtime typing
 
 `make-typed-function` accepts, in order, a raw curried function, a canonical
-function-name String, an Alone the Lambdas List of expected type tags, and one
+function-name String, an AttaLambda List of expected type tags, and one
 unary return policy. It constructs strict typed functions of arbitrary arity
 by:
 
@@ -574,7 +592,7 @@ lang/
   reader.rkt
   expander.rkt
 runner/
-  atl.rkt
+  attalambda.rkt
 readers/
   raw-boolean.rkt
   bool.rkt
@@ -585,10 +603,10 @@ readers/
   string.rkt
   error.rkt
 examples/
-  hello.atl
-  stdout.atl
-  file-round-trip.atl
-  http-server.atl
+  hello.attl
+  stdout.attl
+  file-round-trip.attl
+  http-server.attl
 distribution/
   GETTING_STARTED.md.in
   THIRD_PARTY_NOTICES.md.in
@@ -611,7 +629,7 @@ milestone has seven pure effect modules, two separately pinned mechanical
 macro modules, two separately classified runtime boundary modules, the exact
 reader/expander pair, pinned package metadata, eight one-way value readers,
 one exact non-exporting runner, four public-language applications, and
-separately classified tests/tooling. All 80 Racket and `.atl` sources are
+separately classified tests/tooling. All 80 Racket and `.attl` sources are
 inventoried. New abstraction layers require a concrete need.
 
 ## Verification boundary
@@ -701,7 +719,7 @@ authorizes imports before discovering their exports, validates every component
 of the project root and each production path before discovery, rejects
 symlinks without traversing their targets, and rejects every second codec
 importer, host importer, filesystem/TCP importer, or `host` definition/export.
-It also inventories every Racket or `.atl` source, rejects unknown locations,
+It also inventories every Racket or `.attl` source, rejects unknown locations,
 pins the root/package/CLI version projection and the one exact runner, pins
 its quoted diagnostic formatter and one strict UTF-8 preflight, rejects runner
 exports, extra loader modules, altered input/loader targets, raw diagnostic
@@ -710,7 +728,7 @@ to an exact effect-free observation vocabulary with core/reader imports;
 rejects every
 production import of readers/tests/tooling/applications/runner, admits normal
 host authority only in the test/tooling support classes, and requires the
-exact four `.atl` examples to use the public standalone language. Dedicated
+exact four `.attl` examples to use the public standalone language. Dedicated
 rejection fixtures prove each new direction and the host-exclusive primitive
 vocabulary.
 Codec tests cover all 256 byte values, canonical and malformed String and Nat
@@ -808,7 +826,7 @@ artifacts.
 
 The current completion suite passed 4,541 assertions across 32 test files,
 retained the unchanged 16-module expanded core proof, and inventoried all 80
-Racket and `.atl` sources with zero boundary findings.
+Racket and `.attl` sources with zero boundary findings.
 
 ## Completed milestone boundary
 

@@ -1,6 +1,6 @@
 # Project rules
 
-These rules apply to every change in Alone the Lambdas.
+These rules apply to every change in AttaLambda.
 
 ## Authority
 
@@ -85,7 +85,7 @@ design.
 - Prefer the minimal implementation that satisfies the current phase and its
   tests.
 - Study `all_the_lambdas` for proven patterns and reusable code, but verify
-  every borrowed choice against all three Alone the Lambdas specifications.
+  every borrowed choice against all three AttaLambda specifications.
   Do not import compatibility constraints, underscore-based public names, or
   representations superseded by this project.
 - Do not add a dependency for a convenience that is safer and clearer to write
@@ -94,7 +94,7 @@ design.
 - Never use Graphify in this repository or create or update `graphify-out/`.
   Inspect the repository directly for codebase, architecture, and project
   questions.
-- Standalone examples must use only `#lang alone_the_lambdas` and its public
+- Standalone examples must use only `#lang attalambda` and its public
   surface. Test real filesystem examples only in isolated temporary
   directories and real network examples only on ephemeral loopback ports.
 - Do not build unapproved post-milestone features: a parser beyond approved

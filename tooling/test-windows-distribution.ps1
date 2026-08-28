@@ -223,10 +223,10 @@ function Assert-NoBuildRunnerPaths([string[]] $Files) {
     # basename; the cross-drive no-Racket run below proves that basename is not
     # an operational dependency.
     $forbiddenFragments = [ordered]@{
-        'github-checkout-segment' = '\a\alone_the_lambdas\alone_the_lambdas\'
+        'github-checkout-segment' = '\a\attalambda\attalambda\'
         'runner-temp-segment' = '\_temp\'
         'runner-profile-segment' = '\runneradmin\'
-        'build-root-name' = 'alone-the-lambdas-windows-build-'
+        'build-root-name' = 'attalambda-windows-build-'
         'package-source-segment' = '\package-source\'
     }
     foreach ($file in $Files) {
@@ -336,7 +336,6 @@ function Invoke-HttpAcceptance([string] $Executable, [string] $Source, [string] 
     $startInfo.RedirectStandardError = $true
     $startInfo.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
     $startInfo.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
-    [void] $startInfo.ArgumentList.Add('run')
     [void] $startInfo.ArgumentList.Add($Source)
     foreach ($name in @('PLTCOLLECTS', 'PLTADDONDIR', 'PLTCONFIGDIR', 'PLTUSERHOME')) {
         [void] $startInfo.Environment.Remove($name)
@@ -409,7 +408,7 @@ function Invoke-HttpAcceptance([string] $Executable, [string] $Source, [string] 
             Fail 'packaged HTTP response status or framing differs from the contract'
         }
         $body = $responseText.Substring($separator + 4)
-        if ($body -cne "Hello from Alone the Lambdas.`n") {
+        if ($body -cne "Hello from AttaLambda.`n") {
             Fail 'packaged HTTP response body differs from the contract'
         }
     }
@@ -475,7 +474,7 @@ try {
         }
         $transferEntries.Add($path)
     }
-    $archives = @($transferEntries | Where-Object { [IO.File]::Exists($_) -and [IO.Path]::GetFileName($_) -match '^alone-the-lambdas-.+-windows-x86_64[.]zip$' })
+    $archives = @($transferEntries | Where-Object { [IO.File]::Exists($_) -and [IO.Path]::GetFileName($_) -match '^attalambda-.+-windows-x86_64[.]zip$' })
     if ($archives.Count -ne 1) {
         Fail 'OUTPUT_DIRECTORY must contain exactly one windows-x86_64 archive'
     }
@@ -485,7 +484,7 @@ try {
     Assert-RegularNonsymlinkFile $archivePath 'transferred archive'
     Assert-RegularNonsymlinkFile $checksumPath 'transferred SHA256SUMS'
 
-    $nameMatch = [regex]::Match($archiveName, '^alone-the-lambdas-(0[.]2[.]0(?:-dev|-rc[.]1)?)-windows-x86_64[.]zip$', [Text.RegularExpressions.RegexOptions]::CultureInvariant)
+    $nameMatch = [regex]::Match($archiveName, '^attalambda-(0[.]2[.]0(?:-dev|-rc[.]1)?)-windows-x86_64[.]zip$', [Text.RegularExpressions.RegexOptions]::CultureInvariant)
     if (-not $nameMatch.Success) {
         Fail 'archive filename contains an unapproved product version or target'
     }
@@ -539,7 +538,7 @@ try {
 
     $scratchParent = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { [IO.Path]::GetTempPath() } else { $env:RUNNER_TEMP }
     $scratchParent = Get-FullPath $scratchParent
-    $ScratchRoot = [IO.Path]::Combine($scratchParent, "alone-the-lambdas-windows-consumer-$([Guid]::NewGuid().ToString('N'))")
+    $ScratchRoot = [IO.Path]::Combine($scratchParent, "attalambda-windows-consumer-$([Guid]::NewGuid().ToString('N'))")
     $firstParent = [IO.Path]::Combine($ScratchRoot, 'first extraction path with spaces')
     $firstRoot = [IO.Path]::Combine($firstParent, $artifactRootName)
     [IO.Directory]::CreateDirectory($firstParent) | Out-Null
@@ -550,9 +549,9 @@ try {
     $artifactEntries = @(Get-SafeTreeEntries -Root $firstRoot -RejectDotenv)
 
     $requiredFiles = @(
-        'bin/atl.exe',
-        'examples/hello.atl', 'examples/stdout.atl',
-        'examples/file-round-trip.atl', 'examples/http-server.atl',
+        'bin/attalambda.exe',
+        'examples/hello.attl', 'examples/stdout.attl',
+        'examples/file-round-trip.attl', 'examples/http-server.attl',
         'GETTING_STARTED.md', 'BUILD-MANIFEST.txt',
         'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt', 'THIRD_PARTY_NOTICES.md'
     )
@@ -574,9 +573,9 @@ try {
     $expectedTopLevel = @('BUILD-MANIFEST.txt', 'GETTING_STARTED.md', 'THIRD_PARTY_NOTICES.md', 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt', 'bin', 'examples', 'lib') | Sort-Object -CaseSensitive
     Assert-ExactSequence $topLevel $expectedTopLevel 'artifact top-level layout'
     $binInventory = @($artifactEntries | Where-Object { $_.RelativePath.StartsWith('bin/', [StringComparison]::Ordinal) -and -not $_.IsDirectory } | ForEach-Object { $_.RelativePath.Substring(4) } | Sort-Object -CaseSensitive)
-    Assert-ExactSequence $binInventory @('atl.exe') 'artifact bin/ inventory'
+    Assert-ExactSequence $binInventory @('attalambda.exe') 'artifact bin/ inventory'
     $exampleInventory = @($artifactEntries | Where-Object { $_.RelativePath.StartsWith('examples/', [StringComparison]::Ordinal) -and -not $_.IsDirectory } | ForEach-Object { $_.RelativePath.Substring(9) } | Sort-Object -CaseSensitive)
-    Assert-ExactSequence $exampleInventory (@('file-round-trip.atl', 'hello.atl', 'http-server.atl', 'stdout.atl') | Sort-Object -CaseSensitive) 'artifact examples/ inventory'
+    Assert-ExactSequence $exampleInventory (@('file-round-trip.attl', 'hello.attl', 'http-server.attl', 'stdout.attl') | Sort-Object -CaseSensitive) 'artifact examples/ inventory'
 
     $manifestPath = [IO.Path]::Combine($firstRoot, 'BUILD-MANIFEST.txt')
     $manifest = [IO.File]::ReadAllText($manifestPath)
@@ -659,8 +658,8 @@ try {
     Assert-ExactSequence $actualBundled $expectedBundled 'bundled runtime dependency inventory'
     Assert-ExactSequence $actualSystem $expectedSystem 'dynamic system-DLL inventory'
 
-    $atl = [IO.Path]::Combine($firstRoot, 'bin', 'atl.exe')
-    $signature = Get-AuthenticodeSignature -LiteralPath $atl
+    $attalambda = [IO.Path]::Combine($firstRoot, 'bin', 'attalambda.exe')
+    $signature = Get-AuthenticodeSignature -LiteralPath $attalambda
     $authenticodeStatus = [string] $signature.Status
     if ($authenticodeStatus -notin @('NotSigned', 'Valid') -or
         -not $manifest.Contains("Executable Authenticode status: $authenticodeStatus`n", [StringComparison]::Ordinal)) {
@@ -678,56 +677,56 @@ try {
 
     $workRoot = [IO.Path]::Combine($ScratchRoot, 'acceptance work with spaces')
     [IO.Directory]::CreateDirectory($workRoot) | Out-Null
-    $versionResult = Invoke-CapturedProcess -Executable $atl -Arguments @('--version') -WorkingDirectory $workRoot
-    Assert-ProcessResult $versionResult 0 "Alone the Lambdas $productVersion`n" '' 'packaged version'
+    $versionResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('--version') -WorkingDirectory $workRoot
+    Assert-ProcessResult $versionResult 0 "AttaLambda $productVersion`n" '' 'packaged version'
     $firstStartupMilliseconds = $versionResult.Milliseconds
-    $helpResult = Invoke-CapturedProcess -Executable $atl -Arguments @('--help') -WorkingDirectory $workRoot
-    Assert-ProcessResult $helpResult 0 "Usage:`n  atl run FILE.atl`n  atl --help`n  atl --version`n" '' 'packaged help'
-    $misuseResult = Invoke-CapturedProcess -Executable $atl -Arguments @() -WorkingDirectory $workRoot
-    Assert-ProcessResult $misuseResult 64 '' "Alone the Lambdas: expected atl run FILE.atl, atl --help, or atl --version`n" 'command misuse'
-    $extensionResult = Invoke-CapturedProcess -Executable $atl -Arguments @('run', 'missing.rkt') -WorkingDirectory $workRoot
-    Assert-ProcessResult $extensionResult 65 '' "Alone the Lambdas: `"missing.rkt`": source file name must end in lowercase .atl`n" 'wrong extension'
-    $missingResult = Invoke-CapturedProcess -Executable $atl -Arguments @('run', 'missing.atl') -WorkingDirectory $workRoot
-    Assert-ProcessResult $missingResult 66 '' "Alone the Lambdas: `"missing.atl`": source file was not found`n" 'missing source'
+    $helpResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('--help') -WorkingDirectory $workRoot
+    Assert-ProcessResult $helpResult 0 "Usage:`n  attalambda FILE.attl`n  attalambda --help`n  attalambda --version`n" '' 'packaged help'
+    $misuseResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @() -WorkingDirectory $workRoot
+    Assert-ProcessResult $misuseResult 64 '' "AttaLambda: expected attalambda FILE.attl, attalambda --help, or attalambda --version`n" 'command misuse'
+    $extensionResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('missing.rkt') -WorkingDirectory $workRoot
+    Assert-ProcessResult $extensionResult 65 '' "AttaLambda: `"missing.rkt`": source file name must end in lowercase .attl`n" 'wrong extension'
+    $missingResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('missing.attl') -WorkingDirectory $workRoot
+    Assert-ProcessResult $missingResult 66 '' "AttaLambda: `"missing.attl`": source file was not found`n" 'missing source'
 
     $generatedDirectory = [IO.Path]::Combine($ScratchRoot, 'generated source path with spaces')
     [IO.Directory]::CreateDirectory($generatedDirectory) | Out-Null
-    $generatedSource = [IO.Path]::Combine($generatedDirectory, 'generated-after-packaging.atl')
-    Write-LfUtf8 $generatedSource "#lang alone_the_lambdas`n`n(stdout `"Generated after packaging.\n`")`n"
-    $generatedResult = Invoke-CapturedProcess -Executable $atl -Arguments @('run', $generatedSource) -WorkingDirectory $workRoot
+    $generatedSource = [IO.Path]::Combine($generatedDirectory, 'generated-after-packaging.attl')
+    Write-LfUtf8 $generatedSource "#lang attalambda`n`n(stdout `"Generated after packaging.\n`")`n"
+    $generatedResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @($generatedSource) -WorkingDirectory $workRoot
     Assert-ProcessResult $generatedResult 0 "Generated after packaging.`n" '' 'generated source'
 
     $decoyRoot = [IO.Path]::Combine($ScratchRoot, 'decoy-collections')
-    $decoyReaderDirectory = [IO.Path]::Combine($decoyRoot, 'alone_the_lambdas', 'lang')
+    $decoyReaderDirectory = [IO.Path]::Combine($decoyRoot, 'attalambda', 'lang')
     [IO.Directory]::CreateDirectory($decoyReaderDirectory) | Out-Null
     Write-LfUtf8 ([IO.Path]::Combine($decoyReaderDirectory, 'reader.rkt')) "this external reader must never be loaded`n"
-    $decoyResult = Invoke-CapturedProcess -Executable $atl -Arguments @('run', $generatedSource) -WorkingDirectory $workRoot -Environment @{ PLTCOLLECTS = $decoyRoot }
+    $decoyResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @($generatedSource) -WorkingDirectory $workRoot -Environment @{ PLTCOLLECTS = $decoyRoot }
     Assert-ProcessResult $decoyResult 0 "Generated after packaging.`n" '' 'embedded-language precedence run'
 
     $stdoutWork = [IO.Path]::Combine($ScratchRoot, 'stdout work')
     [IO.Directory]::CreateDirectory($stdoutWork) | Out-Null
-    $stdoutResult = Invoke-CapturedProcess -Executable $atl -Arguments @('run', [IO.Path]::Combine($firstRoot, 'examples', 'stdout.atl')) -WorkingDirectory $stdoutWork
-    Assert-ProcessResult $stdoutResult 0 "Hello from Alone the Lambdas.`n" '' 'stdout example'
+    $stdoutResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @([IO.Path]::Combine($firstRoot, 'examples', 'stdout.attl')) -WorkingDirectory $stdoutWork
+    Assert-ProcessResult $stdoutResult 0 "Hello from AttaLambda.`n" '' 'stdout example'
 
     $fileWork = [IO.Path]::Combine($ScratchRoot, 'file work')
     [IO.Directory]::CreateDirectory($fileWork) | Out-Null
-    $fileResult = Invoke-CapturedProcess -Executable $atl -Arguments @('run', [IO.Path]::Combine($firstRoot, 'examples', 'file-round-trip.atl')) -WorkingDirectory $fileWork
-    Assert-ProcessResult $fileResult 0 "Alone the Lambdas file round trip.`n" '' 'file round trip'
-    $roundTripPath = [IO.Path]::Combine($fileWork, 'alone-the-lambdas-round-trip.txt')
+    $fileResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @([IO.Path]::Combine($firstRoot, 'examples', 'file-round-trip.attl')) -WorkingDirectory $fileWork
+    Assert-ProcessResult $fileResult 0 "AttaLambda file round trip.`n" '' 'file round trip'
+    $roundTripPath = [IO.Path]::Combine($fileWork, 'attalambda-round-trip.txt')
     Assert-RegularNonsymlinkFile $roundTripPath 'file round-trip output'
-    if ([IO.File]::ReadAllText($roundTripPath) -cne "Alone the Lambdas file round trip.`n") {
+    if ([IO.File]::ReadAllText($roundTripPath) -cne "AttaLambda file round trip.`n") {
         Fail 'packaged file round trip wrote the wrong bytes'
     }
 
     $httpWork = [IO.Path]::Combine($ScratchRoot, 'http work')
     [IO.Directory]::CreateDirectory($httpWork) | Out-Null
-    Invoke-HttpAcceptance $atl ([IO.Path]::Combine($firstRoot, 'examples', 'http-server.atl')) $httpWork
+    Invoke-HttpAcceptance $attalambda ([IO.Path]::Combine($firstRoot, 'examples', 'http-server.attl')) $httpWork
 
     $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
     if ([string]::IsNullOrWhiteSpace($localAppData) -or -not [IO.Directory]::Exists($localAppData)) {
         Fail 'consumer LocalApplicationData directory is unavailable for cross-drive relocation'
     }
-    $RelocatedParent = [IO.Path]::Combine($localAppData, "Alone the Lambdas relocated consumer $([Guid]::NewGuid().ToString('N')) path with spaces")
+    $RelocatedParent = [IO.Path]::Combine($localAppData, "AttaLambda relocated consumer $([Guid]::NewGuid().ToString('N')) path with spaces")
     $secondRoot = [IO.Path]::Combine($RelocatedParent, $artifactRootName)
     if ([IO.Path]::GetPathRoot($firstRoot).Equals([IO.Path]::GetPathRoot($secondRoot), [StringComparison]::OrdinalIgnoreCase)) {
         Fail 'consumer could not prove relocation to a different drive'
@@ -738,10 +737,10 @@ try {
     if ([IO.Directory]::Exists($firstRoot)) {
         Fail 'first extracted tree still exists after relocation'
     }
-    $atl = [IO.Path]::Combine($secondRoot, 'bin', 'atl.exe')
-    $relocatedVersion = Invoke-CapturedProcess -Executable $atl -Arguments @('--version') -WorkingDirectory $workRoot
-    Assert-ProcessResult $relocatedVersion 0 "Alone the Lambdas $productVersion`n" '' 'relocated version'
-    $relocatedSource = Invoke-CapturedProcess -Executable $atl -Arguments @('run', $generatedSource) -WorkingDirectory $workRoot
+    $attalambda = [IO.Path]::Combine($secondRoot, 'bin', 'attalambda.exe')
+    $relocatedVersion = Invoke-CapturedProcess -Executable $attalambda -Arguments @('--version') -WorkingDirectory $workRoot
+    Assert-ProcessResult $relocatedVersion 0 "AttaLambda $productVersion`n" '' 'relocated version'
+    $relocatedSource = Invoke-CapturedProcess -Executable $attalambda -Arguments @($generatedSource) -WorkingDirectory $workRoot
     Assert-ProcessResult $relocatedSource 0 "Generated after packaging.`n" '' 'relocated source'
 
     $os = Get-CimInstance -ClassName Win32_OperatingSystem
@@ -772,13 +771,13 @@ catch {
 finally {
     if ($null -ne $ScratchRoot -and [IO.Directory]::Exists($ScratchRoot)) {
         $scratchName = [IO.Path]::GetFileName($ScratchRoot)
-        if ($scratchName.StartsWith('alone-the-lambdas-windows-consumer-', [StringComparison]::Ordinal)) {
+        if ($scratchName.StartsWith('attalambda-windows-consumer-', [StringComparison]::Ordinal)) {
             Remove-Item -LiteralPath $ScratchRoot -Recurse -Force
         }
     }
     if ($null -ne $RelocatedParent -and [IO.Directory]::Exists($RelocatedParent)) {
         $relocatedName = [IO.Path]::GetFileName($RelocatedParent)
-        if ($relocatedName.StartsWith('Alone the Lambdas relocated consumer ', [StringComparison]::Ordinal)) {
+        if ($relocatedName.StartsWith('AttaLambda relocated consumer ', [StringComparison]::Ordinal)) {
             Remove-Item -LiteralPath $RelocatedParent -Recurse -Force
         }
     }

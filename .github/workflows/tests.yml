@@ -47,10 +47,10 @@ jobs:
           variant: CS
 
       - name: Build unpublished Linux distribution
-        run: ./tooling/build-linux-distribution.sh "$RUNNER_TEMP/atl-artifacts"
+        run: ./tooling/build-linux-distribution.sh "$RUNNER_TEMP/attalambda-artifacts"
 
       - name: Test transferred archive without Racket
-        run: ./tooling/test-linux-distribution.sh "$RUNNER_TEMP/atl-artifacts"
+        run: ./tooling/test-linux-distribution.sh "$RUNNER_TEMP/attalambda-artifacts"
 
   macos-distribution-build:
     name: macOS build (${{ matrix.target }})
@@ -82,22 +82,22 @@ jobs:
 
       - name: Build unpublished native macOS distribution
         run: |
-          mkdir -p "$RUNNER_TEMP/atl-transfer"
+          mkdir -p "$RUNNER_TEMP/attalambda-transfer"
           ./tooling/build-macos-distribution.sh \
             "${{ matrix.target }}" \
-            "$RUNNER_TEMP/atl-transfer"
+            "$RUNNER_TEMP/attalambda-transfer"
           install -m 0555 \
             ./tooling/test-macos-distribution.sh \
-            "$RUNNER_TEMP/atl-transfer/consumer.sh"
+            "$RUNNER_TEMP/attalambda-transfer/consumer.sh"
 
       - name: Transfer unpublished artifact to its consumer job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: atl-${{ matrix.target }}-${{ github.sha }}
+          name: attalambda-${{ matrix.target }}-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/atl-transfer/*.tar.gz
-            ${{ runner.temp }}/atl-transfer/SHA256SUMS
-            ${{ runner.temp }}/atl-transfer/consumer.sh
+            ${{ runner.temp }}/attalambda-transfer/*.tar.gz
+            ${{ runner.temp }}/attalambda-transfer/SHA256SUMS
+            ${{ runner.temp }}/attalambda-transfer/consumer.sh
           if-no-files-found: error
           include-hidden-files: false
           compression-level: 0
@@ -123,14 +123,14 @@ jobs:
       - name: Receive only the transferred development artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: atl-${{ matrix.target }}-${{ github.sha }}
-          path: ${{ runner.temp }}/atl-transfer
+          name: attalambda-${{ matrix.target }}-${{ github.sha }}
+          path: ${{ runner.temp }}/attalambda-transfer
 
       - name: Test without Racket or a source checkout
         run: |
-          chmod 0555 "$RUNNER_TEMP/atl-transfer/consumer.sh"
-          "$RUNNER_TEMP/atl-transfer/consumer.sh" \
-            "$RUNNER_TEMP/atl-transfer" \
+          chmod 0555 "$RUNNER_TEMP/attalambda-transfer/consumer.sh"
+          "$RUNNER_TEMP/attalambda-transfer/consumer.sh" \
+            "$RUNNER_TEMP/attalambda-transfer" \
             "${{ matrix.target }}"
 
   macos-distribution-artifact-cleanup:
@@ -152,7 +152,7 @@ jobs:
         run: |
           set -euo pipefail
           for target in macos-x86_64 macos-arm64; do
-            artifact_name="atl-$target-$GITHUB_SHA"
+            artifact_name="attalambda-$target-$GITHUB_SHA"
             artifact_id="$(gh api \
               "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
               --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id")"
@@ -165,8 +165,8 @@ jobs:
           remaining_ids="$(gh api \
             "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
             --jq ".artifacts[] | select(
-              .name == \"atl-macos-x86_64-$GITHUB_SHA\" or
-              .name == \"atl-macos-arm64-$GITHUB_SHA\") | .id")"
+              .name == \"attalambda-macos-x86_64-$GITHUB_SHA\" or
+              .name == \"attalambda-macos-arm64-$GITHUB_SHA\") | .id")"
           [[ -z "$remaining_ids" ]]
 
   windows-distribution-build:
@@ -190,7 +190,7 @@ jobs:
       - name: Build unpublished native Windows distribution
         shell: pwsh
         run: |
-          $transfer = Join-Path $env:RUNNER_TEMP 'atl-transfer'
+          $transfer = Join-Path $env:RUNNER_TEMP 'attalambda-transfer'
           [IO.Directory]::CreateDirectory($transfer) | Out-Null
           & .\tooling\build-windows-distribution.ps1 $transfer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -202,11 +202,11 @@ jobs:
       - name: Transfer unpublished artifact to its consumer job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: atl-windows-x86_64-${{ github.sha }}
+          name: attalambda-windows-x86_64-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/atl-transfer/*.zip
-            ${{ runner.temp }}/atl-transfer/SHA256SUMS
-            ${{ runner.temp }}/atl-transfer/consumer.ps1
+            ${{ runner.temp }}/attalambda-transfer/*.zip
+            ${{ runner.temp }}/attalambda-transfer/SHA256SUMS
+            ${{ runner.temp }}/attalambda-transfer/consumer.ps1
           if-no-files-found: error
           include-hidden-files: false
           compression-level: 0
@@ -224,13 +224,13 @@ jobs:
       - name: Receive only the transferred development artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: atl-windows-x86_64-${{ github.sha }}
-          path: ${{ runner.temp }}/atl-transfer
+          name: attalambda-windows-x86_64-${{ github.sha }}
+          path: ${{ runner.temp }}/attalambda-transfer
 
       - name: Test without Racket or a source checkout
         shell: pwsh
         run: |
-          & "$env:RUNNER_TEMP\atl-transfer\consumer.ps1" "$env:RUNNER_TEMP\atl-transfer"
+          & "$env:RUNNER_TEMP\attalambda-transfer\consumer.ps1" "$env:RUNNER_TEMP\attalambda-transfer"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   windows-distribution-artifact-cleanup:
@@ -251,7 +251,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          artifact_name="atl-windows-x86_64-$GITHUB_SHA"
+          artifact_name="attalambda-windows-x86_64-$GITHUB_SHA"
           artifact_id="$(gh api \
             "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
             --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id")"

@@ -6,4 +6,4 @@ runtime and Racket modules selected by `raco exe` and `raco distribute`.
 The following sections reproduce the exact top-level license notice and license
 texts from the pinned Racket @RACKET_VERSION@ build toolchain. Their SHA-256
 digests are recorded beside each section. This is a provisional runtime notice,
-not the final package-by-package legal inventory required by Phase 27.
+not the final package-by-package legal inventory required by Phase 28.

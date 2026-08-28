@@ -10,6 +10,10 @@ The three files under [docs/specifications](docs/specifications/README.md) are
 the authority. The purity addendum overrides weaker purity examples, and the
 naming addendum overrides earlier naming examples.
 
+Completed phase records preserve the literal public spellings and artifact
+names that were true when their evidence was collected. Phase 27 supersedes
+those spellings for current work without rewriting history.
+
 ## Phase 0 — Repository foundation
 
 Status: complete (2026-08-24)
@@ -480,7 +484,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 27 next)
+Status: in progress (Phase 27 rename underway)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -489,12 +493,12 @@ object-language computational model.
 
 The following constraints apply throughout:
 
-- `.atl` is the canonical public source extension. A source file retains the
-  exact `#lang alone_the_lambdas` declaration so the existing verified reader,
-  expander, source locations, and Lisp syntax remain authoritative; users run
-  it through `atl`, never through a separately installed `racket` command.
-- The initial public command surface is exactly `atl run FILE.atl`,
-  `atl --help`, and `atl --version`. A REPL, compiler command, package manager,
+- `.attl` is the canonical public source extension. A source file uses the
+  exact `#lang attalambda` declaration so the verified reader, expander,
+  source locations, and Lisp syntax remain authoritative; users run it
+  through `attalambda`, never through a separately installed `racket` command.
+- The initial public command surface is exactly `attalambda FILE.attl`,
+  `attalambda --help`, and `attalambda --version`. A REPL, compiler command, package manager,
   formatter, debugger, editor integration, installer, and automatic updater
   remain outside this milestone unless a later phase proves one necessary.
 - A release artifact bundles the Racket runtime and every language module it
@@ -503,7 +507,7 @@ The following constraints apply throughout:
 - The launcher is trusted module-loading scaffolding, not object-language
   computation and not another language-visible effect primitive. Its exact
   dynamic-loading and diagnostic capabilities must be separately classified;
-  no Alone the Lambdas program may import, name, or invoke them.
+  no AttaLambda program may import, name, or invoke them.
 - The approved unary `host` remains the sole language-visible bridge for
   stdout, file, and TCP effects. Packaging must not add parsing, arithmetic,
   routing, Result control flow, or other ordinary language behavior in the
@@ -527,6 +531,12 @@ The following constraints apply throughout:
 - A public release is blocked until Kyle explicitly approves both the
   repository license and publication of the release. Planning or building a
   release candidate is not permission to publish one.
+
+Phases 21 through 26 below preserve the exact names, artifact measurements,
+commands, and URLs observed before the Phase 27 rename. They are historical
+evidence, not the current public naming contract. Phase 27 supersedes those
+names without retroactively relabeling the artifacts that were actually
+built and tested.
 
 ## Phase 21 — Distribution contract and feasibility proof
 
@@ -833,23 +843,68 @@ expanded purity scan over 16 `core/` modules, and the complete 80-source
 boundary inventory. The focused distribution contract suite passed 140
 assertions.
 
-## Phase 27 — Downloadable release candidate and novice documentation
+## Phase 27 — Apache license and AttaLambda public rename
 
-Status: in progress (repository license approved and recorded 2026-08-28)
+Status: in progress (local rename and public repository rename complete; push and CI pending)
 
 - [x] Select and record Apache License 2.0 after Kyle explicitly approved its
   legal terms and confirmed Kyle Serrecchia as the 2026 copyright owner.
+- [x] Adopt `AttaLambda` as the public project and language name,
+  `attalambda` as the repository, package, collection, executable, and
+  machine-facing name, and `.attl` as the only public source extension.
+- [x] Make the source declaration exactly `#lang attalambda` and the direct
+  execution grammar exactly `attalambda FILE.attl`, `attalambda --help`, and
+  `attalambda --version`, with no `atl`, `.atl`, old declaration, or `run`
+  compatibility aliases.
+- [x] Synchronize the runner, examples, package metadata, reader, native build
+  and consumer tooling, workflow artifact names, specifications, architecture,
+  acceptance map, and current user/developer documentation with the new
+  identity while preserving pre-rename evidence as explicitly labeled history.
+- [x] Prove the renamed collection from a fresh isolated package install, run
+  every canonical application through the direct command grammar, pass the
+  complete suite and structural inventory, and reject every retired public
+  spelling.
+- [x] Rename the public GitHub repository to `kserrec/attalambda` and update
+  the verified local `origin` to that destination.
+- [ ] Push the exact tested commit and verify CI without creating a Git tag,
+  GitHub Release, release-candidate file, signature, or public download. Kyle
+  explicitly authorized only the two renamed unpublished macOS archives and
+  one renamed unpublished Windows archive, their external checksums, and their
+  consumer harnesses as temporary workflow artifacts, with immediate deletion
+  and one-day retention solely as a cleanup-failure fallback.
+
+Acceptance: every current public and machine-facing surface says AttaLambda,
+`attalambda`, or `.attl` according to its role; a fresh user runs
+`attalambda FILE.attl`; retired spellings fail rather than silently aliasing;
+and object-language computation, representations, effects, host authority,
+version `0.2.0-dev`, and release state remain unchanged.
+
+Local evidence: `./run-all-tests.sh` passed on 2026-08-28 with 4,617
+assertions across all 32 test files, the unchanged expanded purity proof over
+16 `core/` modules, and the complete zero-finding structural inventory of all
+80 Racket and `.attl` sources. Focused totals include 181 runner assertions,
+78 fresh-language assertions, 113 boundary assertions, 144 distribution-
+contract assertions, and 22 real-application acceptance assertions. The
+public repository rename and local remote are verified. The renamed native
+artifacts are not yet claimed as verified; the final checklist item remains
+open until the authorized push, clean consumer jobs, and immediate artifact
+deletion complete.
+
+## Phase 28 — Downloadable release candidate and novice documentation
+
+Status: planned and approval-gated
+
 - [ ] Complete and obtain approval for the exact bundled Racket runtime
   notices, then include those notices and the repository license in every
   release-candidate artifact.
 - [ ] Separate contributor setup from end-user setup. The primary getting-
   started path must begin with downloading the correct platform archive,
-  extracting it, and running `atl run hello.atl`; it must not instruct an end
-  user to install Racket, use `raco`, or register a package.
-- [ ] Document `.atl` syntax, the required language declaration, executable
-  location, supported platforms, exit statuses, archive verification, and the
-  real host's unsandboxed stdout/filesystem/network authority in plain
-  language.
+  extracting it, and running `attalambda hello.attl`; it must not instruct an
+  end user to install Racket, use `raco`, or register a package.
+- [ ] Document `.attl` syntax, the required `#lang attalambda` declaration,
+  executable location, supported platforms, exit statuses, archive
+  verification, and the real host's unsandboxed stdout/filesystem/network
+  authority in plain language.
 - [ ] Promote the single version source to `0.2.0-rc.1`, rebuild and stage the
   four archives with the approved license, one checksum manifest, source
   commit, dependency/runtime inventory, release notes, and exact known
@@ -860,9 +915,9 @@ Status: in progress (repository license approved and recorded 2026-08-28)
 
 Acceptance: a person with no Racket installation or knowledge can follow the
 release-candidate documentation verbatim, verify the archive, and run a real
-`.atl` program; the candidate remains unpublished pending explicit approval.
+`.attl` program; the candidate remains unpublished pending explicit approval.
 
-## Phase 28 — First independent release
+## Phase 29 — First independent release
 
 Status: planned and approval-gated
 
@@ -883,10 +938,10 @@ Status: planned and approval-gated
   then download and reverify each published artifact rather than trusting the
   upload step.
 - [ ] Confirm the public instructions resolve from a clean browser-visible
-  release URL, `atl --version` reports `0.2.0`, all checksums match, and `main`
-  remains clean and synchronized with its verified remote.
+  release URL, `attalambda --version` reports `0.2.0`, all checksums match, and
+  `main` remains clean and synchronized with its verified remote.
 
-Acceptance: Alone the Lambdas has a verified public `0.2.0` release whose
-users download a platform archive, write `.atl`, and run `atl` without
+Acceptance: AttaLambda has a verified public `0.2.0` release whose users
+download a platform archive, write `.attl`, and run `attalambda` without
 installing or learning Racket, while the language's lambda purity and single
 explicit host boundary remain unchanged.

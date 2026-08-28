@@ -2,7 +2,7 @@
 
 ;; Structural gate for the deliberately nonuniform language tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
-;; checker inventories every Racket or `.atl` source and adds the approved
+;; checker inventories every Racket or `.attl` source and adds the approved
 ;; classes without weakening that proof:
 ;;
 ;;   core/                separately scanned pure unary-lambda computation
@@ -14,8 +14,8 @@
 ;;   lang/expander.rkt    exact imports/exports and mechanical expansion only
 ;;   readers/             host observation only; no effects or upward imports
 ;;   tests/, tooling/     host-enabled support code, never production imports
-;;   runner/atl.rkt       closed command/path/module-loading scaffolding
-;;   examples/*.atl       exact standalone applications, tested end to end
+;;   runner/attalambda.rkt       closed command/path/module-loading scaffolding
+;;   examples/*.attl       exact standalone applications, tested end to end
 ;;   info.rkt             exact single-collection package metadata
 
 (require racket/file
@@ -113,7 +113,7 @@
     format hash-ref help-text identifier? if in-list input invalid-declaration
     invalid-encoding invalid-source-status lambda language-declaration length
     let line link-exists? location locations loop main matched member
-    missing-path mode name newline next null? only-in or pair? parent part path
+    missing-path mode name newline next not null? only-in or pair? parent part path
     path->complete-path path->string path-get-extension path-only path?
     port->bytes preflight-result product-version quote racket/base racket/file
     racket/path racket/port raise-syntax-error read-byte read-bytes reason
@@ -171,19 +171,19 @@
   '(define (stop status source line column reason)
      (cond
        ((and source line column)
-        (eprintf "Alone the Lambdas: ~s:~a:~a: ~a\n"
+        (eprintf "AttaLambda: ~s:~a:~a: ~a\n"
                  source line column reason))
        (source
-        (eprintf "Alone the Lambdas: ~s: ~a\n" source reason))
+        (eprintf "AttaLambda: ~s: ~a\n" source reason))
        (else
-        (eprintf "Alone the Lambdas: ~a\n" reason)))
+        (eprintf "AttaLambda: ~a\n" reason)))
      (exit status)))
 
 (define expected-runner-syntax-reason-definition
   '(define (syntax-failure-reason expression)
      (cond
        ((and expression (identifier? expression))
-        (format "unknown ATL name: ~s" (syntax-e expression)))
+        (format "unknown AttaLambda name: ~s" (syntax-e expression)))
        ((datum-failure-expression? expression)
         "unsupported literal; only nonnegative Nat and String literals are supported")
        (else
@@ -510,7 +510,7 @@
       make-write-file))))
 
 (define expected-language-reader-forms
-  '(alone_the_lambdas/lang/expander))
+  '(attalambda/lang/expander))
 
 (define product-version-projections
   '((#"0.2.0-dev\n" . "0.1.900")
@@ -531,7 +531,7 @@
    product-version-projections))
 
 (define (expected-package-info-forms package-version)
-  `((define collection "alone_the_lambdas")
+  `((define collection "attalambda")
     (define deps (quote ("base" "lazy")))
     (define build-deps (quote ("rackunit-lib" "net-lib")))
     (define license (quote Apache-2.0))
@@ -610,11 +610,20 @@
     (and project-root
          (normalized
           (build-path (normalized project-root) 'up))))
+  (define project-collection-link
+    (and project-root
+         (hash 'attalambda
+               (list (normalized project-root)))))
   (define datum
     (call-with-input-file path
       (lambda (input)
         (parameterize ([read-accept-reader #t]
                        [current-load-relative-directory (path-only path)]
+                       [current-library-collection-links
+                        (if project-collection-link
+                            (cons project-collection-link
+                                  (current-library-collection-links))
+                            (current-library-collection-links))]
                        [current-library-collection-paths
                         (if collection-parent
                             (cons collection-parent
@@ -810,7 +819,7 @@
   (and (safe-source-path? path project-root)
        (regular-file-path? path)
        (member (path-get-extension path)
-               '(#".rkt" #".atl")
+               '(#".rkt" #".attl")
                equal?)))
 
 ;; All opportunistic project-wide reads go through this guard. The one caller
@@ -1268,14 +1277,14 @@
 
 (define (application-violations path info)
   (append
-   (if (equal? (path-get-extension path) #".atl")
+   (if (equal? (path-get-extension path) #".attl")
        '()
        (list (violation path
                         'invalid-application-extension
                         (path-get-extension path))))
    (exact-language-violations path
                               info
-                              'alone_the_lambdas/lang/expander
+                              'attalambda/lang/expander
                               'unexpected-application-language)))
 
 ;; Tests and tooling deliberately have normal Racket authority. Their
@@ -1561,7 +1570,7 @@
                  (directory-list directory #:build? #t))]
     [(and (file-exists? directory)
           (member (path-get-extension directory)
-                  '(#".rkt" #".atl")
+                  '(#".rkt" #".attl")
                   equal?))
      (list (normalized directory))]
     [else '()]))
@@ -1580,7 +1589,7 @@
   (define extension
     (path-get-extension source))
   (cond
-    [(equal? extension #".atl")
+    [(equal? extension #".attl")
      (and (equal? first-part "examples") 'application)]
     [(not (equal? extension #".rkt")) #f]
     [(equal? source (normalized (build-path root "info.rkt")))
@@ -1645,10 +1654,10 @@
     (source-classification-path classification)))
 
 (define expected-application-paths
-  '("hello.atl"
-    "stdout.atl"
-    "file-round-trip.atl"
-    "http-server.atl"))
+  '("hello.attl"
+    "stdout.attl"
+    "file-round-trip.attl"
+    "http-server.attl"))
 
 (define (application-inventory-violations project-root)
   (define directory
@@ -1837,7 +1846,7 @@
      (define package-info
        (normalized (build-path root "info.rkt")))
      (define runner
-       (normalized (build-path runner-directory "atl.rkt")))
+       (normalized (build-path runner-directory "attalambda.rkt")))
      (define macro-shell
        (normalized (build-path macros-directory "lazy-with-macros.rkt")))
      (define macro-definitions

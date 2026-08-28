@@ -10,7 +10,7 @@ outside-world boundary. It is subordinate to the three canonical
 closed implementation described here and no broader relaxation of
 `AGENTS.md`.
 
-Kyle approved using the single `host` boundary in Alone the Lambdas and then
+Kyle approved using the single `host` boundary in AttaLambda and then
 approved this concrete request, codec, authority, and runtime contract on
 2026-08-27. Phases 14 through 20 subsequently implemented the approved codec
 split, sole host bridge, `stdout`, whole-file operations, and complete blocking
@@ -323,7 +323,7 @@ flow is added to the object language.
 
 ## Authority and trust
 
-Running an Alone the Lambdas program with the real host grants it the same
+Running an AttaLambda program with the real host grants it the same
 relevant authority as the launching Racket process:
 
 - it can write arbitrary bytes to stdout;
@@ -404,7 +404,7 @@ host capability. The classifications are:
 | `macros/` | mechanical syntax translation | Exactly the two approved paths, pinned languages/imports/exports and source vocabulary, and no OS/process/environment/dynamic-loading/FFI/mutation capabilities |
 | `readers/` | one-way human observation with host values and control flow, but no external effects, mutation, registry, or upward dependency | Racket/base reader scan, closed source vocabulary, narrow import direction, capability denial, and exclusion from every production dependency path |
 | `tests/` and `tooling/` | host facilities needed to verify the claim | Every Racket module is inventoried; both classes remain unrestricted support code and are rejected from production dependency paths |
-| `examples/` | public standalone language and its explicitly requested real-host effects | Exact `#lang alone_the_lambdas` classification plus fresh-install end-to-end execution in temporary/loopback scope |
+| `examples/` | public standalone language and its explicitly requested real-host effects | Exact `#lang attalambda` classification plus fresh-install end-to-end execution in temporary/loopback scope |
 
 Repository checks must prove:
 
@@ -481,7 +481,7 @@ The verified reusable pattern is narrow:
   re-exports Lazy Racket application and datum machinery;
 - its macro modules demonstrate mechanical lowering under `#lang s-exp`.
 
-Alone the Lambdas already supersedes the old finite-arity `def`. The old
+AttaLambda already supersedes the old finite-arity `def`. The old
 repository has no host dispatcher, filesystem/TCP layer, HTTP server, custom
 language reader, or standalone runtime to borrow. Its `_if`, `_let`, `_cons`,
 coercive layers, and older representations remain explicitly inapplicable.

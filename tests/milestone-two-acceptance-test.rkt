@@ -10,9 +10,9 @@
          "helpers/fresh-language.rkt")
 
 (define-runtime-path project-root-path "..")
-(define-runtime-path stdout-example "../examples/stdout.atl")
-(define-runtime-path file-example "../examples/file-round-trip.atl")
-(define-runtime-path http-example "../examples/http-server.atl")
+(define-runtime-path stdout-example "../examples/stdout.attl")
+(define-runtime-path file-example "../examples/file-round-trip.attl")
+(define-runtime-path http-example "../examples/http-server.attl")
 
 (define project-root
   (simplify-path project-root-path #f))
@@ -66,7 +66,6 @@
                       #f
                       racket-executable
                       (path->string runner)
-                      "run"
                       (path->string http-example))))
       (set! process started-process)
       (set! child-output started-output)
@@ -110,17 +109,17 @@
                             #"/lambda"
                             #:port bound-port
                             #:headers
-                            (list #"User-Agent: ATL-phase-20")
+                            (list #"User-Agent: AttaLambda-phase-20")
                             #:content-decode '()))
            (list status headers (port->bytes body)))))
       (check-equal? (car response)
                     #"HTTP/1.1 200 OK")
       (check-not-false
-       (member #"Content-Length: 30" (cadr response)))
+       (member #"Content-Length: 23" (cadr response)))
       (check-not-false
        (member #"Connection: close" (cadr response)))
       (check-equal? (caddr response)
-                    #"Hello from Alone the Lambdas.\n")
+                    #"Hello from AttaLambda.\n")
 
       (unless (sync/timeout 20 process)
         (error 'http-example "server process did not exit"))
@@ -149,7 +148,7 @@
    (define environment
      (fresh-language-install-environment installation))
    (define runner
-     (build-path temporary-root "package-source" "runner" "atl.rkt"))
+     (build-path temporary-root "package-source" "runner" "attalambda.rkt"))
 
    (define stdout-directory
      (build-path temporary-root "stdout-example"))
@@ -158,11 +157,10 @@
     (run-command environment
                  racket-executable
                  (list (path->string runner)
-                       "run"
                        (path->string stdout-example))
                  20
                  #:current-directory stdout-directory)
-    #"Hello from Alone the Lambdas.\n")
+    #"Hello from AttaLambda.\n")
 
    (define file-directory
      (build-path temporary-root "file-example"))
@@ -171,16 +169,15 @@
     (run-command environment
                  racket-executable
                  (list (path->string runner)
-                       "run"
                        (path->string file-example))
                  20
                  #:current-directory file-directory)
-    #"Alone the Lambdas file round trip.\n")
+    #"AttaLambda file round trip.\n")
    (check-equal?
     (file->bytes
      (build-path file-directory
-                 "alone-the-lambdas-round-trip.txt"))
-    #"Alone the Lambdas file round trip.\n")
+                 "attalambda-round-trip.txt"))
+    #"AttaLambda file round trip.\n")
 
    (define http-directory
      (build-path temporary-root "http-example"))

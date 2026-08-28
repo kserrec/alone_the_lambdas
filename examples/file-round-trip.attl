@@ -1,9 +1,9 @@
-#lang alone_the_lambdas
+#lang attalambda
 
 ; Run this example in an empty scratch directory. It creates or replaces the
 ; relative file named below, then emits the bytes it reads back.
-(def path = "alone-the-lambdas-round-trip.txt")
-(def contents = "Alone the Lambdas file round trip.\n")
+(def path = "attalambda-round-trip.txt")
+(def contents = "AttaLambda file round trip.\n")
 
 (let write-result = (write-file path contents)
   (if (is-ok write-result)
