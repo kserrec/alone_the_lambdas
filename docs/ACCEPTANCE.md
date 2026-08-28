@@ -41,6 +41,10 @@ Phase 18 was verified on 2026-08-27 with `./run-all-tests.sh`: 4,136 passing
 assertions across 28 test files, the unchanged clean 16-module expanded core
 scan, and the pure HTTP-server-aware effects/runtime boundary scan.
 
+Phase 19 was verified on 2026-08-27 with `./run-all-tests.sh`: 4,224 passing
+assertions across 29 test files, the unchanged clean 16-module expanded core
+scan, and the reader/expander/package-aware boundary scan.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -68,7 +72,7 @@ scan, and the pure HTTP-server-aware effects/runtime boundary scan.
 | Readers are a one-way observation boundary. | Structural check: reader modules may use host values and formatting, but no production module imports `readers/`; the dependency direction is recorded in [`ARCHITECTURE.md`](../ARCHITECTURE.md). |
 | Error frames contain structured function-name Strings. | [`function-names.rkt`](../core/function-names.rkt) contains pure typed constants; [`error-reader-test.rkt`](../tests/error-reader-test.rkt) verifies all 43 names, every corresponding strict mismatch boundary, and nested propagation. |
 | Diagnostics preserve structured data until observation. | [`error.rkt`](../readers/error.rkt) alone flattens roots and frames; its tests cover all root kinds, type names, raw fallback output, and causal order. |
-| Internal names expose raw and typed layers without underscore collision workarounds. | Structural check: production APIs use `raw-*` and `typed-*`; canonical `if` is exported at its module boundary. The remaining standalone `lambda`/`let`/`cons` surface is explicitly next-milestone work, as permitted by the naming addendum. |
+| Internal names expose raw and typed layers without underscore collision workarounds. | Structural check: production implementation APIs use `raw-*` and `typed-*`; [`expander.rkt`](../lang/expander.rkt) exposes canonical `lambda`, `def`, `let`, strict typed `if`, and proper typed `cons` while its exact export gate keeps raw, typed, and underscore workarounds private. |
 | No implicit host boundary exists in the core milestone. | `host` remains absent from `core/` and forbidden by its unchanged purity scan. Phase 14's later explicit bridge is isolated in `runtime/host.rkt` and checked separately rather than weakening this evidence. |
 
 ## Phase 14 effects-boundary evidence
@@ -76,7 +80,7 @@ scan, and the pure HTTP-server-aware effects/runtime boundary scan.
 | Requirement | Evidence |
 | --- | --- |
 | Exact byte conversion is isolated from effects. | [`codec-test.rkt`](../tests/codec-test.rkt) covers all 256 byte values, empty and embedded-zero Strings, immutable output, source-byte copying, canonical List/Char/String construction, malformed tags/tails/elements, leading-zero and out-of-range Char rejection, and canonical Ok/Err construction. [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) rejects codec I/O, mutation, registries, readers, runtime dependencies, unknown strict-module identifiers, and unauthorized exports. |
-| `host` is one unary, closed privileged bridge. | [`host-test.rkt`](../tests/host-test.rkt) checks unary arity, the strict outer List contract, every stdout/file schema failure, malformed representation rejection before effects, canonical InvalidHostRequest/HostFailure details, incoming Error propagation, and cached force-once behavior; [`tcp-host-test.rkt`](../tests/tcp-host-test.rkt) adds the six TCP schemas and real lifecycle. The boundary checker requires the sole `host` definition/export and its exact protocol/codec imports; sees through classified require wrappers and fails closed on unclassified wrappers; authorizes imports before discovering full-import exports; pins both mechanical macro modules; validates the project-root anchor and every production-path component before discovery; rejects symlinks without traversing their targets; rejects additional macro modules; and rejects every `lang/` module until Phase 19 defines that class. |
+| `host` is one unary, closed privileged bridge. | [`host-test.rkt`](../tests/host-test.rkt) checks unary arity, the strict outer List contract, every stdout/file schema failure, malformed representation rejection before effects, canonical InvalidHostRequest/HostFailure details, incoming Error propagation, and cached force-once behavior; [`tcp-host-test.rkt`](../tests/tcp-host-test.rkt) adds the six TCP schemas and real lifecycle. The boundary checker requires the sole `host` definition/direct producer export and its exact protocol/codec imports; sees through classified require wrappers and fails closed on unclassified wrappers; authorizes imports before discovering full-import exports; pins both mechanical macro modules plus the Phase 19 reader, expander, and package metadata; validates the project-root anchor and every production-path component before discovery; rejects symlinks without traversing their targets; rejects additional macro/language modules; and allows only the exact facade to import and re-export that same production `host`. |
 | `stdout` remains ordinary lambda computation. | [`stdout-test.rkt`](../tests/stdout-test.rkt) proves the exact `["stdout", bytes]` request, strict String rejection before dispatch, deterministic fake-host traces, unchanged Result propagation, unary shape, and lazy single dispatch. The boundary checker allowlists every effect identifier/import/export and rejects host data, non-unary forms, runtime imports, and unknown Lazy Racket bindings. |
 | Real stdout is byte-exact and expected failure is Result Err. | [`host-test.rkt`](../tests/host-test.rkt) captures empty, embedded-zero, and byte-255 output with no newline, observes output only after forcing, proves repeat forcing does not write twice, proves an unselected host branch performs no effect, and maps a closed output port to `Err HostFailure("stdout", "io-failure")`. |
 | The completed core boundary is unchanged. | [`check-purity.rkt`](../tooling/check-purity.rkt) still performs its zero-exception expanded scan over exactly 16 `core/` modules. [`run-all-tests.sh`](../run-all-tests.sh) runs that gate and the new boundary-classification gate independently. |
@@ -118,11 +122,22 @@ scan, and the pure HTTP-server-aware effects/runtime boundary scan.
 | The blocking server is sequential and uses only documented TCP effects. | `make-http-server` repeats successful one-connection operations with the pure fixed point and stops at the first Error or Result Err. A deterministic two-connection trace is exactly accept/read/write/close, accept/read/write/close, then the terminating accept failure; no listener close is hidden because the caller owns that handle. The project boundary scan automatically classifies the new module as a pure effect module and rejects runtime, HTTP-library, host String, arithmetic, mutation, control-flow, and non-unary shortcuts. |
 | A real external HTTP client receives the lambda-selected response. | [`http-server-test.rkt`](../tests/http-server-test.rkt) obtains an ephemeral `127.0.0.1` listener through the real host, runs one blocking serve operation with test-only concurrency, and uses test-side `net/http-client` to request `/lambda`. It verifies the exact 200 status, `Content-Length`, `Connection: close`, body, successful connection cleanup, and explicit caller cleanup of the listener without contacting any external service. |
 
+## Phase 19 standalone-language evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| `#lang alone_the_lambdas` resolves from a fresh package installation. | [`language-test.rkt`](../tests/language-test.rkt) creates an isolated Racket user home, explicitly stages only package/production files while excluding every dotenv spelling, VCS state, and compiled artifacts and rejecting symlinks, installs that source using [`info.rkt`](../info.rkt), then runs programs outside the installed collection. The install uses declared dependencies only and does not rely on a source-tree collection path or package link. |
+| Canonical syntax remains unary lambda computation. | The specification's exact `def`/`if`/`cons` sample shape runs and returns the selected List element. Separate programs prove multi-operand source calls and multi-argument `def` lower to nested unary applications, `let` is immediate unary-lambda application, public `lambda` rejects multiple formals, and a divergent unselected branch is never forced. The existing macro suite retains direct curried-expansion coverage. |
+| Nat and String literals are canonical lambda values. | The language suite lowers 0, 1, 255, 256, and 65536, then test-only module-namespace observation passes them through the strict codec and recovers the exact integers. A `λ🙂` source String decodes as exactly six UTF-8 bytes and is emitted byte-for-byte through public `stdout`. Booleans, negative/rational/flonum/complex numbers, characters, byte strings, keywords, vectors, and quoted symbols are rejected during expansion; no additional literal family or parser exists. |
+| The facade is canonical and isolated from Racket/internal namespaces. | Runnable programs use only `lambda`, `def`, `let`, `if`, `cons`, strict data operations, bound `stdout`, and explicit `host`. Direct probes prove `define`, `require`, `+`, `display`, `raw-cons`, `typed-if`, `_if`, and quote are unavailable. [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) pins exact facade imports, exports, transformer/helper sets, nine host-injection definitions, source vocabulary, sole host path, the exact reader target, and package metadata; 70 boundary checks prove representative import, export, runtime-definition, syntax-helper, reader, metadata, extra-module, and second-host failures. |
+
 ## What this milestone does not claim
 
 The repository now contains the verified core plus the explicit stdout,
 whole-file, and blocking-TCP slices of the approved host boundary, plus pure
 HTTP request parsing, response rendering, routing, and a blocking sequential
-server. It does not yet provide the standalone `#lang`, literal syntax, or a
-command-line runner. Those features remain ordered future phases and must
-preserve both the core purity proof and the boundary classifications.
+server, plus the fresh-installable standalone language and its Nat/String
+literals. It does not yet provide the Phase 20 terse stdout/file/HTTP example
+set, final whole-milestone evidence sweep, synchronized setup guide, or a
+separate command-line runner. Those remain ordered work and must preserve both
+the core purity proof and the boundary classifications.

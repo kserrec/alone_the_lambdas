@@ -13,7 +13,7 @@ variables, unary lambdas, and application.
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
 > green. The approved Phase 13
-> [host-boundary design](docs/design/host-boundary.md) now has five implemented
+> [host-boundary design](docs/design/host-boundary.md) now has six implemented
 > slices: Phase 14 adds exact String-byte conversion, one unary `host`, and
 > pure injected-host `stdout`; Phase 15 adds pure `read-file`/`write-file`
 > wrappers and byte-exact whole-file effects; Phase 16 adds pure blocking TCP
@@ -21,8 +21,10 @@ variables, unary lambdas, and application.
 > connection registry inside that same closed host; Phase 17 adds pure HTTP/1.1
 > request parsing and deterministic response rendering without changing the
 > host; Phase 18 adds pure path routing, one-connection serving, and a blocking
-> sequential HTTP loop over the same TCP wrappers. A separate structural gate
-> enforces the boundary. The standalone `#lang` surface is the next phase. See
+> sequential HTTP loop over the same TCP wrappers; Phase 19 adds the
+> fresh-installable `#lang alone_the_lambdas` reader and facade, canonical
+> public syntax, host-bound effect names, and pure Nat/String literal lowering.
+> A separate structural gate enforces every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -45,10 +47,9 @@ variables, unary lambdas, and application.
   checker.
 - Expected computational failure uses `Result`; contract violations and
   invariant failures use structured `Error` values.
-- Public names are canonical language names such as `lambda`, `def`,
-  `let`, `if`, and `cons`; today `if` is exported under its canonical name
-  and the rest arrive with the standalone surface. Racket collision
-  workarounds never become public language design.
+- The standalone language exports canonical `lambda`, `def`, `let`, `if`, and
+  `cons`; Racket collision workarounds, raw operations, typed implementation
+  names, and ordinary Racket bindings remain private.
 - The completed core contains no `host` boundary. The effects milestone adds
   exactly one explicit bridge without weakening ordinary lambda computation.
 
@@ -66,8 +67,8 @@ precedence over conflicting examples in the base specification.
   phases to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
   approved second-milestone protocol, authority, codecs, and purity
-  classifications; Phases 14 through 18 implement its `stdout`, file, TCP,
-  and pure HTTP-message/server slices.
+  classifications; Phases 14 through 19 implement its `stdout`, file, TCP,
+  pure HTTP-message/server, and standalone-language slices.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -76,7 +77,7 @@ precedence over conflicting examples in the base specification.
 
 - `macros/lazy-with-macros.rkt` provides the minimal Lazy Racket module shell.
 - `macros/macros.rkt` provides arbitrary-arity curried `def` and the internal
-  `lambda-let` sugar that will later be exported publicly as `let`. It also
+  `lambda-let` sugar exported by the standalone facade as `let`. It also
   mechanically expands identifier spellings as UTF-8 bytes into pure String
   terms for Error frame names.
 - `core/pair.rkt` provides lambda-encoded pairs and selectors.
@@ -142,11 +143,22 @@ precedence over conflicting examples in the base specification.
 - `runtime/codec.rkt` performs exact deterministic conversion between lambda
   Lists/Chars/Strings/Nats/Results and private host bytes, integers, and
   temporary collections, with no operating-system effects or mutation.
-- `runtime/host.rkt` alone defines and exports `host`; its Phase 16 dispatcher
+- `runtime/host.rkt` alone defines the privileged `host` and is its direct
+  producer export; the standalone facade re-exports that same binding once.
+  Its Phase 16 dispatcher
   accepts only the approved stdout, whole-file, and six blocking TCP requests,
   owns the private monotonic handle registry, normalizes external failures,
   and returns canonical Result/Error values without exposing ports or host
   collections.
+- `info.rkt` declares the repository as the single
+  `alone_the_lambdas` collection with its runtime and test dependencies.
+- `lang/reader.rkt` retains Racket's Lisp reader syntax and selects the
+  standalone expander without adding a parser or reader-time effect.
+- `lang/expander.rkt` exposes the canonical language surface, mechanically
+  curries multi-operand applications, restricts `lambda` to one argument,
+  lowers only nonnegative Nat and UTF-8 String literals into pure existing
+  encodings, binds the nine public effect wrappers once to the real `host`,
+  and suppresses Racket printing of final lambda values.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -171,15 +183,15 @@ precedence over conflicting examples in the base specification.
   imported from a project module that passes the same scan. The two `macros/`
   files and the Racket installation are its semantic trusted base.
 - `tooling/check-boundaries.rkt` separately pins the two mechanical macro
-  modules, admits only pure effect and HTTP-message/server modules,
-  deterministic codec conversion, the exact sole-host import/export path, and
-  the unchanged closed stdout, whole-file, and five-binding `racket/tcp`
-  capability set. It rejects wrapped
+  modules, the package metadata, the standalone reader and expander, pure
+  effect and HTTP-message/server modules, deterministic codec conversion, the
+  exact sole-host import/export path, and the unchanged closed stdout,
+  whole-file, and five-binding `racket/tcp` capability set. It rejects wrapped
   privileged imports, every second production filesystem/TCP importer,
   authorizes imports before reading their exports, validates every project-root
   and production-path component before discovery, rejects symlinks without
-  traversing their targets, rejects additional macro modules, and rejects any
-  premature `lang/` implementation.
+  traversing their targets, rejects additional macro/language modules, and
+  permits only the facade's exact import and re-export of production `host`.
 
 ## Development
 
@@ -203,7 +215,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,136 assertions across 28 test files,
+green. The repository currently has 4,224 assertions across 29 test files,
 plus the independent expanded scan of all 16 core modules and the production
 boundary-classification gate. GitHub Actions runs the same suite for pushes
 and pull requests.

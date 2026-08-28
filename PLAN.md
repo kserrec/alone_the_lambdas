@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: implementation in progress; Phase 18 complete
+Status: implementation in progress; Phase 19 complete
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,8 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phases 14 through 18 are complete and Phase
-19 is the next unfinished phase.
+2026-08-27. The gate is satisfied; Phases 14 through 19 are complete and Phase
+20 is the next unfinished phase.
 
 The following constraints apply throughout:
 
@@ -411,21 +411,39 @@ obtains a listener through `tcp-listen` closes it after serving.
 
 ## Phase 19 — Standalone `#lang` surface
 
-- [ ] Add the minimal Racket collection, reader, and expander needed for
+Status: complete (2026-08-27)
+
+- [x] Add the minimal Racket collection, reader, and expander needed for
   `#lang alone_the_lambdas` while retaining Lisp syntax and lazy evaluation.
-- [ ] Export canonical `lambda`, `def`, `let`, strict typed `if`, proper typed
+- [x] Export canonical `lambda`, `def`, `let`, strict typed `if`, proper typed
   `cons`, the completed data API, effect wrappers, and the single explicit
   `host`; hide internal raw bindings and Racket collision workarounds.
-- [ ] Mechanically lower only nonnegative Nat literals and UTF-8 String
+- [x] Mechanically lower only nonnegative Nat literals and UTF-8 String
   literals into the existing pure representations, with one Char per encoded
   byte; reject unsupported datum forms during expansion and add no general
   parser.
-- [ ] Add package metadata and fresh-install tests for canonical names,
+- [x] Add package metadata and fresh-install tests for canonical names,
   currying, branch laziness, literals, module isolation, and runnable programs.
 
 Acceptance: the specification's canonical sample shape runs under
 `#lang alone_the_lambdas` with no underscore names or unintended Racket
 bindings, and all literal runtime values are ordinary lambda encodings.
+
+Completion evidence: 4,224 assertions across 29 test files, the unchanged
+expanded purity scan over all 16 `core/` modules, and the Phase 19 boundary
+gate passed on 2026-08-27. `info.rkt`, `lang/reader.rkt`, and
+`lang/expander.rkt` form a fresh-installable single collection. The facade
+exports only the canonical syntax, strict typed data API, host-bound public
+effect wrappers, documented pure HTTP operations, and one explicit `host`;
+multi-operand source calls lower to nested unary applications, while public
+`lambda` itself accepts exactly one argument. The 75 focused language
+assertions install a copy into an isolated Racket user home and prove the
+canonical sample, currying, lazy branch selection, exact UTF-8 output,
+canonical literal representation, unsupported-datum rejection, and absence
+of raw, typed, underscore, and Racket bindings. The boundary suite separately
+pins the reader, package metadata, exact expander imports/exports, fixed
+one-time host injections, source vocabulary, and sole authorized facade
+import/export of `host`.
 
 ## Phase 20 — Runnable applications and milestone acceptance
 

@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; Structural gate for the deliberately nonuniform Phase 18 production tree.
+;; Structural gate for the deliberately nonuniform Phase 19 production tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
 ;; checker adds the approved classes without weakening that proof:
 ;;
@@ -8,7 +8,9 @@
 ;;   macros/              the two exact mechanical expansion modules
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
 ;;   runtime/host.rkt     sole host export and the unchanged effect allowlist
-;;   lang/                empty until its Phase 19 classification is approved
+;;   lang/reader.rkt      exact effect-free S-expression reader
+;;   lang/expander.rkt    exact imports/exports and mechanical expansion only
+;;   info.rkt             exact single-collection package metadata
 
 (require racket/file
          racket/list
@@ -57,6 +59,12 @@
     eval dynamic-require namespace-require make-base-namespace
     ffi-lib get-ffi-obj getenv putenv current-environment-variables
     thread thread/suspend-to-kill future place))
+
+;; These four names are the facade's pure, already-injected lambda wrappers.
+;; Exact language imports still reject racket/tcp and any direct TCP binding.
+(define forbidden-language-capabilities
+  (remove* '(tcp-connect tcp-listen tcp-accept tcp-close)
+           forbidden-codec-capabilities))
 
 ;; Exact source vocabularies make the implicit racket/base import explicit.
 ;; Adding even an otherwise unknown identifier to either trusted runtime file
@@ -135,7 +143,7 @@
   '(... = NIL _ and andmap argument arguments binding bit-expressions body
     byte bytes->list car cdr char=? character-expressions context
     curried-lambdas datum->syntax def define define-for-syntax
-    define-function-name define-syntax digit elements for-syntax
+    define-function-name define-syntax digit elements eq? equals for-syntax
     function-name-expression identifier? if lambda lambda-let map name
     name-byte-expression name-list-expression null? number->string provide
     quasisyntax quote racket/base raw-cons raw-false raw-name-char
@@ -175,6 +183,180 @@
             object-err))
 
 (define expected-host-provide '(provide host))
+
+(define character-public-bindings
+  '(MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
+    A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+    a b c d e f g h i j k l m n o p q r s t u v w x y z
+    DIGIT-0 DIGIT-1 DIGIT-2 DIGIT-3 DIGIT-4
+    DIGIT-5 DIGIT-6 DIGIT-7 DIGIT-8 DIGIT-9
+    SPACE TAB CR LF DOT COMMA COLON SEMICOLON
+    SLASH BACKSLASH HYPHEN UNDERSCORE QUESTION EQUAL AMPERSAND
+    PERCENT HASH LEFT-PAREN RIGHT-PAREN LEFT-BRACKET RIGHT-BRACKET
+    LEFT-BRACE RIGHT-BRACE))
+
+(define nat-public-bindings
+  '(ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
+    SUCC ADD SUB MULT DIV EQ LT LTE GT GTE IS-ZERO))
+
+(define string-public-bindings
+  '(EMPTY-STRING MAKE-STRING STRING-EMPTY? STRING-LENGTH STRING-EQ
+    STRING-APPEND STRING-HEAD STRING-TAIL STRING-PREFIX? STRING-CONTAINS?))
+
+(define language-direct-public-bindings
+  (append
+   '(TRUE FALSE NOT AND OR XOR
+     NIL HEAD TAIL IS-NIL LEN TAKE DROP)
+   nat-public-bindings
+   '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
+   character-public-bindings
+   string-public-bindings
+   '(stdout read-file write-file
+     tcp-connect tcp-listen tcp-accept tcp-read tcp-write tcp-close
+     parse-http-request
+     HTTP-STATUS-OK
+     HTTP-STATUS-BAD-REQUEST
+     HTTP-STATUS-NOT-FOUND
+     HTTP-STATUS-INTERNAL-SERVER-ERROR
+     render-http-response
+     make-http-path-handler
+     make-http-serve-one
+     make-http-server)))
+
+(define expected-language-expander-requires
+  `((require
+     (for-syntax racket/base)
+     (only-in racket/base (void language-discard))
+     (only-in "../macros/macros.rkt" def (lambda-let language-let))
+     (only-in "../core/binary-nat.rkt" raw-make-nat)
+     (only-in "../core/chars.rkt"
+              raw-make-char
+              ,@character-public-bindings)
+     (only-in "../core/list-nat.rkt"
+              (typed-len LEN)
+              (typed-take TAKE)
+              (typed-drop DROP))
+     (only-in "../core/lists.rkt"
+              NIL
+              raw-cons
+              (typed-cons language-cons)
+              (typed-head HEAD)
+              (typed-tail TAIL)
+              (typed-is-nil IS-NIL))
+     (only-in "../core/logic.rkt" raw-false raw-true)
+     (only-in "../core/result.rkt"
+              make-ok make-err is-ok is-err unwrap-ok unwrap-err)
+     (only-in "../core/strings.rkt"
+              raw-make-string
+              ,@string-public-bindings)
+     (only-in "../core/typed-logic.rkt"
+              TRUE FALSE NOT AND OR XOR
+              (typed-if language-if))
+     (only-in "../core/typed-nat.rkt" ,@nat-public-bindings)
+     (only-in "../effects/files.rkt"
+              (make-read-file language-make-read-file)
+              (make-write-file language-make-write-file))
+     (only-in "../effects/http.rkt" parse-http-request)
+     (only-in "../effects/http-response.rkt"
+              HTTP-STATUS-OK
+              HTTP-STATUS-BAD-REQUEST
+              HTTP-STATUS-NOT-FOUND
+              HTTP-STATUS-INTERNAL-SERVER-ERROR
+              render-http-response)
+     (only-in "../effects/http-server.rkt"
+              make-http-path-handler
+              make-http-serve-one
+              make-http-server)
+     (only-in "../effects/stdout.rkt"
+              (make-stdout language-make-stdout))
+     (only-in "../effects/tcp.rkt"
+              (make-tcp-connect language-make-tcp-connect)
+              (make-tcp-listen language-make-tcp-listen)
+              (make-tcp-accept language-make-tcp-accept)
+              (make-tcp-read language-make-tcp-read)
+              (make-tcp-write language-make-tcp-write)
+              (make-tcp-close language-make-tcp-close))
+     (only-in "../runtime/host.rkt" (host language-host)))))
+
+(define expected-language-expander-provide
+  `(provide
+    #%top
+    def
+    (rename-out
+     (language-module-begin #%module-begin)
+     (language-application #%app)
+     (language-datum #%datum)
+     (language-lambda lambda)
+     (language-let let)
+     (language-if if)
+     (language-cons cons)
+     (language-host host))
+    ,@language-direct-public-bindings))
+
+(define expected-language-runtime-definitions
+  '((def stdout = (language-make-stdout language-host))
+    (def read-file = (language-make-read-file language-host))
+    (def write-file = (language-make-write-file language-host))
+    (def tcp-connect = (language-make-tcp-connect language-host))
+    (def tcp-listen = (language-make-tcp-listen language-host))
+    (def tcp-accept = (language-make-tcp-accept language-host))
+    (def tcp-read = (language-make-tcp-read language-host))
+    (def tcp-write = (language-make-tcp-write language-host))
+    (def tcp-close = (language-make-tcp-close language-host))))
+
+(define expected-language-transformers
+  '(language-module-begin
+    language-application
+    language-lambda
+    language-datum))
+
+(define expected-language-for-syntax-definitions
+  '(language-definition-form?
+    language-list-expression
+    language-bit-expressions
+    language-nat-expression
+    language-char-expression
+    language-string-expression))
+
+(define language-expander-vocabulary
+  (remove-duplicates
+   (append
+    language-direct-public-bindings
+    '(#%app #%datum #%module-begin #%top ... = _ argument body byte
+      bytes->list car cdr char=? cond datum def define-for-syntax
+      define-syntax digit elements else exact-nonnegative-integer?
+      cons first for-syntax form function host identifier? if lambda
+      lambda-let language-application language-bit-expressions
+      language-char-expression language-cons language-datum
+      language-definition-form? language-discard language-host
+      language-if language-lambda language-let language-list-expression
+      language-make-read-file language-make-stdout
+      language-make-tcp-accept language-make-tcp-close
+      language-make-tcp-connect language-make-tcp-listen
+      language-make-tcp-read language-make-tcp-write
+      language-make-write-file language-module-begin
+      language-nat-expression language-string-expression let map null?
+      number->string only-in prepared-form provide quasisyntax
+      racket/base raise-syntax-error raw-cons raw-false raw-make-char
+      raw-make-nat raw-make-string raw-true remaining rename-out require
+      second string->bytes/utf-8 string->list string? stx syntax
+      syntax->list syntax-case syntax-e typed-cons typed-drop typed-head
+      typed-if typed-is-nil typed-len typed-tail typed-take unsyntax
+      value void with-syntax
+      make-read-file make-stdout make-tcp-accept make-tcp-close
+      make-tcp-connect make-tcp-listen make-tcp-read make-tcp-write
+      make-write-file))))
+
+(define expected-language-reader-forms
+  '(alone_the_lambdas/lang/expander))
+
+(define expected-package-info-forms
+  '((define collection "alone_the_lambdas")
+    (define deps (quote ("base" "lazy")))
+    (define build-deps (quote ("rackunit-lib" "net-lib")))
+    (define pkg-desc
+      "A pure unary-lambda language with one explicit host boundary")
+    (define version "0.1")))
 
 (define (normalized path)
   (simplify-path (path->complete-path path) #f))
@@ -669,6 +851,133 @@
                                   symbols
                                   'forbidden-macro-capability)))
 
+(define (definition-form-name form keyword)
+  (and (list? form)
+       (>= (length form) 3)
+       (eq? (car form) keyword)
+       (let ([binding (cadr form)])
+         (and (pair? binding)
+              (symbol? (car binding))
+              (car binding)))))
+
+(define (language-expander-form-violations path info)
+  (append-map
+   (lambda (form)
+     (cond
+       [(or (require-form? form)
+            (provide-form? form))
+        '()]
+       [(eq? (and (pair? form) (car form)) 'define-syntax)
+        (if (memq (definition-form-name form 'define-syntax)
+                  expected-language-transformers)
+            '()
+            (list (violation path
+                             'unapproved-language-transformer
+                             form)))]
+       [(eq? (and (pair? form) (car form)) 'define-for-syntax)
+        (if (memq (definition-form-name form 'define-for-syntax)
+                  expected-language-for-syntax-definitions)
+            '()
+            (list (violation path
+                             'unapproved-language-syntax-helper
+                             form)))]
+       [(eq? (and (pair? form) (car form)) 'def)
+        (if (member form expected-language-runtime-definitions equal?)
+            '()
+            (list (violation path
+                             'unapproved-language-runtime-definition
+                             form)))]
+       [else
+        (list (violation path 'disallowed-language-module-form form))]))
+   (module-info-forms info)))
+
+(define (language-expander-violations path info project-root)
+  (define transformer-names
+    (filter-map
+     (lambda (form)
+       (definition-form-name form 'define-syntax))
+     (module-info-forms info)))
+  (define syntax-helper-names
+    (filter-map
+     (lambda (form)
+       (definition-form-name form 'define-for-syntax))
+     (module-info-forms info)))
+  (define runtime-definitions
+    (filter (lambda (form)
+              (and (pair? form)
+                   (eq? (car form) 'def)))
+            (module-info-forms info)))
+  (define symbols
+    (datum-symbols (module-info-forms info)))
+  (append
+   (exact-language-violations path
+                              info
+                              'lazy
+                              'unexpected-language-expander-language)
+   (exact-require-violations path
+                             info
+                             expected-language-expander-requires
+                             'invalid-language-expander-imports)
+   (exact-provide-violations path
+                             info
+                             expected-language-expander-provide
+                             'invalid-language-expander-export)
+   (if (equal? transformer-names expected-language-transformers)
+       '()
+       (list (violation path
+                        'invalid-language-transformer-set
+                        transformer-names)))
+   (if (equal? syntax-helper-names
+               expected-language-for-syntax-definitions)
+       '()
+       (list (violation path
+                        'invalid-language-syntax-helper-set
+                        syntax-helper-names)))
+   (if (equal? runtime-definitions
+               expected-language-runtime-definitions)
+       '()
+       (list (violation path
+                        'invalid-language-runtime-definitions
+                        runtime-definitions)))
+   (language-expander-form-violations path info)
+   (symbol-violations path
+                      symbols
+                      forbidden-language-capabilities
+                      'forbidden-language-capability)
+   (capability-pattern-violations path
+                                  symbols
+                                  'forbidden-language-capability)
+   (strict-vocabulary-violations path
+                                 project-root
+                                 language-expander-vocabulary
+                                 'unapproved-language-identifier)))
+
+(define (language-reader-violations path info)
+  (append
+   (exact-language-violations path
+                              info
+                              'syntax/module-reader
+                              'unexpected-language-reader-language)
+   (if (equal? (module-info-forms info)
+               expected-language-reader-forms)
+       '()
+       (list (violation path
+                        'invalid-language-reader-forms
+                        (module-info-forms info))))))
+
+(define (package-info-violations path info)
+  (append
+   (exact-language-violations path
+                              info
+                              'setup/infotab
+                              'unexpected-package-info-language)
+   (if (equal? (module-info-forms info)
+               expected-package-info-forms)
+       '()
+       (list (violation path
+                        'invalid-package-info-forms
+                        (module-info-forms info))))))
+
 (define (codec-violations path info project-root)
   (define symbols
     (datum-symbols (module-info-forms info)))
@@ -769,6 +1078,12 @@
         (macro-shell-violations source info)]
        [(eq? class 'macro)
         (macro-violations source info)]
+       [(eq? class 'language-expander)
+        (language-expander-violations source info root)]
+       [(eq? class 'language-reader)
+        (language-reader-violations source info)]
+       [(eq? class 'package-info)
+        (package-info-violations source info)]
        [(eq? class 'codec)
         (codec-violations source info root)]
        [(eq? class 'host)
@@ -808,7 +1123,8 @@
          '()))
    files))
 
-(define (unauthorized-host-imports files project-root host)
+(define (unauthorized-host-imports files project-root host
+                                   language-expander)
   (append-map
    (lambda (source)
      (define info (read-module-info source project-root))
@@ -818,7 +1134,8 @@
                      [base (in-list (or (require-spec-bases spec) '()))]
                      #:when
                      (and (string? base)
-                          (equal? (resolve-relative source base) host)))
+                          (equal? (resolve-relative source base) host)
+                          (not (equal? source language-expander))))
            (violation source 'unauthorized-host-import spec))))
    files))
 
@@ -847,7 +1164,8 @@
          '()))
    files))
 
-(define (unauthorized-host-surfaces files project-root host)
+(define (unauthorized-host-surfaces files project-root host
+                                    language-expander)
   (append-map
    (lambda (source)
      (define info (read-module-info source project-root))
@@ -860,7 +1178,8 @@
           (for/list ([form (in-list (module-info-forms info))]
                      #:when
                      (and (provide-form? form)
-                          (member 'host (datum-symbols (cdr form)))))
+                          (member 'host (datum-symbols (cdr form)))
+                          (not (equal? source language-expander))))
             (violation source 'unauthorized-host-export form)))))
    files))
 
@@ -879,24 +1198,32 @@
      (define macros-directory (build-path root "macros"))
      (define runtime-directory (build-path root "runtime"))
      (define language-directory (build-path root "lang"))
+     (define package-info
+       (normalized (build-path root "info.rkt")))
      (define macro-shell
        (normalized (build-path macros-directory "lazy-with-macros.rkt")))
      (define macro-definitions
        (normalized (build-path macros-directory "macros.rkt")))
      (define codec (normalized (build-path runtime-directory "codec.rkt")))
      (define host (normalized (build-path runtime-directory "host.rkt")))
+     (define language-expander
+       (normalized (build-path language-directory "expander.rkt")))
+     (define language-reader
+       (normalized (build-path language-directory "reader.rkt")))
      (define effect-files (racket-files-under effects-directory))
      (define macro-files (racket-files-under macros-directory))
      (define runtime-files (racket-files-under runtime-directory))
      (define language-files (racket-files-under language-directory))
      (define production-files
-       (append-map
-        racket-files-under
-        (list (build-path root "core")
-              effects-directory
-              macros-directory
-              runtime-directory
-              language-directory)))
+       (append
+        (racket-files-under package-info)
+        (append-map
+         racket-files-under
+         (list (build-path root "core")
+               effects-directory
+               macros-directory
+               runtime-directory
+               language-directory))))
      (append
       (unsafe-production-path-violations production-files root)
       (append-map (lambda (path)
@@ -906,6 +1233,13 @@
       (file-boundary-violations macro-definitions 'macro root)
       (file-boundary-violations codec 'codec root)
       (file-boundary-violations host 'host root)
+      (file-boundary-violations language-expander
+                                'language-expander
+                                root)
+      (file-boundary-violations language-reader
+                                'language-reader
+                                root)
+      (file-boundary-violations package-info 'package-info root)
       (strict-vocabulary-violations codec
                                     root
                                     phase16-codec-vocabulary
@@ -926,13 +1260,22 @@
       (for/list ([path (in-list runtime-files)]
                  #:unless (member path (list codec host) equal?))
         (violation path 'unclassified-runtime-module path))
-      (for/list ([path (in-list language-files)])
+      (for/list ([path (in-list language-files)]
+                 #:unless (member path
+                                  (list language-expander language-reader)
+                                  equal?))
         (violation path 'unclassified-language-module path))
       (unclassified-require-specs production-files root)
       (unauthorized-codec-imports production-files root codec host)
-      (unauthorized-host-imports production-files root host)
+      (unauthorized-host-imports production-files
+                                 root
+                                 host
+                                 language-expander)
       (unauthorized-host-capability-imports production-files root host)
-      (unauthorized-host-surfaces production-files root host))]))
+      (unauthorized-host-surfaces production-files
+                                  root
+                                  host
+                                  language-expander))]))
 
 (module+ main
   (define findings
@@ -940,7 +1283,7 @@
   (cond
     [(null? findings)
      (printf
-      "Boundary check passed: pure effects and HTTP server, mechanical macros, isolated codec, sole host.\n")]
+      "Boundary check passed: pure effects, mechanical macros/language, isolated codec, sole host.\n")]
     [else
      (for ([finding (in-list findings)])
        (eprintf "~a: ~a: ~a\n"

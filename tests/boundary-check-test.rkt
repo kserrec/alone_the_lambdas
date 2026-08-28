@@ -31,6 +31,19 @@
     (lambda (output)
       (write datum output))))
 
+(define (read-datum path)
+  (call-with-input-file path
+    (lambda (input)
+      (parameterize ([read-accept-reader #t]
+                     [current-load-relative-directory (path-only path)])
+        (read input)))))
+
+(define (append-module-form datum form)
+  (list 'module
+        (cadr datum)
+        (caddr datum)
+        (append (cadddr datum) (list form))))
+
 (define (kinds findings)
   (map boundary-violation-kind findings))
 
@@ -93,6 +106,12 @@
       (for ([directory
              (in-list '("core" "effects" "macros" "runtime" "lang"))])
         (make-directory (build-path root directory)))
+      (copy-file (build-path project-root "lang" "expander.rkt")
+                 (build-path root "lang" "expander.rkt"))
+      (copy-file (build-path project-root "lang" "reader.rkt")
+                 (build-path root "lang" "reader.rkt"))
+      (copy-file (build-path project-root "info.rkt")
+                 (build-path root "info.rkt"))
       (write-datum
        (build-path root "macros" "lazy-with-macros.rkt")
        clean-macro-shell-datum)
@@ -651,6 +670,122 @@
    (delete-file macro-target)
    (write-datum macro-file clean-macro-datum)
 
+   ;; Phase 19 admits exactly one reader, one facade/expander, and the pinned
+   ;; package metadata. The facade alone may import and re-export production
+   ;; host; its other imports, public surface, runtime definitions, and source
+   ;; vocabulary remain closed.
+   (define language-expander
+     (build-path root "lang" "expander.rkt"))
+   (define language-reader
+     (build-path root "lang" "reader.rkt"))
+   (define package-info
+     (build-path root "info.rkt"))
+   (define clean-language-expander-datum
+     (read-datum language-expander))
+   (define clean-language-reader-datum
+     (read-datum language-reader))
+   (define clean-package-info-datum
+     (read-datum package-info))
+
+   (check-equal?
+    (file-boundary-violations language-expander
+                              'language-expander
+                              root)
+    '())
+   (check-equal?
+    (file-boundary-violations language-reader
+                              'language-reader
+                              root)
+    '())
+   (check-equal?
+    (file-boundary-violations package-info 'package-info root)
+    '())
+
+   (write-datum
+    language-expander
+    (append-module-form
+     clean-language-expander-datum
+     '(require (only-in racket/file file->bytes))))
+   (define expanded-capability-kinds
+     (kinds
+      (file-boundary-violations language-expander
+                                'language-expander
+                                root)))
+   (check-not-false
+    (member 'invalid-language-expander-imports
+            expanded-capability-kinds))
+   (check-not-false
+    (member 'forbidden-language-capability
+            expanded-capability-kinds))
+   (write-datum language-expander clean-language-expander-datum)
+
+   (write-datum
+    language-expander
+    (append-module-form clean-language-expander-datum
+                        '(provide raw-cons)))
+   (check-not-false
+    (member 'invalid-language-expander-export
+            (kinds
+             (file-boundary-violations language-expander
+                                       'language-expander
+                                       root))))
+   (write-datum language-expander clean-language-expander-datum)
+
+   (write-datum
+    language-expander
+    (append-module-form
+     clean-language-expander-datum
+     '(def escape =
+        (language-make-stdout language-host))))
+   (check-not-false
+    (member 'invalid-language-runtime-definitions
+            (kinds
+             (file-boundary-violations language-expander
+                                       'language-expander
+                                       root))))
+   (write-datum language-expander clean-language-expander-datum)
+
+   (write-datum
+    language-expander
+    (append-module-form
+     clean-language-expander-datum
+     '(define-for-syntax (clock)
+        (current-seconds))))
+   (define expanded-vocabulary-kinds
+     (kinds
+      (file-boundary-violations language-expander
+                                'language-expander
+                                root)))
+   (check-not-false
+    (member 'unapproved-language-syntax-helper
+            expanded-vocabulary-kinds))
+   (check-not-false
+    (member 'unapproved-language-identifier
+            expanded-vocabulary-kinds))
+   (write-datum language-expander clean-language-expander-datum)
+
+   (write-datum
+    language-reader
+    (append-module-form clean-language-reader-datum
+                        'racket/base))
+   (check-equal?
+    (kinds
+     (file-boundary-violations language-reader
+                               'language-reader
+                               root))
+    '(invalid-language-reader-forms))
+   (write-datum language-reader clean-language-reader-datum)
+
+   (write-datum
+    package-info
+    (append-module-form clean-package-info-datum
+                        '(define leak "host")))
+   (check-equal?
+    (kinds
+     (file-boundary-violations package-info 'package-info root))
+    '(invalid-package-info-forms))
+   (write-datum package-info clean-package-info-datum)
+
    (define extra-macro (build-path root "macros" "extra.rkt"))
    (write-datum
     extra-macro
@@ -663,8 +798,12 @@
    (write-datum
     language-file
     '(module main racket/base
-       (#%module-begin)))
+       (#%module-begin
+        (require (only-in "../runtime/host.rkt" host))
+        (provide host))))
    (check-project-kind 'unclassified-language-module)
+   (check-project-kind 'unauthorized-host-import)
+   (check-project-kind 'unauthorized-host-export)
    (delete-file language-file)
 
    (check-equal? (project-boundary-violations root) '())))

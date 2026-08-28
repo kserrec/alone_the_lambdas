@@ -1,6 +1,6 @@
 # Host boundary design
 
-Status: approved 2026-08-27; Phase 18 minimal HTTP server implemented
+Status: approved 2026-08-27; Phase 19 standalone language implemented
 
 Date: 2026-08-27
 
@@ -12,10 +12,10 @@ closed implementation described here and no broader relaxation of
 
 Kyle approved using the single `host` boundary in Alone the Lambdas and then
 approved this concrete request, codec, authority, and runtime contract on
-2026-08-27. Phases 14 through 18 subsequently implemented the approved codec
+2026-08-27. Phases 14 through 19 subsequently implemented the approved codec
 split, sole host bridge, `stdout`, whole-file operations, and complete blocking
 TCP lifecycle, followed by pure HTTP parsing, rendering, routing, and
-sequential serving outside the host.
+sequential serving outside the host, then the standalone reader and facade.
 
 ## Decision summary
 
@@ -357,7 +357,8 @@ effects/http-response.rkt  pure HTTP response rendering
 effects/http-server.rkt  pure routing and sequential TCP/HTTP composition
 runtime/codec.rkt     trusted exact conversion; no operating-system effects
 runtime/host.rkt      sole language host binding, dispatcher, effects, registry
-lang/                 future standalone reader, expander, and facade
+lang/                 standalone reader and canonical facade/expander
+info.rkt              single-collection package metadata
 ```
 
 Dependencies are one-way:
@@ -384,23 +385,28 @@ Phase 15 extended the host's exact capability vocabulary for whole-file read
 and replacement, Phase 16 admitted only the five `racket/tcp` bindings needed
 for the approved lifecycle while adding a project-wide sole-importer check,
 Phase 17 added pure HTTP messages under the unchanged `effects/` class, and
-Phase 18 added only pure TCP/HTTP composition under that same class. The other
-classifications remain unchanged:
+Phase 18 added only pure TCP/HTTP composition under that same class. Phase 19
+then added the exact standalone reader, expander, and package classes without
+granting any new operating-system capability. The other classifications
+remain unchanged:
 
 | Class | Allowed boundary | Required check |
 | --- | --- | --- |
 | `core/` | none | Existing absolute unary-lambda/application scan; `host` remains forbidden |
 | `effects/` | invocation of its injected unary host argument only | Same pure-form scan plus no Racket effect imports or definitions |
 | `runtime/codec.rkt` | deterministic canonical conversion between object-language values and private host bytes/integers/collections | Exact-path conversion scan, narrow import allowlist, no I/O or network imports, no mutation or registry, no reader imports, and no language-visible export |
-| `runtime/host.rkt` | only the approved byte/file/TCP operations, UTF-8 interpretation, exception normalization, and private registry state | Exact-path effect scan, import allowlist, sole exported `host`, sole production codec importer, and forbidden eval/process/FFI/environment capabilities |
-| `lang/` | mechanical expansion and import/export wiring | Absent and rejected through Phase 18; Phase 19 must add an exact no-OS class with one import of production `host` and pure literal expansion |
+| `runtime/host.rkt` | only the approved byte/file/TCP operations, UTF-8 interpretation, exception normalization, and private registry state | Exact-path effect scan, import allowlist, sole `host` definition/direct producer export, sole production codec importer, and forbidden eval/process/FFI/environment capabilities |
+| `lang/reader.rkt` | Lisp reader delegation only | Exact path, `syntax/module-reader` language, and sole expander target; no other form |
+| `lang/expander.rkt` | mechanical expansion, canonical import/export wiring, and one-time effect-wrapper injection | Exact imports and exports, fixed transformer/helper/runtime definitions, closed source vocabulary, no OS/process/environment/dynamic-loading/FFI/mutation capability, and the sole authorized import/re-export of production `host` |
+| `info.rkt` | single-collection package metadata | Exact collection name, runtime/build dependencies, description, and version |
 | `macros/` | mechanical syntax translation | Exactly the two approved paths, pinned languages/imports/exports and source vocabulary, and no OS/process/environment/dynamic-loading/FFI/mutation capabilities |
 | `readers/` | one-way human observation | Must not enter core/effect computation |
 | `tests/` and `tooling/` | host facilities needed to verify the claim | Never imported by production computation |
 
 Repository checks must prove:
 
-- exactly one production module defines and exports `host`;
+- exactly one production module defines and directly exports `host`; the
+  exact facade alone may import and re-export that same binding;
 - no production module except `runtime/host.rkt` imports the codec or Racket
   filesystem/TCP facilities;
 - the codec imports no effects, readers, filesystem, TCP, process, eval,
@@ -411,7 +417,8 @@ Repository checks must prove:
   import, export, and vocabulary constraints; imports are authorized before
   export discovery; the complete project-root anchor and production paths are
   validated before discovery; rejected symlinks are never traversed; no
-  additional macro module exists; and `lang/` remains empty until Phase 19;
+  additional macro or language module exists; and the exact reader, expander,
+  package metadata, and facade host path remain pinned;
 - every pure production lambda is unary after mechanical expansion;
 - every wrapper's fake-host trace contains only its canonical request;
 - every implemented codec direction has exact round-trip, canonicality, and
@@ -525,5 +532,11 @@ every accepted connection on completed paths, and the blocking server repeats
 that operation sequentially over a caller-owned listener. Deterministic fakes
 prove exact TCP-only traces, while a test-side external HTTP client proves the
 real ephemeral-loopback response. Phase 18 likewise added no host operation,
-authority, runtime import, production thread, or HTTP library. The broader
-approval record above still controls the unimplemented standalone phases.
+authority, runtime import, production thread, or HTTP library. Phase 19 added
+the single-collection reader and facade, canonical names, nested-unary source
+application lowering, exact Nat and UTF-8 String literals, and the one-time
+binding of all nine public effect wrappers to the real host. Its fresh-install
+suite proves canonical values and module isolation, while the structural gate
+proves the facade is the only new production importer/exporter of `host` and
+has no direct operating-system capability. The broader approval record above
+still controls the remaining runnable-application and final-acceptance phase.

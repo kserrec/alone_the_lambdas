@@ -39,6 +39,10 @@ coverage without extending the host. Phase 18 composes those message functions
 with the injected-host TCP wrappers into one-connection serving and a blocking
 sequential loop, with routing and status/body selection performed by an
 ordinary unary lambda handler.
+Phase 19 adds the single-collection `#lang alone_the_lambdas` reader and
+facade, canonical public syntax, one-time real-host injection for the nine
+effect wrappers, mechanical currying of multi-operand source applications,
+and canonical Nat/String literal expansion.
 
 ## Computational boundary
 
@@ -143,8 +147,9 @@ ephemeral bound-port discovery and explicit lifetime management stay visible.
 None imports `runtime/`. The trusted `runtime/codec.rkt` converts exact
 List/Char/String/Nat shapes to private immutable bytes and integers and
 constructs canonical response values without effects or mutation.
-`runtime/host.rkt` alone imports that codec and alone defines and exports
-`host`; its Phase 16 dispatcher writes and flushes raw bytes to the current
+`runtime/host.rkt` alone imports that codec and alone defines the privileged
+`host`; it is the direct producer export, and the standalone facade re-exports
+that same binding once. Its Phase 16 dispatcher writes and flushes raw bytes to the current
 stdout port, interprets path and network-name bytes as UTF-8, performs complete
 file reads and truncating replacement writes, and owns blocking TCP resources
 behind monotonically increasing Nat handles. Expected external failures become
@@ -164,12 +169,26 @@ modules depend on these name constants, while Errors remain below String
 algorithms.
 
 `def` mechanically builds any requested arity as nested unary lambdas.
-`lambda-let` expands one binding into one unary-lambda application; the future
-standalone language will export that binding as canonical `let`. `raw-if` is an
+`lambda-let` expands one binding into one unary-lambda application; the
+standalone facade exports that binding as canonical `let`. `raw-if` is an
 ordinary curried selector function, not a host conditional. The reader forces
 and formats raw Booleans only from outside production computation. The strict
 conditional remains internally named `typed-if`; `core/typed-logic.rkt` also
 exports that binding under canonical `if` without changing internal raw names.
+
+`lang/reader.rkt` delegates ordinary Lisp reading to
+`syntax/module-reader` and selects `lang/expander.rkt`; there is no separate
+parser. The expander exposes only canonical language syntax, strict typed data
+operations, the pure HTTP API, the nine host-bound effect names, and the one
+explicit `host`. Its public `#%app` mechanically rewrites every multi-operand
+source call into nested unary applications, while public `lambda` accepts
+exactly one formal. Its `#%datum` consumes only exact nonnegative integers and
+source Strings at expansion time, generating canonical binary Nat or
+List-of-Char String construction with one Char per UTF-8 byte. No host number
+or host String becomes an object-language value. A custom module wrapper
+forces top-level effects but discards their lambda-encoded Results so Racket
+does not print host procedure representations. `info.rkt` supplies the
+single-collection package metadata used by fresh installs.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -455,6 +474,9 @@ effects/
 runtime/
   codec.rkt
   host.rkt
+lang/
+  reader.rkt
+  expander.rkt
 readers/
   raw-boolean.rkt
   bool.rkt
@@ -468,14 +490,15 @@ tests/
 tooling/
   check-purity.rkt
   check-boundaries.rkt
+info.rkt
 run-all-tests.sh
 ```
 
-Sixteen zero-exception production modules remain under `core/`; Phase 18 has
-seven pure effect modules, two separately pinned mechanical macro modules, and
-two separately classified runtime boundary modules. `lang/` remains absent
-until Phase 19 supplies and tests its classification. New abstraction layers
-require a concrete need.
+Sixteen zero-exception production modules remain under `core/`; Phase 19 has
+seven pure effect modules, two separately pinned mechanical macro modules, two
+separately classified runtime boundary modules, the exact reader/expander
+pair, and pinned package metadata. New abstraction layers require a concrete
+need.
 
 ## Verification boundary
 
@@ -547,7 +570,10 @@ The purity gate therefore trusts macro semantics. The separate boundary gate
 pins both macro paths, their languages, imports, exports, and source
 vocabulary; rejects operating-system, process, environment, dynamic-loading,
 FFI, and mutation capabilities there; rejects additional macro modules; and
-admits no `lang/` module before Phase 19. A contributor who can edit both a
+admits only the exact Phase 19 reader, expander, and package metadata. The
+expander's imports, exports, runtime wrapper definitions, transformer/helper
+set, and source vocabulary are closed; only it may import and re-export the
+production `host`. A contributor who can edit both a
 trusted file and its checker remains outside this accidental-impurity model.
 Focused tests pin each boundary. The
 complete evidence map is
@@ -595,13 +621,23 @@ fragmentation, failures, cleanup, and two serial connections. A test-side
 external HTTP client reaches the real loopback listener and receives the
 lambda handler's selected response; production imports no HTTP client or
 threading facility.
+The standalone-language suite copies and installs the package under an
+isolated Racket user home, then runs the specification's canonical shape,
+curried definitions and applications, unary `lambda`, pure `let`, divergent
+unselected branches, Nat/String literals, and exact UTF-8 stdout. Test-only
+namespace observation sends literal values through the codec to prove
+canonical representations. Unsupported Racket datum families, raw and typed
+implementation names, underscore workarounds, and ordinary Racket forms are
+all rejected during expansion.
 
 ## Implemented and planned boundary
 
-The completed core still contains no `host` form. Phases 13 through 18 in
+The completed core still contains no `host` form. Phases 13 through 19 in
 [PLAN.md](PLAN.md) approved and implemented exactly one explicit boundary plus
 ordinary lambda wrappers for stdout, whole-file access, blocking TCP, and a
-pure HTTP message and sequential-server layer. The approved
+pure HTTP message and sequential-server layer, followed by the standalone
+language surface. The approved
 protocol and its full process-level filesystem/network authority are recorded
-in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 19 is the
-next unfinished phase and adds the standalone language surface.
+in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 20 is the
+next unfinished phase and adds terse applications plus final milestone
+acceptance and documentation synchronization.
