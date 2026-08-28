@@ -668,6 +668,13 @@ try {
     }
     $artifactFiles = @($artifactEntries | Where-Object { -not $_.IsDirectory } | ForEach-Object { $_.FullPath })
     Assert-NoBuildRunnerPaths $artifactFiles
+    $unpackedBytes = [int64] 0
+    foreach ($artifactFile in $artifactFiles) {
+        $unpackedBytes += ([IO.FileInfo] $artifactFile).Length
+    }
+    if ($unpackedBytes -le 0) {
+        Fail 'unpacked regular-file byte count is empty'
+    }
 
     $workRoot = [IO.Path]::Combine($ScratchRoot, 'acceptance work with spaces')
     [IO.Directory]::CreateDirectory($workRoot) | Out-Null
@@ -747,7 +754,7 @@ try {
     [Console]::Out.WriteLine('consumer_checkout=absent')
     [Console]::Out.WriteLine("archive_sha256=$expectedDigest")
     [Console]::Out.WriteLine("compressed_bytes=$(([IO.FileInfo] $archivePath).Length)")
-    [Console]::Out.WriteLine("unpacked_regular_file_bytes=$(@($artifactFiles | ForEach-Object { ([IO.FileInfo] $_).Length } | Measure-Object -Sum).Sum)")
+    [Console]::Out.WriteLine("unpacked_regular_file_bytes=$unpackedBytes")
     [Console]::Out.WriteLine("artifact_files=$($artifactFiles.Count)")
     [Console]::Out.WriteLine("pe_files=$($peFiles.Count)")
     [Console]::Out.WriteLine("system_dlls=$($actualSystem -join ',')")

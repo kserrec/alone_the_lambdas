@@ -234,6 +234,11 @@
   #rx"'github-checkout-segment' = '\\\\a\\\\'"
   windows-consumer-source))
 (check-false (regexp-match? #rx"isolated-registry-segment" windows-consumer-source))
+(check-true (regexp-match? #rx"unpackedBytes = [[]int64[]] 0" windows-consumer-source))
+(check-true
+ (regexp-match?
+  #rx"unpacked_regular_file_bytes=[$]unpackedBytes"
+  windows-consumer-source))
 (check-true (regexp-match? #rx"exit 0" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*64" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*65" windows-consumer-source))
