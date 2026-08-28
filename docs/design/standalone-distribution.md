@@ -1,6 +1,6 @@
 # Standalone distribution design
 
-Status: approved 2026-08-27; feasibility proven; Phases 22 and 23 implemented
+Status: approved 2026-08-27; feasibility proven; Phases 22 through 24 implemented
 
 Date: 2026-08-27
 
@@ -638,6 +638,20 @@ manifest on 2026-08-28 by replying:
 Approve the Phase 24 external checksum manifest correction.
 ```
 
+Kyle explicitly approved the temporary Phase 25 GitHub Actions transfer on
+2026-08-28 by replying:
+
+```text
+Approve temporary public GitHub Actions artifact transfer and immediate deletion for Phase 25.
+```
+
+That approval permits only the two unpublished macOS development archives and
+their consumer harnesses to exist as workflow artifacts long enough for the
+separate native consumer jobs to finish. The workflow must delete both
+artifacts immediately afterward and set one-day retention only as a cleanup-
+failure fallback.
+
 This approval does not authorize a public release, license selection, tag,
 upload, signing operation, or publication claim. Those later gates remain in
-force exactly as specified above.
+force exactly as specified above; the one narrow CI-transfer upload is the
+only added authority.
