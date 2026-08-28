@@ -534,6 +534,7 @@
   `((define collection "alone_the_lambdas")
     (define deps (quote ("base" "lazy")))
     (define build-deps (quote ("rackunit-lib" "net-lib")))
+    (define license (quote Apache-2.0))
     (define pkg-desc
       "A pure unary-lambda language with one explicit host boundary")
     (define version ,package-version)))

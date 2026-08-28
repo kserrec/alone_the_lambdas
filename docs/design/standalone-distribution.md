@@ -836,3 +836,18 @@ This approval does not authorize a public release, license selection, tag,
 upload, signing operation, or publication claim. Those later gates remain in
 force exactly as specified above; the one narrow CI-transfer upload is the
 only added authority.
+
+Kyle explicitly approved Apache License 2.0 for Alone the Lambdas and
+confirmed Kyle Serrecchia as the 2026 copyright owner on 2026-08-28 by
+replying:
+
+```text
+Approve Apache License 2.0 for Alone the Lambdas, with Kyle Serrecchia as the 2026 copyright owner. This authorizes adding and pushing the license for Phase 27, but does not authorize any binary release, Git tag, GitHub Release, artifact transfer, signing operation, or publication of release-candidate files.
+```
+
+That approval authorizes the root `LICENSE`, the `Apache-2.0` Racket package
+metadata, the copyright and approval records, and pushing those source changes
+to the existing repository. It does not approve the final bundled-runtime
+notices or authorize any release-candidate build, workflow artifact, tag,
+GitHub Release, signing operation, or binary publication. Those Phase 27 and
+Phase 28 gates remain in force.

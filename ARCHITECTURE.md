@@ -211,7 +211,8 @@ List-of-Char String construction with one Char per UTF-8 byte. No host number
 or host String becomes an object-language value. A custom module wrapper
 forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
-single-collection package metadata used by fresh installs. Root `VERSION` is
+single-collection package metadata used by fresh installs and declares the
+repository's approved `Apache-2.0` SPDX license identifier. Root `VERSION` is
 the sole product-version source; the current `0.2.0-dev` state projects
 mechanically to Racket package version `0.1.900`.
 

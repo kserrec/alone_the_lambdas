@@ -208,8 +208,11 @@ precedence over conflicting examples in the base specification.
   and relocation behavior. The workflow then deletes both temporary transfer
   artifacts immediately.
 - `distribution/` contains only the internal getting-started and provisional
-  notice templates. Until Phase 27 approves a repository license, generated
-  archives carry `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE`.
+  notice templates. The repository is licensed under Apache License 2.0, but
+  generated development archives continue to carry
+  `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE` until Phase 27
+  completes and receives approval for the exact bundled-runtime notices and
+  release-candidate staging.
 - `examples/hello.atl`, `examples/stdout.atl`,
   `examples/file-round-trip.atl`, and `examples/http-server.atl` are the exact
   runnable language programs. The HTTP program uses an ephemeral loopback
@@ -353,4 +356,9 @@ phase.
 
 ## License
 
-No license has been selected yet.
+Copyright 2026 Kyle Serrecchia.
+
+Alone the Lambdas is licensed under the
+[Apache License 2.0](LICENSE). Bundled Racket runtime components retain their
+separate licenses. Phase 27 has not yet approved their final target-specific
+notices or any release-candidate artifact.

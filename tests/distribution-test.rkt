@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rackunit
+         file/sha1
          racket/file
          racket/list
          racket/path
@@ -26,6 +27,8 @@
   (build-path project-root ".github" "workflows" "tests.yml"))
 (define distribution-directory
   (build-path project-root "distribution"))
+(define repository-license-file
+  (build-path project-root "LICENSE"))
 (define bash-executable
   (find-executable-path "bash"))
 
@@ -282,3 +285,11 @@
 (check-false
  (or (file-exists? (build-path distribution-directory "LICENSE"))
      (link-exists? (build-path distribution-directory "LICENSE"))))
+
+(check-true (file-exists? repository-license-file))
+(check-false (link-exists? repository-license-file))
+(check-equal?
+ (call-with-input-file repository-license-file
+   (lambda (input)
+     (bytes->hex-string (sha256-bytes input))))
+ "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30")

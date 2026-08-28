@@ -835,11 +835,13 @@ assertions.
 
 ## Phase 27 — Downloadable release candidate and novice documentation
 
-Status: planned
+Status: in progress (repository license approved and recorded 2026-08-28)
 
-- [ ] Select and record a repository license only after Kyle explicitly
-  approves the legal terms; include that license and an exact notice for the
-  bundled Racket runtime in every release-candidate artifact.
+- [x] Select and record Apache License 2.0 after Kyle explicitly approved its
+  legal terms and confirmed Kyle Serrecchia as the 2026 copyright owner.
+- [ ] Complete and obtain approval for the exact bundled Racket runtime
+  notices, then include those notices and the repository license in every
+  release-candidate artifact.
 - [ ] Separate contributor setup from end-user setup. The primary getting-
   started path must begin with downloading the correct platform archive,
   extracting it, and running `atl run hello.atl`; it must not instruct an end

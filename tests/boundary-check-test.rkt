@@ -1037,6 +1037,15 @@
     '(invalid-package-info-forms))
    (write-datum package-info clean-package-info-datum)
 
+   (write-datum
+    package-info
+    (replace-datum 'Apache-2.0 'MIT clean-package-info-datum))
+   (check-equal?
+    (kinds
+     (file-boundary-violations package-info 'package-info root))
+    '(invalid-package-info-forms))
+   (write-datum package-info clean-package-info-datum)
+
    ;; VERSION is the sole product-version source. Every approved state has
    ;; one mechanically checked Racket package projection.
    (define product-version-file
