@@ -85,12 +85,15 @@ Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 consumer passed
 with no Racket command or checkout, including cross-drive relocation, and the
 workflow immediately deleted its temporary transfer artifact.
 
-The Phase 27 AttaLambda rename was locally verified on 2026-08-28 with
-`./run-all-tests.sh`: 4,617 passing assertions across all 32 test files, the
-unchanged clean 16-module expanded core scan, and the complete 80-source
-classification. The renamed macOS and Windows artifacts remain unverified
-pending the now-authorized cross-job workflow run and its required immediate
-artifact deletion.
+Phase 27 was verified locally and remotely on 2026-08-28. The complete suite
+passed 4,617 assertions across all 32 test files, the unchanged clean
+16-module expanded core scan, and the complete 80-source classification.
+Validation commit `a048550e619499e0fbb3f944ba959ef84c4cc586` passed all ten
+jobs in [GitHub Actions run
+33204885605](https://github.com/kserrec/attalambda/actions/runs/33204885605),
+including all four renamed native archives and their no-Racket consumers. The
+three approved cross-job transfer artifacts were deleted immediately, and the
+completed run's artifact API returned `total_count: 0`.
 
 ## Base specification criteria
 
@@ -260,7 +263,8 @@ artifacts had the new names.
 | Every current public identity has one spelling. | [`info.rkt`](../info.rkt) declares collection `attalambda`; [`reader.rkt`](../lang/reader.rkt) selects `attalambda/lang/expander`; the four applications use `.attl` and exact `#lang attalambda`; [`attalambda.rkt`](../runner/attalambda.rkt) owns the direct `attalambda FILE.attl` grammar and AttaLambda diagnostics. The build scripts, consumer harnesses, workflow artifact names, specifications, architecture, and current guides use the same role-specific spellings. |
 | Retired public spellings are not compatibility aliases. | The 181-check [`runner-test.rkt`](../tests/runner-test.rkt) proves `run FILE.attl` is command misuse, bare `run` is treated as a supplied filename, `.atl` is rejected, and `#lang alone_the_lambdas` is rejected before module loading. It also distinguishes unknown options from an explicit `./-example.attl` filename. The 78-check [`language-test.rkt`](../tests/language-test.rkt) installs only package `attalambda` under a fresh isolated Racket user home and separately proves the old collection declaration cannot resolve. Exact application and packaged-binary inventories exclude old filenames. |
 | The renamed collection is independent of the private checkout directory name. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) supplies an in-memory Racket collection link from `attalambda` to the already validated project root while reading applications. It neither changes the user's package registry nor relies on the enclosing directory spelling. Its 113 adversarial checks and the direct project scan both pass. |
-| Current cross-platform packaging contracts agree before native execution. | The 144-check [`distribution-test.rkt`](../tests/distribution-test.rkt) pins `attalambda` archive roots and executables, `.attl` examples, direct command syntax, reader embedding, Linux/macOS/Windows consumer expectations, workflow artifact names, and immediate-cleanup selectors. Shell syntax checks pass. Native renamed artifacts and their measurements are deliberately not claimed until the approval-gated workflow runs. |
+| Renamed cross-platform packaging contracts agree and execute independently. | The 144-check [`distribution-test.rkt`](../tests/distribution-test.rkt) pins `attalambda` archive roots and executables, `.attl` examples, direct command syntax, reader embedding, Linux/macOS/Windows consumer expectations, workflow artifact names, and immediate-cleanup selectors. Validation commit `a048550e619499e0fbb3f944ba959ef84c4cc586` passed the full source suite and every native job in [run 33204885605](https://github.com/kserrec/attalambda/actions/runs/33204885605). The digest-pinned Ubuntu 24.04, macOS 15.7.7 arm64, macOS 15.7.9 x86-64, and Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 consumers each reported no Racket command or checkout and passed relocation. Exact sizes, hashes, dependencies, and timings are recorded in the [Phase 27 distribution record](design/standalone-distribution.md#phase-27-implementation-record). |
+| The approved Phase 27 transfer left no artifact behind. | Linux remained inside one job. Only the two renamed unpublished macOS archives and one renamed unpublished Windows archive, their external checksums, and their self-contained harnesses crossed jobs. Both macOS consumers, the Windows consumer, and both `always()` cleanup jobs passed; the completed run's artifact API returned `total_count: 0`. One-day retention was only a cleanup-failure fallback. |
 | The rename does not alter object-language computation or authority. | No `core/`, `effects/`, `runtime/`, macro, or expander executable changed; the reader's only executable edit is its collection-target spelling. The same 16 core modules pass the expanded purity proof, the boundary inventory retains the sole `host` and one non-exporting loader, and all three real-effect applications pass from a fresh copied package. The intended executable changes are confined to public launch names, source filenames/declarations, reader resolution, and example-visible branding. Product version remains `0.2.0-dev`; no release candidate, tag, signature, release, or public download exists. |
 
 ## Explicit one-bridge evidence map
@@ -279,11 +283,11 @@ artifacts had the new names.
 
 The completed phases deliberately do not claim sandboxing or per-program
 permission prompts: a real-host program inherits the launching process's
-relevant authority. Phases 24 through 26 now prove unpublished self-contained
+relevant authority. Phases 24 through 27 now prove unpublished self-contained
 Linux x86-64, macOS x86_64, macOS arm64, and Windows x86-64 development
 archives, but not a public download, a compatibility floor below the exact
-demonstrated consumers, Windows client-edition support, an approved repository
-license, a signed artifact, installer behavior, or release authority. The
+demonstrated consumers, Windows client-edition support, approved final bundled-
+runtime notices, a signed artifact, installer behavior, or release authority. The
 language has no
 program-argument API, general parser, optimizer, compiler, records, JSON,
 environment or process access, directory operations, atomic file replacement,

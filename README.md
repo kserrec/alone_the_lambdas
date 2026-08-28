@@ -39,9 +39,11 @@ variables, unary lambdas, and application.
 > separate same-architecture no-Racket consumer job before immediately
 > deleting the temporary transfer artifacts; Phase 26 did the same for native
 > Windows x86-64. Those observations retain their literal pre-rename artifact
-> names as history. Phase 27 approved Apache License 2.0 and adopts
+> names as history. Phase 27 approved Apache License 2.0 and completed the
 > `AttaLambda`, `attalambda`, `.attl`, `#lang attalambda`, and direct
-> `attalambda FILE.attl` execution across the project. All artifacts remain
+> `attalambda FILE.attl` rename across the project, then revalidated all four
+> renamed native archives in independent no-Racket consumers and deleted the
+> three temporary cross-job artifacts immediately. All artifacts remain
 > unpublished; the final bundled-runtime inventory, release candidate, and
 > explicit release approval still belong to later phases. Separate structural gates enforce
 > every boundary class. See
@@ -285,12 +287,14 @@ surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
-Phases 24 through 26 proved native Linux x86-64, macOS x86_64, macOS arm64,
-and Windows x86-64 development artifacts under the former public names. Those
-disposable artifacts were neither checked in nor published. After the fresh
+Phases 24 through 26 first proved native Linux x86-64, macOS x86_64, macOS
+arm64, and Windows x86-64 development artifacts under the former public names.
+Phase 27 rebuilt and independently consumed all four under the AttaLambda
+names. Those disposable artifacts were neither checked in nor published; the
+three temporary cross-job artifacts were deleted immediately. After the fresh
 setup above, invoke the renamed source-checkout development entry point through
-Racket. Phase 28 still owns the renamed release candidate and novice download
-guide; Phase 29 owns any authorized public release.
+Racket. Phase 28 still owns the release candidate and novice download guide;
+Phase 29 owns any authorized public release.
 
 The minimal hello application emits one line:
 

@@ -1,8 +1,7 @@
 # Standalone distribution design
 
-Status: original contract approved 2026-08-27; Phases 22 through 26
-implemented; Phase 27 naming locally implemented and verified 2026-08-28,
-with remote rename and CI pending
+Status: original contract approved 2026-08-27; Phases 22 through 27
+implemented; Phase 27 rename and native CI verification completed 2026-08-28
 
 Date: 2026-08-27
 
@@ -820,9 +819,37 @@ complete zero-finding 80-source boundary inventory. Focused runner,
 fresh-language, boundary, distribution-contract, and real-application suites
 passed 181, 78, 113, 144, and 22 assertions respectively. The public GitHub
 repository has now been renamed to `kserrec/attalambda`, and the verified local
-`origin` points to that destination. The tested commit has not yet been pushed,
-and the renamed native artifacts remain unverified until the now-authorized CI
-run completes and deletes its temporary transfer artifacts.
+`origin` points to that destination. Validation commit
+`a048550e619499e0fbb3f944ba959ef84c4cc586` repeated the complete suite and
+passed every native build, clean-consumer, and cleanup job in [GitHub Actions
+run 33204885605](https://github.com/kserrec/attalambda/actions/runs/33204885605).
+
+That run produced and consumed these exact disposable renamed archives:
+
+| Target | Exact consumer | Compressed bytes | Unpacked regular-file bytes | SHA-256 | Startup before / after relocation |
+| --- | --- | ---: | ---: | --- | ---: |
+| `linux-x86_64` | digest-pinned Ubuntu 24.04 container | `13,679,896` | `59,297,302` | `3708c56c8bcdf91d158b2d2c1e674a37d2b7bb61b4908805ad1c4a247e7c2ab7` | 176 ms / 172 ms |
+| `macos-arm64` | macOS 15.7.7 arm64 | `13,697,971` | `62,117,764` | `1baa39170ba33233cbb1ff638bd713d2785957c6dcca3542523ed3c0262a1b4a` | 229 ms / 176 ms |
+| `macos-x86_64` | macOS 15.7.9 x86-64 | `13,669,228` | `59,412,256` | `e779b2c5b6a069fa56c95f92daaf52b0c2517ba964472f05c57ee34472164f5b` | 311 ms / 312 ms |
+| `windows-x86_64` | Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 | `15,250,871` | `23,871,340` | `fdc4597628dbc1ba954c53700491cf9109c189f47129b78091dd62b05fbfe686` | 241 ms / 489 ms |
+
+The Linux archive contained 10 regular files and two runtime files. Each
+macOS archive contained nine regular files and one Mach-O runtime file,
+`bin/attalambda`; both observed only CoreFoundation, `libSystem`, `libiconv`,
+and `libncurses` as dynamic system-library assumptions. The Windows archive
+contained nine regular files and one PE/runtime file, `bin/attalambda.exe`;
+it observed `KERNEL32.dll`, `msvcrt.dll`, and `USER32.dll`, and its exact
+Authenticode state was `NotSigned`. Every clean consumer reported no `racket`
+command, no `raco` command, and no checkout, then passed the direct command,
+effects, embedded-reader, and relocation checks.
+
+Linux stayed within one job and did not use GitHub artifact storage. The two
+macOS archives and one Windows archive crossed only the explicitly approved
+temporary transfer boundary with one-day retention as a cleanup-failure
+fallback. Their consumer and `always()` cleanup jobs all passed, and the
+completed run's artifact API reported `total_count: 0`. These measurements
+describe only deleted development artifacts; they are not release checksums,
+performance guarantees, compatibility floors, or public downloads.
 
 No core, effect, runtime, macro, or expander executable changed. The reader
 changes only its collection target; the runner intentionally changes its

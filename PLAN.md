@@ -484,7 +484,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 27 rename underway)
+Status: in progress (Phase 27 complete; Phase 28 next)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -845,7 +845,7 @@ assertions.
 
 ## Phase 27 — Apache license and AttaLambda public rename
 
-Status: in progress (local rename and public repository rename complete; push and CI pending)
+Status: complete (2026-08-28)
 
 - [x] Select and record Apache License 2.0 after Kyle explicitly approved its
   legal terms and confirmed Kyle Serrecchia as the 2026 copyright owner.
@@ -866,7 +866,7 @@ Status: in progress (local rename and public repository rename complete; push an
   spelling.
 - [x] Rename the public GitHub repository to `kserrec/attalambda` and update
   the verified local `origin` to that destination.
-- [ ] Push the exact tested commit and verify CI without creating a Git tag,
+- [x] Push the exact tested commit and verify CI without creating a Git tag,
   GitHub Release, release-candidate file, signature, or public download. Kyle
   explicitly authorized only the two renamed unpublished macOS archives and
   one renamed unpublished Windows archive, their external checksums, and their
@@ -885,10 +885,17 @@ assertions across all 32 test files, the unchanged expanded purity proof over
 80 Racket and `.attl` sources. Focused totals include 181 runner assertions,
 78 fresh-language assertions, 113 boundary assertions, 144 distribution-
 contract assertions, and 22 real-application acceptance assertions. The
-public repository rename and local remote are verified. The renamed native
-artifacts are not yet claimed as verified; the final checklist item remains
-open until the authorized push, clean consumer jobs, and immediate artifact
-deletion complete.
+public repository rename and local remote are verified. Validation commit
+`a048550e619499e0fbb3f944ba959ef84c4cc586` passed the complete suite and all
+ten build, clean-consumer, and cleanup jobs in [GitHub Actions run
+33204885605](https://github.com/kserrec/attalambda/actions/runs/33204885605).
+The renamed Linux, macOS arm64, macOS x86-64, and Windows x86-64 archives all
+passed their no-Racket consumer checks and relocation. Both macOS artifacts
+and the Windows artifact were deleted immediately; the completed run's
+artifact API reported `total_count: 0`. Public `main` resolves to that exact
+commit. Product version remains `0.2.0-dev`, and no Git tag, GitHub Release,
+release-candidate file, signature, binary release, or public download was
+created.
 
 ## Phase 28 — Downloadable release candidate and novice documentation
 
