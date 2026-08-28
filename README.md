@@ -5,7 +5,8 @@ pure untyped lambda calculus that remains practical for real programs. It uses
 Racket's lazy evaluator as a host while keeping object-language computation to
 variables, unary lambdas, and application.
 
-> **Status:** The first core-language milestone is complete. Its lambda-only
+> **Status:** The core-language and effects-and-standalone milestones are
+> complete. The lambda-only
 > foundation now includes all seven tagged data types, explicit Lists,
 > scalable binary Nat arithmetic, strict Bool and Nat operations, Result,
 > Char, String, and one generalized curried runtime checker. Structured Errors
@@ -13,8 +14,8 @@ variables, unary lambdas, and application.
 > propagation frames; a one-way reader renders those frames as human-facing
 > diagnostics. The full acceptance suite and structural purity gate are
 > green. The approved Phase 13
-> [host-boundary design](docs/design/host-boundary.md) now has six implemented
-> slices: Phase 14 adds exact String-byte conversion, one unary `host`, and
+> [host-boundary design](docs/design/host-boundary.md) is fully implemented:
+> Phase 14 adds exact String-byte conversion, one unary `host`, and
 > pure injected-host `stdout`; Phase 15 adds pure `read-file`/`write-file`
 > wrappers and byte-exact whole-file effects; Phase 16 adds pure blocking TCP
 > wrappers, canonical Nat/host-integer conversion, and a private listener and
@@ -23,8 +24,10 @@ variables, unary lambdas, and application.
 > host; Phase 18 adds pure path routing, one-connection serving, and a blocking
 > sequential HTTP loop over the same TCP wrappers; Phase 19 adds the
 > fresh-installable `#lang alone_the_lambdas` reader and facade, canonical
-> public syntax, host-bound effect names, and pure Nat/String literal lowering.
-> A separate structural gate enforces every boundary class. See
+> public syntax, host-bound effect names, and pure Nat/String literal lowering;
+> Phase 20 adds runnable stdout, isolated file-round-trip, and ephemeral-port
+> HTTP applications plus the final cross-class and milestone acceptance sweep.
+> Separate structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -61,14 +64,15 @@ precedence over conflicting examples in the base specification.
 
 ## Documentation
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) records the language boundary, planned
+- [ARCHITECTURE.md](ARCHITECTURE.md) records the language boundary, verified
   layers, representations, and dependency direction.
 - [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) maps the completed core and effects
   phases to executable or structural evidence.
 - [docs/design/host-boundary.md](docs/design/host-boundary.md) fixes the
   approved second-milestone protocol, authority, codecs, and purity
-  classifications; Phases 14 through 19 implement its `stdout`, file, TCP,
-  pure HTTP-message/server, and standalone-language slices.
+  classifications; Phases 14 through 20 implement and accept its `stdout`,
+  file, TCP, pure HTTP-message/server, standalone-language, and runnable-
+  application slices.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -159,6 +163,10 @@ precedence over conflicting examples in the base specification.
   lowers only nonnegative Nat and UTF-8 String literals into pure existing
   encodings, binds the nine public effect wrappers once to the real `host`,
   and suppresses Racket printing of final lambda values.
+- `examples/stdout.rkt`, `examples/file-round-trip.rkt`, and
+  `examples/http-server.rkt` are exact runnable language programs. The HTTP
+  program uses an ephemeral loopback port, prints its URL, serves one request,
+  closes its caller-owned listener, and exits.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -192,6 +200,58 @@ precedence over conflicting examples in the base specification.
   and production-path component before discovery, rejects symlinks without
   traversing their targets, rejects additional macro/language modules, and
   permits only the facade's exact import and re-export of production `host`.
+  Its repository-wide inventory classifies all 76 Racket sources: readers may
+  observe through a closed source vocabulary but cannot perform effects or
+  import upward; tests and tooling retain normal host authority but cannot
+  enter a production dependency path; standalone examples must use the public
+  language; and unknown source locations fail closed.
+
+## Fresh setup
+
+From a new checkout, this command registers and compiles the collection in
+the current Racket user installation. It changes that user-level package
+registry but does not require administrator privileges:
+
+```sh
+raco pkg install --auto --name alone_the_lambdas .
+```
+
+The package declares only Racket's `base` and `lazy` runtime packages, plus
+`rackunit-lib` and `net-lib` for tests. There is no third-party dependency.
+
+## Runnable applications
+
+Every application uses only `#lang alone_the_lambdas` and the public language
+surface. Programs run with the real `host` have the same relevant stdout,
+filesystem, and network permissions as their launching Racket process, so
+inspect and trust a program before running it.
+
+The stdout application has no side effect beyond these emitted bytes:
+
+```sh
+racket examples/stdout.rkt
+```
+
+The file application creates or truncates
+`alone-the-lambdas-round-trip.txt` in its current directory. This invocation
+runs it in a newly created empty temporary directory, so it cannot replace an
+existing project file:
+
+```sh
+repository_directory="$(pwd)"
+scratch_directory="$(mktemp -d)"
+(
+  cd "$scratch_directory"
+  racket "$repository_directory/examples/file-round-trip.rkt"
+)
+```
+
+The HTTP application binds an operating-system-selected loopback port, prints
+the exact `/lambda` URL, serves one request, closes the listener, and exits:
+
+```sh
+racket examples/http-server.rkt
+```
 
 ## Development
 
@@ -208,17 +268,19 @@ Run only the production-source purity scan with:
 racket tooling/check-purity.rkt
 ```
 
-Run only the production boundary-classification scan with:
+Run only the complete repository boundary-classification scan with:
 
 ```sh
 racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,224 assertions across 29 test files,
-plus the independent expanded scan of all 16 core modules and the production
-boundary-classification gate. GitHub Actions runs the same suite for pushes
-and pull requests.
+green. The repository currently has 4,261 assertions across 30 test files,
+plus the independent expanded scan of all 16 core modules and the complete
+repository boundary-classification gate. The application acceptance test
+installs a copied package under an isolated Racket user home before running
+the exact three examples. GitHub Actions runs the same suite for pushes and
+pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.

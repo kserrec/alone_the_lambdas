@@ -104,7 +104,8 @@
   (dynamic-wind
     (lambda ()
       (for ([directory
-             (in-list '("core" "effects" "macros" "runtime" "lang"))])
+             (in-list '("core" "effects" "macros" "runtime" "lang"
+                        "readers" "tests" "tooling" "examples"))])
         (make-directory (build-path root directory)))
       (copy-file (build-path project-root "lang" "expander.rkt")
                  (build-path root "lang" "expander.rkt"))
@@ -159,8 +160,151 @@
 (check-equal? (project-boundary-violations project-root)
               '())
 
+(define project-classifications
+  (project-source-classifications project-root))
+
+(check-equal?
+ (sort (remove-duplicates
+        (map source-classification-class project-classifications))
+       symbol<?)
+ '(application codec effect host language-expander language-reader macro
+   macro-shell package-info pure-core reader test tooling))
+
+(check-equal?
+ (count (lambda (classification)
+          (eq? (source-classification-class classification)
+               'application))
+        project-classifications)
+ 3)
+
+(check-equal?
+ (count (lambda (classification)
+          (eq? (source-classification-class classification)
+               'reader))
+        project-classifications)
+ 8)
+
 (temporary-project
  (lambda (root)
+   (check-equal? (project-boundary-violations root) '())
+
+   ;; Every Racket source is classified. Tests and tooling may use normal host
+   ;; facilities, but production code may never depend on either support
+   ;; class or on readers/applications.
+   (define rogue-source (build-path root "rogue.rkt"))
+   (write-datum
+    rogue-source
+    '(module rogue racket/base
+       (#%module-begin
+        (provide value)
+        (define value 1))))
+   (check-not-false
+    (member 'unclassified-repository-source
+            (kinds (project-boundary-violations root))))
+   (delete-file rogue-source)
+
+   (define support-test
+     (build-path root "tests" "host-support.rkt"))
+   (write-datum
+    support-test
+    '(module host-support racket/base
+       (#%module-begin
+        (require racket/file)
+        (provide observe)
+        (define observe file->bytes))))
+   (check-equal? (project-boundary-violations root) '())
+   (delete-file support-test)
+
+   (define nonlanguage-application
+     (build-path root "examples" "not-a-language-program.rkt"))
+   (write-datum
+    nonlanguage-application
+    '(module not-a-language-program racket/base
+       (#%module-begin
+        (provide value)
+        (define value 1))))
+   (check-equal?
+    (kinds
+     (file-boundary-violations nonlanguage-application
+                               'application
+                               root))
+    '(unexpected-application-language))
+   (delete-file nonlanguage-application)
+
+   (define reader-source
+     (build-path root "readers" "observer.rkt"))
+   (write-datum
+    reader-source
+    '(module observer racket/base
+       (#%module-begin
+        (require racket/promise
+                 "../core/dependency.rkt")
+        (provide bool->boolean)
+        (define (bool->boolean value) (force value)))))
+   (check-equal?
+    (file-boundary-violations reader-source 'reader root)
+    '())
+
+   (write-datum
+    reader-source
+    '(module observer racket/base
+       (#%module-begin
+        (require "../runtime/host.rkt")
+        (provide bool->boolean)
+        (define bool->boolean host))))
+   (check-not-false
+    (member 'disallowed-reader-import
+            (kinds
+             (file-boundary-violations reader-source 'reader root))))
+
+   (write-datum
+    reader-source
+    '(module observer racket/base
+       (#%module-begin
+        (provide bool->boolean)
+        (define (bool->boolean value)
+          (call-with-output-file value values)))))
+   (check-not-false
+    (member 'forbidden-reader-capability
+            (kinds
+             (file-boundary-violations reader-source 'reader root))))
+
+   (write-datum
+    reader-source
+    '(module observer racket/base
+       (#%module-begin
+        (require racket/promise)
+        (provide bool->boolean)
+        (define (bool->boolean value) (force value)))))
+   (define dependency-source
+     (build-path root "core" "dependency.rkt"))
+   (define clean-dependency-datum
+     (read-datum dependency-source))
+   (for ([support-directory
+          (in-list '("readers" "tests" "tooling" "examples"))])
+     (write-datum
+      dependency-source
+      `(module dependency racket/base
+         (#%module-begin
+          (require ,(format "../~a/support.rkt" support-directory))
+          (provide identity)
+          (define (identity value) value))))
+     (check-not-false
+      (member 'production-imports-nonproduction
+              (kinds (project-boundary-violations root)))))
+
+   (write-datum
+    dependency-source
+    '(module dependency racket/base
+       (#%module-begin
+        (provide identity)
+        (define (identity value)
+          (current-output-port)))))
+   (check-not-false
+    (member 'privileged-identifier-outside-host
+            (kinds (project-boundary-violations root))))
+   (write-datum dependency-source clean-dependency-datum)
+   (delete-file reader-source)
    (check-equal? (project-boundary-violations root) '())
 
    ;; The authorization anchor is checked before project discovery. Neither a

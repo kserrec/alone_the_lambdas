@@ -42,7 +42,11 @@ ordinary unary lambda handler.
 Phase 19 adds the single-collection `#lang alone_the_lambdas` reader and
 facade, canonical public syntax, one-time real-host injection for the nine
 effect wrappers, mechanical currying of multi-operand source applications,
-and canonical Nat/String literal expansion.
+and canonical Nat/String literal expansion. Phase 20 adds three exact runnable
+applications, executes all four specified effect families from a copied fresh
+installation, inventories every Racket source class, strengthens reader and
+support-code dependency rules, and closes the milestone evidence map without
+changing production semantics or host authority.
 
 ## Computational boundary
 
@@ -86,6 +90,7 @@ representation.
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
+| Runnable applications | Public-language stdout, isolated file round trip, and one-request ephemeral-loopback HTTP server |
 | Human boundary | Readers and test diagnostics; never object-language computation |
 
 Dependencies point downward only. Typed operations may use raw operations; raw
@@ -189,6 +194,16 @@ or host String becomes an object-language value. A custom module wrapper
 forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
 single-collection package metadata used by fresh installs.
+
+The three files under `examples/` import nothing and run only through that
+public language. `stdout.rkt` emits one String. `file-round-trip.rkt` makes
+write-before-read sequencing explicit by inspecting the first Result; tests
+run it only in an empty temporary directory because `write-file` deliberately
+truncates its target. `http-server.rkt` listens on loopback port zero, formats
+the returned bound Nat as decimal using public lambda operations, announces
+the exact URL, serves one request through `make-http-serve-one`, explicitly
+closes the caller-owned listener, and exits. No example adds a production
+module, primitive, wrapper, or authority.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -486,6 +501,10 @@ readers/
   char.rkt
   string.rkt
   error.rkt
+examples/
+  stdout.rkt
+  file-round-trip.rkt
+  http-server.rkt
 tests/
 tooling/
   check-purity.rkt
@@ -494,11 +513,13 @@ info.rkt
 run-all-tests.sh
 ```
 
-Sixteen zero-exception production modules remain under `core/`; Phase 19 has
-seven pure effect modules, two separately pinned mechanical macro modules, two
-separately classified runtime boundary modules, the exact reader/expander
-pair, and pinned package metadata. New abstraction layers require a concrete
-need.
+Sixteen zero-exception production modules remain under `core/`. The completed
+milestone has seven pure effect modules, two separately pinned mechanical
+macro modules, two separately classified runtime boundary modules, the exact
+reader/expander pair, pinned package metadata, eight one-way value readers,
+three public-language applications, and separately classified tests/tooling.
+All 76 Racket sources are inventoried. New abstraction layers require a
+concrete need.
 
 ## Verification boundary
 
@@ -570,7 +591,7 @@ The purity gate therefore trusts macro semantics. The separate boundary gate
 pins both macro paths, their languages, imports, exports, and source
 vocabulary; rejects operating-system, process, environment, dynamic-loading,
 FFI, and mutation capabilities there; rejects additional macro modules; and
-admits only the exact Phase 19 reader, expander, and package metadata. The
+admits only the exact reader, expander, and package metadata. The
 expander's imports, exports, runtime wrapper definitions, transformer/helper
 set, and source vocabulary are closed; only it may import and re-export the
 production `host`. A contributor who can edit both a
@@ -587,6 +608,13 @@ authorizes imports before discovering their exports, validates every component
 of the project root and each production path before discovery, rejects
 symlinks without traversing their targets, and rejects every second codec
 importer, host importer, filesystem/TCP importer, or `host` definition/export.
+It also inventories every Racket source, rejects unknown locations, constrains
+readers to an exact effect-free observation vocabulary with core/reader
+imports, rejects every production import of readers/tests/tooling/applications,
+admits normal host authority only in the test/tooling support classes, and
+requires each example to use the public standalone language. Dedicated
+rejection fixtures prove each new direction and the host-exclusive primitive
+vocabulary.
 Codec tests cover all 256 byte values, canonical and malformed String and Nat
 representations, private copying, acknowledgements, and Err encoding. Stdout
 tests prove exact fake-host
@@ -630,14 +658,26 @@ canonical representations. Unsupported Racket datum families, raw and typed
 implementation names, underscore workarounds, and ordinary Racket forms are
 all rejected during expansion.
 
-## Implemented and planned boundary
+The second-milestone acceptance suite reuses the same dotenv-excluding,
+symlink-rejecting copied-package installer. It runs the exact three repository
+applications outside the installed collection: exact stdout bytes; a
+write/read byte round trip in an empty temporary directory; and a one-request
+HTTP server on an ephemeral loopback port reached by a test-side external
+client. The server test checks its announced URL, status, headers, body,
+process exit, empty stderr, and listener cleanup. Together with the focused
+TCP lifecycle suites and the zero-finding boundary inventory, this covers the
+specified `stdout`, `read-file`, `write-file`, and TCP effect families while
+retaining the one-bridge proof.
 
-The completed core still contains no `host` form. Phases 13 through 19 in
+## Completed milestone boundary
+
+The completed core still contains no `host` form. Phases 13 through 20 in
 [PLAN.md](PLAN.md) approved and implemented exactly one explicit boundary plus
 ordinary lambda wrappers for stdout, whole-file access, blocking TCP, and a
 pure HTTP message and sequential-server layer, followed by the standalone
-language surface. The approved
+language surface and runnable applications. The final acceptance sweep changed
+no production semantic, representation, operation, or authority. The approved
 protocol and its full process-level filesystem/network authority are recorded
-in [docs/design/host-boundary.md](docs/design/host-boundary.md). Phase 20 is the
-next unfinished phase and adds terse applications plus final milestone
-acceptance and documentation synchronization.
+in [docs/design/host-boundary.md](docs/design/host-boundary.md); the complete
+claim-to-test and one-bridge evidence maps are recorded in
+[docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).

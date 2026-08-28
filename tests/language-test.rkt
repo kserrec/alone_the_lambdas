@@ -1,10 +1,9 @@
 #lang racket/base
 
 (require rackunit
-         racket/file
          racket/path
-         racket/port
-         racket/runtime-path)
+         racket/runtime-path
+         "helpers/fresh-language.rkt")
 
 (define-runtime-path project-root-path "..")
 (define-runtime-path canonical-program
@@ -13,193 +12,13 @@
 (define project-root
   (simplify-path project-root-path #f))
 
-(struct command-result (status stdout stderr timed-out?)
-  #:transparent)
-
-(define racket-executable
-  (find-executable-path "racket"))
-
-(define raco-executable
-  (find-executable-path "raco"))
-
-(define (run-command environment executable arguments timeout-seconds)
-  (define-values (process child-output child-input child-error)
-    (parameterize ([current-environment-variables environment])
-      (apply subprocess
-             #f
-             #f
-             #f
-             executable
-             arguments)))
-  (close-output-port child-input)
-  (define captured-output
-    (box #f))
-  (define captured-error
-    (box #f))
-  (define output-reader
-    (thread
-     (lambda ()
-       (set-box! captured-output
-                 (port->bytes child-output)))))
-  (define error-reader
-    (thread
-     (lambda ()
-       (set-box! captured-error
-                 (port->bytes child-error)))))
-  (define completed
-    (sync/timeout timeout-seconds process))
-  (unless completed
-    (subprocess-kill process #t)
-    (sync process))
-  (sync output-reader)
-  (sync error-reader)
-  (command-result
-   (and completed (subprocess-status process))
-   (unbox captured-output)
-   (unbox captured-error)
-   (not completed)))
-
-(define (result-diagnostic result)
-  (format "status: ~s\nstdout: ~s\nstderr: ~a"
-          (command-result-status result)
-          (command-result-stdout result)
-          (bytes->string/utf-8
-           (command-result-stderr result)
-           #\?)))
-
-(define (check-command-success result expected-output)
-  (check-false (command-result-timed-out? result)
-               (result-diagnostic result))
-  (check-equal? (command-result-status result)
-                0
-                (result-diagnostic result))
-  (check-equal? (command-result-stdout result)
-                expected-output
-                (result-diagnostic result))
-  (check-equal? (command-result-stderr result)
-                #""
-                (result-diagnostic result)))
-
-(define (check-command-failure result expected-message)
-  (check-false (command-result-timed-out? result)
-               (result-diagnostic result))
-  (check-not-equal? (command-result-status result)
-                    0
-                    (result-diagnostic result))
-  (check-true
-   (regexp-match? expected-message
-                  (bytes->string/utf-8
-                   (command-result-stderr result)
-                   #\?))
-   (result-diagnostic result)))
-
-(define (write-source path source)
-  (call-with-output-file path
-    #:exists 'truncate
-    (lambda (output)
-      (display source output))))
-
-(define (dotenv-name? path)
-  (define name
-    (file-name-from-path path))
-  (and name
-       (regexp-match?
-        #px"(^|\\.)env($|\\.)"
-        (string-downcase (path->string name)))))
-
-(define (excluded-package-entry? path)
-  (define name
-    (file-name-from-path path))
-  (or (dotenv-name? path)
-      (and name
-           (member (path->string name)
-                   '(".git" "compiled")))))
-
-(define (copy-package-source source target)
-  (cond
-    [(link-exists? source)
-     (error 'language-test
-            "package source contains a symlink: ~a"
-            source)]
-    [(directory-exists? source)
-     (make-directory target)
-     (for ([entry (in-list (directory-list source))]
-           #:unless (excluded-package-entry? entry))
-       (copy-package-source (build-path source entry)
-                            (build-path target entry)))]
-    [(file-exists? source)
-     (copy-file source target)]
-    [else
-     (error 'language-test
-            "package source entry disappeared: ~a"
-            source)]))
-
-(define temporary-root
-  (make-temporary-file
-   "alone-the-lambdas-language-~a"
-   'directory
-   (if (directory-exists? "/tmp")
-       (string->path "/tmp")
-       (find-system-path 'temp-dir))))
-
-(dynamic-wind
-  void
-  (lambda ()
-    (define isolated-home
-      (build-path temporary-root "racket-home"))
-    (make-directory isolated-home)
-
+(call-with-fresh-language-install
+ project-root
+ (lambda (installation)
+    (define temporary-root
+      (fresh-language-install-temporary-root installation))
     (define isolated-environment
-      (environment-variables-copy
-       (current-environment-variables)))
-    (environment-variables-set!
-     isolated-environment
-     #"PLTUSERHOME"
-     (path->bytes isolated-home))
-    (environment-variables-set!
-     isolated-environment
-     #"TMPDIR"
-     (path->bytes temporary-root))
-
-    (define package-source
-      (build-path temporary-root "package-source"))
-    (make-directory package-source)
-    (copy-file (build-path project-root "info.rkt")
-               (build-path package-source "info.rkt"))
-    (for ([directory
-           (in-list '("core" "effects" "lang" "macros" "runtime"))])
-      (copy-package-source
-       (build-path project-root directory)
-       (build-path package-source directory)))
-
-    ;; The copy install proves that language resolution comes from package
-    ;; metadata, not from the working directory or a source-tree link. The
-    ;; explicit staging walk excludes every dotenv spelling before content is
-    ;; accessed and omits VCS/compiled state.
-    (define install-result
-      (run-command
-       isolated-environment
-       raco-executable
-       (list "pkg" "install"
-             "--batch"
-             "--scope" "user"
-             "--copy"
-             "--name" "alone_the_lambdas"
-             "--deps" "fail"
-             "--no-docs"
-             "--fail-fast"
-             (path->string package-source))
-       180))
-    (check-false (command-result-timed-out? install-result)
-                 (result-diagnostic install-result))
-    (check-equal? (command-result-status install-result)
-                  0
-                  (result-diagnostic install-result))
-    (unless (and (not (command-result-timed-out? install-result))
-                 (equal? (command-result-status install-result) 0))
-      (error 'language-test
-             "fresh package installation failed\n~a"
-             (result-diagnostic install-result)))
+      (fresh-language-install-environment installation))
 
     (check-command-success
      (run-command isolated-environment
@@ -382,5 +201,4 @@ PROBE
                     (list (path->string isolated-program))
                     20)
        #rx"unbound identifier|not allowed in an expression")))
-  (lambda ()
-    (delete-directory/files temporary-root)))
+)

@@ -1,0 +1,72 @@
+#lang alone_the_lambdas
+
+; Bind an ephemeral loopback port, print its URL, serve one request, close the
+; caller-owned listener, and exit. All number formatting below is ordinary
+; lambda-language computation.
+(def decimal-digit value =
+  (if (EQ value 0)
+      DIGIT-0
+      (if (EQ value 1)
+          DIGIT-1
+          (if (EQ value 2)
+              DIGIT-2
+              (if (EQ value 3)
+                  DIGIT-3
+                  (if (EQ value 4)
+                      DIGIT-4
+                      (if (EQ value 5)
+                          DIGIT-5
+                          (if (EQ value 6)
+                              DIGIT-6
+                              (if (EQ value 7)
+                                  DIGIT-7
+                                  (if (EQ value 8)
+                                      DIGIT-8
+                                      DIGIT-9))))))))))
+
+(def nat-to-decimal value =
+  (if (LT value 10)
+      (MAKE-STRING (cons (decimal-digit value) NIL))
+      (let quotient = (unwrap-ok (DIV value 10))
+        (let remainder = (SUB value (MULT quotient 10))
+          (STRING-APPEND
+           (nat-to-decimal quotient)
+           (MAKE-STRING (cons (decimal-digit remainder) NIL)))))))
+
+(def force-result result continuation =
+  (if (is-ok result)
+      (continuation result)
+      (continuation result)))
+
+(def close-listener listener outcome =
+  (let close-result = (tcp-close listener)
+    (if (is-ok close-result)
+        outcome
+        outcome)))
+
+(def handler =
+  (make-http-path-handler
+   "/lambda"
+   HTTP-STATUS-OK
+   "Hello from Alone the Lambdas.\n"
+   HTTP-STATUS-NOT-FOUND
+   "Not found.\n"))
+
+(let listen-result = (tcp-listen "127.0.0.1" 0 4)
+  (if (is-ok listen-result)
+      (let listener-and-port = (unwrap-ok listen-result)
+        (let listener = (HEAD listener-and-port)
+          (let port = (HEAD (TAIL listener-and-port))
+            (force-result
+             (stdout
+              (STRING-APPEND
+               "Listening on http://127.0.0.1:"
+               (STRING-APPEND (nat-to-decimal port) "/lambda\n")))
+             (lambda (announcement-result)
+               (if (is-ok announcement-result)
+                   (force-result
+                    (make-http-serve-one host handler listener 4096)
+                    (lambda (serve-result)
+                      (close-listener listener serve-result)))
+                   (close-listener listener announcement-result)))))))
+      listen-result))

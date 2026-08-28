@@ -185,7 +185,7 @@ green.
 
 # Milestone 2 — Effects and standalone language
 
-Status: implementation in progress; Phase 19 complete
+Status: complete (2026-08-27)
 
 The specifications fix the order and outer boundary of this milestone but do
 not define the `host` request protocol. Phase 13 therefore resolves that
@@ -193,8 +193,8 @@ contract before any privileged implementation begins. It is an explicit
 approval gate: Phase 14 must not start until the resulting design is approved.
 Kyle approved the high-level use of the single `host` boundary in Alone the
 Lambdas and the detailed request, codec, authority, and runtime contract on
-2026-08-27. The gate is satisfied; Phases 14 through 19 are complete and Phase
-20 is the next unfinished phase.
+2026-08-27. The gate is satisfied; Phases 14 through 20 and the complete
+effects-and-standalone milestone are complete.
 
 The following constraints apply throughout:
 
@@ -447,17 +447,33 @@ import/export of `host`.
 
 ## Phase 20 — Runnable applications and milestone acceptance
 
-- [ ] Add terse standalone examples for stdout, a file round trip, and the
+- [x] Add terse standalone examples for stdout, a file round trip, and the
   minimal HTTP server; every example must run from a fresh repository setup.
-- [ ] Extend structural checks across pure core, effect wrappers, trusted
+- [x] Extend structural checks across pure core, effect wrappers, trusted
   runtime, macros, language surface, readers, tests, and tooling with the
   correct rule for each classification.
-- [ ] Add end-to-end acceptance coverage for every second-milestone claim,
+- [x] Add end-to-end acceptance coverage for every second-milestone claim,
   including proof that only the one trusted bridge performs effects.
-- [ ] Synchronize README, architecture, project rules, setup instructions, and
+- [x] Synchronize README, architecture, project rules, setup instructions, and
   acceptance documentation with observed behavior and remaining limits.
 
 Acceptance: a new developer can install the language, run ordinary standalone
 programs, perform the four specified effect families, and serve the minimal
 HTTP response; the full suite and CI are green and the one-bridge claim has an
 explicit evidence map.
+
+Completion evidence: 4,261 assertions across 30 test files, the unchanged
+expanded purity scan over all 16 `core/` modules, and the complete boundary
+gate passed on 2026-08-27. The three exact `examples/` programs ran from a
+copied package installation under an isolated Racket user home: stdout was
+byte-exact, write/read recovered identical bytes in an empty temporary
+directory, and the HTTP program announced an ephemeral loopback URL, served a
+lambda-built 200 response to a test-side external client, closed its listener,
+and exited. The boundary gate now inventories all 76 Racket sources, enforces
+closed-vocabulary, effect-free one-way readers, keeps host-enabled tests and
+tooling outside every production dependency path, requires public-language
+applications, rejects
+unknown source locations, and pins host-exclusive primitives outside the sole
+bridge. `docs/ACCEPTANCE.md` records the final criterion map and explicit
+one-bridge evidence map. Phase 20 added no executable production module and
+changed no operation, authority, representation, or language semantic.

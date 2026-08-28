@@ -37,8 +37,13 @@ design.
   the operations approved for the current completed phases.
 - Readers, tests, and tooling may use the host facilities needed for their
   stated roles, but production computation must never depend on them.
-- Readers may observe and format values. Production modules must never depend
-  on readers.
+- Readers may observe and format values with host data and control flow, but
+  may not perform external effects, mutate state, own registries, or import
+  upward from effects, runtime, language, tests, or tooling. Production
+  modules must never depend on readers.
+- Tests and tooling may use ordinary host facilities, but every Racket source
+  must remain in a classified repository location and neither class may enter
+  a production dependency path.
 - No other production module may define or import a privileged binding,
   codec, dispatcher, port, path, socket, exception, or host collection.
 
@@ -89,9 +94,12 @@ design.
 - Never use Graphify in this repository or create or update `graphify-out/`.
   Inspect the repository directly for codebase, architecture, and project
   questions.
-- Do not build deferred features beyond the completed phase: the standalone
-  language surface, parser beyond approved Lisp syntax, optimizer, compiler,
-  records, JSON, or unrelated standard-library breadth.
+- Standalone examples must use only `#lang alone_the_lambdas` and its public
+  surface. Test real filesystem examples only in isolated temporary
+  directories and real network examples only on ephemeral loopback ports.
+- Do not build unapproved post-milestone features: a parser beyond approved
+  Lisp syntax, optimizer, compiler, records, JSON, or unrelated standard-
+  library breadth.
 
 ## Tests and verification
 
@@ -103,6 +111,9 @@ design.
 - Maintain the separate boundary check for pure effects, deterministic codec
   conversion, the sole host definition/export/import path, and each phase's
   exact host capability allowlist.
+- Maintain the repository-wide source inventory and the distinct reader,
+  application, test, and tooling rules; unknown Racket source locations and
+  production imports of support code must fail closed.
 - Run focused tests while working, then the complete suite before each commit.
 - Documentation must distinguish observed implementation from planned design.
 

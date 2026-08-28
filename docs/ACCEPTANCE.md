@@ -45,6 +45,13 @@ Phase 19 was verified on 2026-08-27 with `./run-all-tests.sh`: 4,224 passing
 assertions across 29 test files, the unchanged clean 16-module expanded core
 scan, and the reader/expander/package-aware boundary scan.
 
+Phase 20 was verified on 2026-08-27 with `./run-all-tests.sh`: 4,261 passing
+assertions across 30 test files, the unchanged clean 16-module expanded core
+scan, and the complete 76-source classification and one-bridge boundary scan.
+The exact three applications ran from a copied package installation under an
+isolated Racket user home; filesystem effects stayed in an empty temporary
+directory and network effects stayed on an ephemeral loopback port.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -126,18 +133,39 @@ scan, and the reader/expander/package-aware boundary scan.
 
 | Requirement | Evidence |
 | --- | --- |
-| `#lang alone_the_lambdas` resolves from a fresh package installation. | [`language-test.rkt`](../tests/language-test.rkt) creates an isolated Racket user home, explicitly stages only package/production files while excluding every dotenv spelling, VCS state, and compiled artifacts and rejecting symlinks, installs that source using [`info.rkt`](../info.rkt), then runs programs outside the installed collection. The install uses declared dependencies only and does not rely on a source-tree collection path or package link. |
+| `#lang alone_the_lambdas` resolves from a fresh package installation. | [`language-test.rkt`](../tests/language-test.rkt) creates an isolated Racket user home, explicitly stages only package metadata, production files, and the public applications while excluding every dotenv spelling, VCS state, and compiled artifacts and rejecting symlinks, installs that source using [`info.rkt`](../info.rkt), then runs programs outside the installed collection. The install uses declared dependencies only and does not rely on a source-tree collection path or package link. |
 | Canonical syntax remains unary lambda computation. | The specification's exact `def`/`if`/`cons` sample shape runs and returns the selected List element. Separate programs prove multi-operand source calls and multi-argument `def` lower to nested unary applications, `let` is immediate unary-lambda application, public `lambda` rejects multiple formals, and a divergent unselected branch is never forced. The existing macro suite retains direct curried-expansion coverage. |
 | Nat and String literals are canonical lambda values. | The language suite lowers 0, 1, 255, 256, and 65536, then test-only module-namespace observation passes them through the strict codec and recovers the exact integers. A `λ🙂` source String decodes as exactly six UTF-8 bytes and is emitted byte-for-byte through public `stdout`. Booleans, negative/rational/flonum/complex numbers, characters, byte strings, keywords, vectors, and quoted symbols are rejected during expansion; no additional literal family or parser exists. |
 | The facade is canonical and isolated from Racket/internal namespaces. | Runnable programs use only `lambda`, `def`, `let`, `if`, `cons`, strict data operations, bound `stdout`, and explicit `host`. Direct probes prove `define`, `require`, `+`, `display`, `raw-cons`, `typed-if`, `_if`, and quote are unavailable. [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) pins exact facade imports, exports, transformer/helper sets, nine host-injection definitions, source vocabulary, sole host path, the exact reader target, and package metadata; 70 boundary checks prove representative import, export, runtime-definition, syntax-helper, reader, metadata, extra-module, and second-host failures. |
 
+## Phase 20 runnable-application and milestone evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| A fresh checkout can install and run ordinary standalone programs. | [`fresh-language.rkt`](../tests/helpers/fresh-language.rkt) copies only the package metadata, production directories, and exact application directory, excluding every dotenv spelling plus VCS/compiled state before content access and rejecting symlinks, then installs the copy under an isolated Racket user home. [`language-test.rkt`](../tests/language-test.rkt) retains all 75 Phase 19 checks through that shared harness. [`milestone-two-acceptance-test.rkt`](../tests/milestone-two-acceptance-test.rkt) runs the exact repository examples outside the installed collection, so no source-tree package link or undeclared dependency can satisfy resolution. |
+| The three terse applications perform all four specified effect families. | [`stdout.rkt`](../examples/stdout.rkt) proves public `stdout`. [`file-round-trip.rkt`](../examples/file-round-trip.rkt) sequences public `write-file` before public `read-file` by inspecting the first Result, emits the recovered bytes, and is verified only in an empty temporary directory. [`http-server.rkt`](../examples/http-server.rkt) exercises the TCP listen/accept/read/write/close path, uses only public lambda operations to format its ephemeral port, serves one lambda-built HTTP response to a test-side external client, closes its caller-owned listener, and exits. The focused TCP suites separately retain connect, all schema/failure, binary, blocking, handle, and lifecycle coverage. |
+| Every Racket source has the correct structural classification. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) inventories all 76 Racket sources across pure core, effects, the two trusted runtime modules, the two exact macros, reader/expander/package surface, one-way readers, tests, tooling, and applications. Unknown locations and symlinks fail closed. Readers may use host data and control flow through an exact closed vocabulary, may import only core and reader modules, and cannot use external-effect, mutation, registry, process, eval, environment, dynamic-loading, FFI, or threading capabilities. Tests and tooling retain host authority but cannot enter production imports. Applications must use `#lang alone_the_lambdas`. The 85-check boundary suite includes direct rejection probes for each new rule, every nonproduction import direction, and the application language. |
+| The core purity claim remains unchanged. | [`check-purity.rkt`](../tooling/check-purity.rkt) still expands and accepts exactly the same 16 zero-exception `core/` modules. No Phase 20 executable production file was created or modified; the example computations pass through the already accepted facade and layers. |
+
+## Explicit one-bridge evidence map
+
+| Boundary fact | Sole allowed production location | Enforced evidence |
+| --- | --- | --- |
+| Definition and direct producer export of `host` | [`runtime/host.rkt`](../runtime/host.rkt) | The project scan requires exactly one definition and exact sole export; it rejects every second definition/export and pins the host's complete source vocabulary. |
+| Deterministic object/host conversion | [`runtime/codec.rkt`](../runtime/codec.rkt), imported in production only by `runtime/host.rkt` | Exact codec exports/imports and no-effect vocabulary are pinned; wrapped and direct second production imports are rejected. Exhaustive byte and representative Nat round trips prove canonical output without an effect. |
+| Raw stdout, filesystem, TCP, registry, and external-failure operations | [`runtime/host.rkt`](../runtime/host.rkt) | Exact `racket/file` and `racket/tcp` imports, host-only primitive identifiers, closed dispatcher vocabulary, and sole-importer scans reject the same capabilities everywhere else in production. Real-host tests prove each approved operation. |
+| Request construction, typing, Result control flow, HTTP parsing/rendering/routing/serving | [`effects/`](../effects) | The effect scanner admits only variables, unary lambdas, unary applications, mechanical forms, pure core/effect imports, and application of an injected unary host argument. Exact fake-host traces prove wrappers issue only canonical requests. |
+| Public access to the same bridge and bound wrappers | [`lang/expander.rkt`](../lang/expander.rkt) | Exact facade imports/exports and nine fixed injection definitions permit only this module to import and re-export the runtime binding; the facade has no direct OS capability. |
+| Host-enabled observation and verification | [`readers/`](../readers), [`tests/`](../tests), and [`tooling/`](../tooling) | These are explicitly nonproduction classes. Reader imports/effects are constrained, every source is inventoried, and every production dependency on any support class is rejected. |
+
 ## What this milestone does not claim
 
-The repository now contains the verified core plus the explicit stdout,
-whole-file, and blocking-TCP slices of the approved host boundary, plus pure
-HTTP request parsing, response rendering, routing, and a blocking sequential
-server, plus the fresh-installable standalone language and its Nat/String
-literals. It does not yet provide the Phase 20 terse stdout/file/HTTP example
-set, final whole-milestone evidence sweep, synchronized setup guide, or a
-separate command-line runner. Those remain ordered work and must preserve both
-the core purity proof and the boundary classifications.
+The completed milestone deliberately does not claim sandboxing or per-program
+permission prompts: a real-host program inherits the launching Racket
+process's relevant authority. It has no command-line argument API, separate
+runner, general parser, optimizer, compiler, records, JSON, environment or
+process access, directory operations, atomic file replacement, TLS, UDP,
+timeouts, asynchronous server, production concurrency, or general HTTP
+framework. The minimal HTTP parser/server supports only the documented
+blocking HTTP/1.1 subset and one sequential connection at a time. These are
+explicit limits, not unimplemented parts of either completed milestone.

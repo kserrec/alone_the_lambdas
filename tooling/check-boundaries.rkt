@@ -1,15 +1,20 @@
 #lang racket/base
 
-;; Structural gate for the deliberately nonuniform Phase 19 production tree.
+;; Structural gate for the deliberately nonuniform completed milestone tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
-;; checker adds the approved classes without weakening that proof:
+;; checker inventories every Racket source and adds the approved classes
+;; without weakening that proof:
 ;;
+;;   core/                separately scanned pure unary-lambda computation
 ;;   effects/             pure source forms, including the HTTP server
 ;;   macros/              the two exact mechanical expansion modules
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
 ;;   runtime/host.rkt     sole host export and the unchanged effect allowlist
 ;;   lang/reader.rkt      exact effect-free S-expression reader
 ;;   lang/expander.rkt    exact imports/exports and mechanical expansion only
+;;   readers/             host observation only; no effects or upward imports
+;;   tests/, tooling/     host-enabled support code, never production imports
+;;   examples/            standalone language applications, tested end to end
 ;;   info.rkt             exact single-collection package metadata
 
 (require racket/file
@@ -18,13 +23,18 @@
          racket/runtime-path)
 
 (provide (struct-out boundary-violation)
+         (struct-out source-classification)
          file-boundary-violations
+         project-source-classifications
          project-boundary-violations)
 
 (struct boundary-violation (path kind detail)
   #:transparent)
 
 (struct module-info (language forms)
+  #:transparent)
+
+(struct source-classification (path class)
   #:transparent)
 
 (define-runtime-path default-project-root "..")
@@ -65,6 +75,45 @@
 (define forbidden-language-capabilities
   (remove* '(tcp-connect tcp-listen tcp-accept tcp-close)
            forbidden-codec-capabilities))
+
+;; Readers may turn completed values into host values for tests and people,
+;; but they are not another effects layer. Host control flow and data are
+;; allowed there; external I/O, mutation, registries, process/eval/FFI access,
+;; and upward production dependencies are not.
+(define reader-host-imports
+  '(racket/list racket/promise racket/string))
+
+;; This is the complete source vocabulary observed across the eight approved
+;; one-way reader modules. Together with the narrow import direction, it turns
+;; the reader rule into a closed allowlist instead of relying on an inevitably
+;; incomplete catalog of Racket/base effects.
+(define reader-vocabulary
+  '(#%module-begin * + <= = actual-type add1 apply argument bit bool
+    bool->boolean car case cdr char char-value->integer char-value->string code
+    cons define details else error error-frames->oldest-first
+    error-kind->string error-value->string for/fold force format frame
+    frame->string frames function function-name if in-list integer->char kind
+    lambda lazy-apply let let* list list->host-list loop map memv module nat
+    nat->host-bits nat->integer null? or position provide quote racket/base
+    racket/list racket/promise racket/string raw-boolean raw-boolean->boolean
+    raw-char-value raw-error-frame-argument-position
+    raw-error-frame-expected-type raw-error-frame-function-name
+    raw-error-frames raw-error-root raw-error-root-details raw-error-root-kind
+    raw-make-nat raw-nat-value raw-object-value raw-string-value
+    raw-type-mismatch-actual-type raw-type-mismatch-argument-position
+    raw-type-mismatch-expected-type read-value remaining require reverse root
+    string string-append string-join string-value->string
+    supported-ascii-code? total type-mismatch-root->string type-tag
+    type-tag->integer type-tag->string typed-head typed-is-nil typed-tail value
+    values))
+
+(define privileged-host-only-identifiers
+  '(current-output-port flush-output
+    file->bytes call-with-output-file
+    read-bytes-avail! write-bytes write-bytes-avail
+    tcp-addresses
+    close-input-port close-output-port
+    make-hash hash-ref hash-set! hash-remove! set!))
 
 ;; Exact source vocabularies make the implicit racket/base import explicit.
 ;; Adding even an otherwise unknown identifier to either trusted runtime file
@@ -424,12 +473,21 @@
    (build-path (or (path-only source-path) (current-directory))
                module-path)))
 
-(define (read-module-info/unchecked path)
+(define (read-module-info/unchecked path [project-root #f])
+  (define collection-parent
+    (and project-root
+         (normalized
+          (build-path (normalized project-root) 'up))))
   (define datum
     (call-with-input-file path
       (lambda (input)
         (parameterize ([read-accept-reader #t]
-                       [current-load-relative-directory (path-only path)])
+                       [current-load-relative-directory (path-only path)]
+                       [current-library-collection-paths
+                        (if collection-parent
+                            (cons collection-parent
+                                  (current-library-collection-paths))
+                            (current-library-collection-paths))])
           (read input)))))
   (and (list? datum)
        (= (length datum) 4)
@@ -583,7 +641,7 @@
 (define (read-module-info path project-root)
   (with-handlers ([exn:fail? (lambda (failure) #f)])
     (and (source-file? path project-root)
-         (read-module-info/unchecked path))))
+         (read-module-info/unchecked path project-root))))
 
 (define (effect-import-allowed? spec source-path project-root)
   (define base (require-spec-base spec))
@@ -598,6 +656,19 @@
                       (path-within? (build-path project-root "effects")
                                     target))
                   (source-file? target project-root))))))
+
+(define (reader-import-allowed? spec source-path project-root)
+  (define base (require-spec-base spec))
+  (cond
+    [(symbol? base)
+     (and (eq? spec base)
+          (memq base reader-host-imports))]
+    [(string? base)
+     (define target (resolve-relative source-path base))
+     (and (or (path-within? (build-path project-root "core") target)
+              (path-within? (build-path project-root "readers") target))
+          (source-file? target project-root))]
+    [else #f]))
 
 (define (codec-import-allowed? spec source-path project-root)
   (define base (require-spec-base spec))
@@ -965,6 +1036,43 @@
                         'invalid-language-reader-forms
                         (module-info-forms info))))))
 
+(define (reader-violations path info project-root)
+  (define symbols
+    (datum-symbols (module-info-forms info)))
+  (append
+   (exact-language-violations path
+                              info
+                              'racket/base
+                              'unexpected-reader-language)
+   (strict-import-violations path
+                             info
+                             project-root
+                             reader-import-allowed?
+                             'disallowed-reader-import)
+   (symbol-violations path
+                      symbols
+                      forbidden-codec-capabilities
+                      'forbidden-reader-capability)
+   (capability-pattern-violations path
+                                  symbols
+                                  'forbidden-reader-capability)
+   (strict-vocabulary-violations path
+                                 project-root
+                                 reader-vocabulary
+                                 'unapproved-reader-identifier)))
+
+(define (application-violations path info)
+  (exact-language-violations path
+                             info
+                             'alone_the_lambdas/lang/expander
+                             'unexpected-application-language))
+
+;; Tests and tooling deliberately have normal Racket authority. Their
+;; structural rule is classification plus exclusion from every production
+;; dependency path; successfully reading the module is enough here.
+(define (host-support-violations path info class)
+  '())
+
 (define (package-info-violations path info)
   (append
    (exact-language-violations path
@@ -1065,7 +1173,7 @@
     [else
      (define info
        (with-handlers ([exn:fail? (lambda (failure) failure)])
-         (read-module-info/unchecked source)))
+         (read-module-info/unchecked source root)))
      (cond
        [(exn? info)
         (list (violation source 'boundary-read-failure
@@ -1082,6 +1190,14 @@
         (language-expander-violations source info root)]
        [(eq? class 'language-reader)
         (language-reader-violations source info)]
+       [(eq? class 'reader)
+        (reader-violations source info root)]
+       [(eq? class 'test)
+        (host-support-violations source info class)]
+       [(eq? class 'tooling)
+        (host-support-violations source info class)]
+       [(eq? class 'application)
+        (application-violations source info)]
        [(eq? class 'package-info)
         (package-info-violations source info)]
        [(eq? class 'codec)
@@ -1091,9 +1207,17 @@
        [else
         (list (violation source 'unknown-boundary-class class))])]))
 
+(define (excluded-discovery-entry? path)
+  (define name
+    (file-name-from-path path))
+  (or (dotenv-name? path)
+      (and name
+           (member (path->string name)
+                   '(".git" "compiled")))))
+
 (define (racket-files-under directory)
   (cond
-    [(dotenv-name? directory) '()]
+    [(excluded-discovery-entry? directory) '()]
     [(link-exists? directory) (list directory)]
     [(directory-exists? directory)
      (append-map racket-files-under
@@ -1102,6 +1226,90 @@
           (equal? (path-get-extension directory) #".rkt"))
      (list (normalized directory))]
     [else '()]))
+
+(define (source-class path project-root)
+  (define root
+    (normalized project-root))
+  (define source
+    (normalized path))
+  (define relative-parts
+    (explode-path (find-relative-path root source)))
+  (define first-part
+    (and (pair? relative-parts)
+         (path? (car relative-parts))
+         (path->string (car relative-parts))))
+  (cond
+    [(equal? source (normalized (build-path root "info.rkt")))
+     'package-info]
+    [(equal? first-part "core") 'pure-core]
+    [(equal? first-part "effects") 'effect]
+    [(equal? first-part "macros")
+     (cond
+       [(equal? source
+                (normalized
+                 (build-path root "macros" "lazy-with-macros.rkt")))
+        'macro-shell]
+       [(equal? source
+                (normalized
+                 (build-path root "macros" "macros.rkt")))
+        'macro]
+       [else 'macro])]
+    [(equal? first-part "runtime")
+     (cond
+       [(equal? source
+                (normalized (build-path root "runtime" "codec.rkt")))
+        'codec]
+       [(equal? source
+                (normalized (build-path root "runtime" "host.rkt")))
+        'host]
+       [else 'runtime])]
+    [(equal? first-part "lang")
+     (cond
+       [(equal? source
+                (normalized (build-path root "lang" "reader.rkt")))
+        'language-reader]
+       [(equal? source
+                (normalized (build-path root "lang" "expander.rkt")))
+        'language-expander]
+       [else 'language])]
+    [(equal? first-part "readers") 'reader]
+    [(equal? first-part "tests") 'test]
+    [(equal? first-part "tooling") 'tooling]
+    [(equal? first-part "examples") 'application]
+    [else #f]))
+
+(define (project-source-classifications
+         [project-root default-project-root])
+  (define root
+    (normalized project-root))
+  (if (and (safe-absolute-components? root)
+           (directory-exists? root))
+      (filter-map
+       (lambda (path)
+         (define class
+           (source-class path root))
+         (and class
+              (source-classification path class)))
+       (racket-files-under root))
+      '()))
+
+(define (files-in-class classifications class)
+  (for/list ([classification (in-list classifications)]
+             #:when
+             (eq? (source-classification-class classification) class))
+    (source-classification-path classification)))
+
+(define (unsafe-repository-path-violations files project-root)
+  (for/list ([path (in-list files)]
+             #:unless (source-file? path project-root))
+    (violation path 'disallowed-repository-source-path path)))
+
+(define (unclassified-repository-source-violations files project-root)
+  (for/list ([path (in-list files)]
+             #:when
+             (and (source-file? path project-root)
+                  (not (source-class path project-root))))
+    (violation path 'unclassified-repository-source path)))
 
 (define (unsafe-production-path-violations files project-root)
   (for/list ([path (in-list files)]
@@ -1151,6 +1359,46 @@
            (violation source
                       'unauthorized-host-capability-import
                       spec))))
+   files))
+
+(define (production-nonproduction-imports files project-root)
+  (define nonproduction-directories
+    (map (lambda (name)
+           (normalized (build-path project-root name)))
+         '("readers" "tests" "tooling" "examples")))
+  (append-map
+   (lambda (source)
+     (define info (read-module-info source project-root))
+     (if info
+         (for*/list ([spec (in-list (module-require-specs info))]
+                     [base (in-list (or (require-spec-bases spec) '()))]
+                     #:when
+                     (and (string? base)
+                          (let ([target (resolve-relative source base)])
+                            (ormap (lambda (directory)
+                                     (path-within? directory target))
+                                   nonproduction-directories))))
+           (violation source
+                      'production-imports-nonproduction
+                      spec))
+         '()))
+   files))
+
+(define (privileged-identifiers-outside-host files project-root host)
+  (append-map
+   (lambda (source)
+     (define info (read-module-info source project-root))
+     (if (or (not info) (equal? source host))
+         '()
+         (for/list
+             ([name
+               (in-list
+                (remove-duplicates
+                 (datum-symbols (module-info-forms info))))]
+              #:when (memq name privileged-host-only-identifiers))
+           (violation source
+                      'privileged-identifier-outside-host
+                      name))))
    files))
 
 (define (unclassified-require-specs files project-root)
@@ -1214,6 +1462,18 @@
      (define macro-files (racket-files-under macros-directory))
      (define runtime-files (racket-files-under runtime-directory))
      (define language-files (racket-files-under language-directory))
+     (define repository-files (racket-files-under root))
+     (define classifications
+       (filter-map
+        (lambda (path)
+          (define class (source-class path root))
+          (and class (source-classification path class)))
+        repository-files))
+     (define reader-files (files-in-class classifications 'reader))
+     (define test-files (files-in-class classifications 'test))
+     (define tooling-files (files-in-class classifications 'tooling))
+     (define application-files
+       (files-in-class classifications 'application))
      (define production-files
        (append
         (racket-files-under package-info)
@@ -1225,6 +1485,8 @@
                runtime-directory
                language-directory))))
      (append
+      (unsafe-repository-path-violations repository-files root)
+      (unclassified-repository-source-violations repository-files root)
       (unsafe-production-path-violations production-files root)
       (append-map (lambda (path)
                     (file-boundary-violations path 'effect root))
@@ -1240,6 +1502,18 @@
                                 'language-reader
                                 root)
       (file-boundary-violations package-info 'package-info root)
+      (append-map (lambda (path)
+                    (file-boundary-violations path 'reader root))
+                  reader-files)
+      (append-map (lambda (path)
+                    (file-boundary-violations path 'test root))
+                  test-files)
+      (append-map (lambda (path)
+                    (file-boundary-violations path 'tooling root))
+                  tooling-files)
+      (append-map (lambda (path)
+                    (file-boundary-violations path 'application root))
+                  application-files)
       (strict-vocabulary-violations codec
                                     root
                                     phase16-codec-vocabulary
@@ -1266,12 +1540,14 @@
                                   equal?))
         (violation path 'unclassified-language-module path))
       (unclassified-require-specs production-files root)
+      (production-nonproduction-imports production-files root)
       (unauthorized-codec-imports production-files root codec host)
       (unauthorized-host-imports production-files
                                  root
                                  host
                                  language-expander)
       (unauthorized-host-capability-imports production-files root host)
+      (privileged-identifiers-outside-host production-files root host)
       (unauthorized-host-surfaces production-files
                                   root
                                   host
@@ -1283,7 +1559,7 @@
   (cond
     [(null? findings)
      (printf
-      "Boundary check passed: pure effects, mechanical macros/language, isolated codec, sole host.\n")]
+      "Boundary check passed: all source classes inventoried; pure effects/readers isolated; sole host enforced.\n")]
     [else
      (for ([finding (in-list findings)])
        (eprintf "~a: ~a: ~a\n"

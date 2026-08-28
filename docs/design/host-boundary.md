@@ -1,6 +1,6 @@
 # Host boundary design
 
-Status: approved 2026-08-27; Phase 19 standalone language implemented
+Status: approved 2026-08-27; effects-and-standalone milestone complete
 
 Date: 2026-08-27
 
@@ -12,10 +12,11 @@ closed implementation described here and no broader relaxation of
 
 Kyle approved using the single `host` boundary in Alone the Lambdas and then
 approved this concrete request, codec, authority, and runtime contract on
-2026-08-27. Phases 14 through 19 subsequently implemented the approved codec
+2026-08-27. Phases 14 through 20 subsequently implemented the approved codec
 split, sole host bridge, `stdout`, whole-file operations, and complete blocking
 TCP lifecycle, followed by pure HTTP parsing, rendering, routing, and
-sequential serving outside the host, then the standalone reader and facade.
+sequential serving outside the host, then the standalone reader, facade,
+runnable applications, and whole-milestone acceptance evidence.
 
 ## Decision summary
 
@@ -343,8 +344,8 @@ libraries.
 
 ## Modules and dependency direction
 
-The implementation, once approved, will add only demonstrated files within
-these layers:
+The completed implementation contains only demonstrated files within these
+layers:
 
 ```text
 core/                 unchanged pure data and computation
@@ -387,8 +388,9 @@ for the approved lifecycle while adding a project-wide sole-importer check,
 Phase 17 added pure HTTP messages under the unchanged `effects/` class, and
 Phase 18 added only pure TCP/HTTP composition under that same class. Phase 19
 then added the exact standalone reader, expander, and package classes without
-granting any new operating-system capability. The other classifications
-remain unchanged:
+granting any new operating-system capability. Phase 20 inventories every
+Racket source, enforces the reader/support/application directions, and adds no
+host capability. The classifications are:
 
 | Class | Allowed boundary | Required check |
 | --- | --- | --- |
@@ -400,8 +402,9 @@ remain unchanged:
 | `lang/expander.rkt` | mechanical expansion, canonical import/export wiring, and one-time effect-wrapper injection | Exact imports and exports, fixed transformer/helper/runtime definitions, closed source vocabulary, no OS/process/environment/dynamic-loading/FFI/mutation capability, and the sole authorized import/re-export of production `host` |
 | `info.rkt` | single-collection package metadata | Exact collection name, runtime/build dependencies, description, and version |
 | `macros/` | mechanical syntax translation | Exactly the two approved paths, pinned languages/imports/exports and source vocabulary, and no OS/process/environment/dynamic-loading/FFI/mutation capabilities |
-| `readers/` | one-way human observation | Must not enter core/effect computation |
-| `tests/` and `tooling/` | host facilities needed to verify the claim | Never imported by production computation |
+| `readers/` | one-way human observation with host values and control flow, but no external effects, mutation, registry, or upward dependency | Racket/base reader scan, closed source vocabulary, narrow import direction, capability denial, and exclusion from every production dependency path |
+| `tests/` and `tooling/` | host facilities needed to verify the claim | Every Racket module is inventoried; both classes remain unrestricted support code and are rejected from production dependency paths |
+| `examples/` | public standalone language and its explicitly requested real-host effects | Exact `#lang alone_the_lambdas` classification plus fresh-install end-to-end execution in temporary/loopback scope |
 
 Repository checks must prove:
 
@@ -419,6 +422,9 @@ Repository checks must prove:
   validated before discovery; rejected symlinks are never traversed; no
   additional macro or language module exists; and the exact reader, expander,
   package metadata, and facade host path remain pinned;
+- every Racket source belongs to an approved repository class; readers have
+  only core/reader dependencies and no external-effect capability; and
+  readers, tests, tooling, and applications never enter production imports;
 - every pure production lambda is unary after mechanical expansion;
 - every wrapper's fake-host trace contains only its canonical request;
 - every implemented codec direction has exact round-trip, canonicality, and
@@ -450,12 +456,13 @@ coverage:
 - laziness: an unforced or unselected host application performs no effect, and
   repeated forcing of the same promise performs exactly one.
 
-No test contacts an external network service or reads/writes outside its
-temporary scope.
+No real-host effect test contacts an external network service or performs file
+effects outside its temporary scope; ordinary test/tooling reads of repository
+source are not object-language host operations.
 
-## Standalone surface decisions
+## Standalone surface
 
-The future language exports canonical `lambda`, `def`, `let`, typed `if`,
+The implemented language exports canonical `lambda`, `def`, `let`, typed `if`,
 typed `cons`, the public data API, these effect wrappers, and the single
 explicit `host`. Internal raw operations and Racket collision workarounds stay
 hidden.
@@ -538,5 +545,10 @@ application lowering, exact Nat and UTF-8 String literals, and the one-time
 binding of all nine public effect wrappers to the real host. Its fresh-install
 suite proves canonical values and module isolation, while the structural gate
 proves the facade is the only new production importer/exporter of `host` and
-has no direct operating-system capability. The broader approval record above
-still controls the remaining runnable-application and final-acceptance phase.
+has no direct operating-system capability. Phase 20 added the exact stdout,
+isolated file-round-trip, and ephemeral-loopback HTTP applications; ran them
+from a copied package installation under an isolated Racket user home; and
+closed the evidence map across core, effects, codec, host, macros, language,
+readers, tests, tooling, and applications. It changed no production operation,
+authority, representation, or language semantic. The approval record above
+continues to control the completed boundary.
