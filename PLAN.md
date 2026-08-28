@@ -477,3 +477,277 @@ unknown source locations, and pins host-exclusive primitives outside the sole
 bridge. `docs/ACCEPTANCE.md` records the final criterion map and explicit
 one-bridge evidence map. Phase 20 added no executable production module and
 changed no operation, authority, representation, or language semantic.
+
+# Milestone 3 — Independent distribution
+
+Status: in progress (Phase 22 next)
+
+This milestone turns the completed Racket-hosted implementation into a product
+that a programmer can download and use without installing, configuring, or
+knowing Racket. It changes delivery and launch infrastructure, not the
+object-language computational model.
+
+The following constraints apply throughout:
+
+- `.atl` is the canonical public source extension. A source file retains the
+  exact `#lang alone_the_lambdas` declaration so the existing verified reader,
+  expander, source locations, and Lisp syntax remain authoritative; users run
+  it through `atl`, never through a separately installed `racket` command.
+- The initial public command surface is exactly `atl run FILE.atl`,
+  `atl --help`, and `atl --version`. A REPL, compiler command, package manager,
+  formatter, debugger, editor integration, installer, and automatic updater
+  remain outside this milestone unless a later phase proves one necessary.
+- A release artifact bundles the Racket runtime and every language module it
+  needs. It must not consult a system Racket installation, user package
+  registry, source checkout, build directory, or network service at run time.
+- The launcher is trusted module-loading scaffolding, not object-language
+  computation and not another language-visible effect primitive. Its exact
+  dynamic-loading and diagnostic capabilities must be separately classified;
+  no Alone the Lambdas program may import, name, or invoke them.
+- The approved unary `host` remains the sole language-visible bridge for
+  stdout, file, and TCP effects. Packaging must not add parsing, arithmetic,
+  routing, Result control flow, or other ordinary language behavior in the
+  launcher.
+- Real-host programs retain the launching process's documented filesystem and
+  network authority. Distribution adds no implied sandbox, permission prompt,
+  backup, or trust guarantee.
+- Use Racket's included executable-embedding and distribution facilities
+  before considering another dependency. The expected artifact cost is a
+  bundled Racket runtime and its transitive support files; every platform
+  phase must measure compressed size, installed size, startup time, and the
+  included file set.
+- Release builds use one pinned Racket CS toolchain. Start with Racket 9.3,
+  which the existing CI already pins; the Phase 21 proof must record and
+  justify any change instead of silently building artifacts with the local
+  Racket 8.10 installation.
+- Native artifacts are required initially for Linux x86-64, macOS x86-64,
+  macOS arm64, and Windows x86-64. Each artifact is built and tested on its
+  own operating-system family because Racket distributions are platform
+  specific.
+- A public release is blocked until Kyle explicitly approves both the
+  repository license and publication of the release. Planning or building a
+  release candidate is not permission to publish one.
+
+## Phase 21 — Distribution contract and feasibility proof
+
+Status: complete and approved (2026-08-27)
+
+- [x] Write `docs/design/standalone-distribution.md` with the exact `.atl`
+  source contract, command grammar, exit-status rules, trusted-launcher
+  boundary, artifact layouts, target matrix, version source, and release
+  authority.
+- [x] Define launcher behavior for missing files, wrong extensions, malformed
+  language declarations, source/expansion failures, unexpected implementation
+  failures, and ordinary lambda-encoded Error or Result values. The launcher
+  must not reinterpret an object-language Error as a host exception or use it
+  to decide later object-language effects.
+- [x] Prove in disposable test space under the pinned Racket 9.3 toolchain
+  that it can load a `.atl` module and that `raco exe` with explicit dynamic
+  `#lang` support plus `raco distribute` can carry the reader, expander, compiler
+  support, language modules, and runtime files needed to run a user-supplied
+  source outside the checkout.
+- [x] Record the observed artifact dependency closure and identify every
+  trusted module-loading capability that later boundary tooling must admit;
+  do not add production launcher code during the proof.
+- [x] Obtain explicit approval of the completed distribution design before
+  Phase 22 changes the language surface or introduces launcher code.
+
+Acceptance: the end-user and trust contracts are unambiguous, the current
+toolchain has demonstrated that arbitrary external `.atl` files can be carried
+by a self-contained distribution, and no new purity exception or public
+capability has been implemented before approval.
+
+## Phase 22 — Canonical `.atl` runner
+
+Status: planned
+
+- [ ] Implement the minimal `atl` entry point in its own `runner/` layer with
+  the approved `run`, `--help`, and `--version` interface and no third-party
+  dependency.
+- [ ] Load exactly the path supplied to `atl run`, require the canonical
+  `.atl` extension and `#lang alone_the_lambdas` declaration, reject every
+  dotenv spelling before content access, preserve source filename/line/column
+  information, and avoid implicit directory, package, network, or source-file
+  discovery.
+- [ ] Establish one version source shared by package metadata, the CLI, build
+  scripts, and future artifact names; initialize the public product version as
+  `0.2.0-dev`. Because Racket 9.3 rejects that SemVer spelling in `info.rkt`,
+  mechanically derive and verify the approved `0.1.900` package-metadata
+  projection rather than duplicating version authority.
+- [ ] Add an exact runner classification to the structural boundary gate. It
+  may contain only the approved command-line and module-loading scaffolding,
+  must export no object-language binding, and must remain unreachable from
+  core, effects, codec, host, macros, readers, and the language facade.
+- [ ] Rename the three public programs to `.atl`, add the minimal `hello.atl`
+  used by the end-user guide, update copied-package and application inventory
+  rules to recognize the official extension, and reject unknown or symlinked
+  application inputs without inspecting their targets.
+- [ ] Add focused source-tree tests for help, version, argument validation,
+  paths containing spaces and non-ASCII characters, the hello smoke program,
+  all three canonical applications, and proof that the runner uses the
+  existing language rather than a second parser or evaluator.
+
+Acceptance: from the development checkout, the new entry point runs canonical
+`.atl` programs through the existing language with stable command behavior,
+while structural checks prove the loader is scaffolding rather than a second
+object-language escape hatch.
+
+## Phase 23 — User-facing launch diagnostics
+
+Status: planned
+
+- [ ] Give command misuse, missing/unreadable source, invalid extension,
+  malformed declaration, read/expansion failure, and unexpected launcher
+  failure concise Alone the Lambdas diagnostics on stderr with documented,
+  stable nonzero exit statuses.
+- [ ] Preserve the original `.atl` path and useful source position while
+  removing checkout paths, temporary build paths, host procedure renderings,
+  and irrelevant Racket implementation stack details from normal diagnostics.
+- [ ] Keep lambda-encoded Error and Result semantics unchanged: a successfully
+  instantiated module exits successfully unless the program explicitly turns
+  a value into an effect or the approved design establishes a one-way final
+  observation rule that cannot affect object-language computation.
+- [ ] Test syntax errors, unbound identifiers, unsupported datums, wrong public
+  names, ordinary contract Errors, Result Err values, real-host failures, and
+  internal launcher failures separately so the CLI never disguises one class
+  as another.
+- [ ] Synchronize the architecture and acceptance evidence with the exact
+  distinction between launcher failure, completed language data, and requested
+  host failure.
+
+Acceptance: a user who does not know Racket receives actionable ATL-level
+launch diagnostics without changing Error/Result behavior, effect order, or
+the sole-host claim.
+
+## Phase 24 — Self-contained Linux distribution
+
+Status: planned
+
+- [ ] Add one deterministic build entry point that compiles the runner,
+  explicitly embeds dynamic support for `#lang alone_the_lambdas`, assembles
+  its runtime with `raco distribute`, and produces a versioned Linux x86-64
+  archive without modifying the developer's package registry.
+- [ ] Keep build outputs outside source control and include only the executable
+  tree plus the provisional runtime notices, getting-started document, build
+  manifest, and `.atl` examples approved for internal testing. Until Phase 27
+  records an approved repository license, label every archive as an
+  unpublished development artifact rather than a releasable download.
+- [ ] In a fresh Linux container with no `racket` or `raco` command, no ATL
+  package installation, no source checkout, and no inherited Racket
+  collection path, unpack the archive after transferring it as an opaque
+  artifact and run help, version, stdout, isolated file round trip, and
+  ephemeral-loopback HTTP acceptance.
+- [ ] Move the unpacked tree to a second path and repeat a smoke run to prove
+  it contains no absolute build-tree or package-registry dependency.
+- [ ] Record compressed size, unpacked size, startup time, runtime file
+  inventory, remaining system-library assumptions, and SHA-256 digest. Do not
+  optimize with demodularization or another tool until this correct baseline
+  exists and measurement demonstrates a need.
+
+Acceptance: the Linux archive runs arbitrary canonical `.atl` source on a
+machine with no Racket installation and performs the completed language's real
+stdout, file, and loopback-network work entirely from the unpacked tree.
+
+## Phase 25 — Native macOS distributions
+
+Status: planned
+
+- [ ] Add pinned native macOS x86-64 and arm64 build jobs using the same
+  version and audited build contract as Linux; do not treat a launcher tied to
+  a CI Racket installation as a distributable executable.
+- [ ] Produce predictably named `.tar.gz` archives that preserve the runtime-
+  relative layout and canonical `atl` entry point on both architectures.
+- [ ] Transfer each archive to a separate same-architecture consumer job that
+  does not install Racket, then run the CLI, canonical stdout/file
+  applications, and loopback-network acceptance from a writable temporary
+  directory.
+- [ ] Verify archive contents, executable permissions, paths containing spaces,
+  clean stderr, version agreement, checksums, and absence of checkout,
+  package-registry, or build-runner dependencies on both targets.
+- [ ] Record the oldest macOS versions actually demonstrated by clean consumer
+  jobs; do not claim an untested release, architecture, signing state, or
+  minimum version.
+
+Acceptance: both macOS architectures provide the same ATL behavior as Linux
+without a preinstalled Racket environment, and each passes its acceptance
+suite after a build-to-consumer job boundary.
+
+## Phase 26 — Native Windows distribution
+
+Status: planned
+
+- [ ] Add a pinned native Windows x86-64 build job using the same version and
+  audited build contract as Linux and macOS, including every DLL and runtime
+  file required by a machine without Racket.
+- [ ] Produce a predictably named `.zip` archive with the canonical `atl.exe`
+  entry point and a runtime-relative layout that survives extraction to a
+  different drive and a path containing spaces.
+- [ ] Transfer the archive to a separate Windows consumer job that does not
+  install Racket, then run help, version, stdout, isolated file round trip,
+  and ephemeral-loopback HTTP acceptance from the extracted tree.
+- [ ] Verify archive contents, exit statuses, clean stderr, version agreement,
+  checksum, absence of checkout/package-registry/build-runner dependencies,
+  and the exact unsigned or signed executable status.
+- [ ] Record the oldest Windows version actually demonstrated by a clean
+  consumer environment; do not claim an untested release, architecture,
+  signing state, or installer experience.
+
+Acceptance: the Windows archive runs the same canonical `.atl` programs as
+the Linux and macOS archives with no external Racket installation, survives
+relocation, and passes its independent consumer suite.
+
+## Phase 27 — Downloadable release candidate and novice documentation
+
+Status: planned
+
+- [ ] Select and record a repository license only after Kyle explicitly
+  approves the legal terms; include that license and an exact notice for the
+  bundled Racket runtime in every release-candidate artifact.
+- [ ] Separate contributor setup from end-user setup. The primary getting-
+  started path must begin with downloading the correct platform archive,
+  extracting it, and running `atl run hello.atl`; it must not instruct an end
+  user to install Racket, use `raco`, or register a package.
+- [ ] Document `.atl` syntax, the required language declaration, executable
+  location, supported platforms, exit statuses, archive verification, and the
+  real host's unsandboxed stdout/filesystem/network authority in plain
+  language.
+- [ ] Promote the single version source to `0.2.0-rc.1`, rebuild and stage the
+  four archives with the approved license, one checksum manifest, source
+  commit, dependency/runtime inventory, release notes, and exact known
+  limitations as an unpublished release candidate.
+- [ ] Have clean consumer jobs execute every command printed in the end-user
+  guide and verify the downloaded-artifact workflow independently of the
+  source-tree tests.
+
+Acceptance: a person with no Racket installation or knowledge can follow the
+release-candidate documentation verbatim, verify the archive, and run a real
+`.atl` program; the candidate remains unpublished pending explicit approval.
+
+## Phase 28 — First independent release
+
+Status: planned and approval-gated
+
+- [ ] Set `0.2.0` as the single release version, make the CLI, package
+  metadata, artifact names, documentation, and release notes derive from it,
+  and reject mismatches in CI.
+- [ ] Run the complete source suite, expanded core purity proof, repository
+  boundary inventory, four native artifact builds, and four no-Racket consumer
+  suites from the exact commit proposed for release.
+- [ ] Present the final license, public Git tag, GitHub Release, artifact
+  names, checksums, platform support, unsigned/signing status, and any user
+  warnings to Kyle, then obtain explicit permission to publish that exact
+  release. State any account, credential, monetary, or irreversible
+  consequence literally before requesting it.
+- [ ] After approval, create the annotated Git tag (cryptographically signed
+  only if separately approved signing credentials are available) and public
+  GitHub Release, attach only the verified artifacts and checksum manifest,
+  then download and reverify each published artifact rather than trusting the
+  upload step.
+- [ ] Confirm the public instructions resolve from a clean browser-visible
+  release URL, `atl --version` reports `0.2.0`, all checksums match, and `main`
+  remains clean and synchronized with its verified remote.
+
+Acceptance: Alone the Lambdas has a verified public `0.2.0` release whose
+users download a platform archive, write `.atl`, and run `atl` without
+installing or learning Racket, while the language's lambda purity and single
+explicit host boundary remain unchanged.
