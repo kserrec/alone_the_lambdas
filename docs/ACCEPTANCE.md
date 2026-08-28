@@ -3,8 +3,9 @@
 This document maps every completed core and effects requirement to observed
 evidence in the repository. The authoritative requirements remain the three
 [specifications](specifications/README.md) and the approved
-[host-boundary design](design/host-boundary.md); this is their verification
-index, not a replacement.
+[host-boundary design](design/host-boundary.md), together with the approved
+[standalone-distribution design](design/standalone-distribution.md); this is
+their verification index, not a replacement.
 
 Verified on 2026-08-26 with:
 
@@ -51,6 +52,13 @@ scan, and the complete 76-source classification and one-bridge boundary scan.
 The exact three applications ran from a copied package installation under an
 isolated Racket user home; filesystem effects stayed in an empty temporary
 directory and network effects stayed on an ephemeral loopback port.
+
+Phase 22 was verified on 2026-08-27 with `./run-all-tests.sh`: 4,412 passing
+assertions across 31 test files, the unchanged clean 16-module expanded core
+scan, and the complete 79-source classification with a closed runner class.
+All runner and application execution used a copied package installation under
+an isolated Racket user home rather than a checkout link or existing package
+registry entry.
 
 ## Base specification criteria
 
@@ -143,9 +151,20 @@ directory and network effects stayed on an ephemeral loopback port.
 | Requirement | Evidence |
 | --- | --- |
 | A fresh checkout can install and run ordinary standalone programs. | [`fresh-language.rkt`](../tests/helpers/fresh-language.rkt) copies only the package metadata, production directories, and exact application directory, excluding every dotenv spelling plus VCS/compiled state before content access and rejecting symlinks, then installs the copy under an isolated Racket user home. [`language-test.rkt`](../tests/language-test.rkt) retains all 75 Phase 19 checks through that shared harness. [`milestone-two-acceptance-test.rkt`](../tests/milestone-two-acceptance-test.rkt) runs the exact repository examples outside the installed collection, so no source-tree package link or undeclared dependency can satisfy resolution. |
-| The three terse applications perform all four specified effect families. | [`stdout.rkt`](../examples/stdout.rkt) proves public `stdout`. [`file-round-trip.rkt`](../examples/file-round-trip.rkt) sequences public `write-file` before public `read-file` by inspecting the first Result, emits the recovered bytes, and is verified only in an empty temporary directory. [`http-server.rkt`](../examples/http-server.rkt) exercises the TCP listen/accept/read/write/close path, uses only public lambda operations to format its ephemeral port, serves one lambda-built HTTP response to a test-side external client, closes its caller-owned listener, and exits. The focused TCP suites separately retain connect, all schema/failure, binary, blocking, handle, and lifecycle coverage. |
+| The three terse applications perform all four specified effect families. | [`stdout.atl`](../examples/stdout.atl) proves public `stdout`. [`file-round-trip.atl`](../examples/file-round-trip.atl) sequences public `write-file` before public `read-file` by inspecting the first Result, emits the recovered bytes, and is verified only in an empty temporary directory. [`http-server.atl`](../examples/http-server.atl) exercises the TCP listen/accept/read/write/close path, uses only public lambda operations to format its ephemeral port, serves one lambda-built HTTP response to a test-side external client, closes its caller-owned listener, and exits. The focused TCP suites separately retain connect, all schema/failure, binary, blocking, handle, and lifecycle coverage. |
 | Every Racket source has the correct structural classification. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) inventories all 76 Racket sources across pure core, effects, the two trusted runtime modules, the two exact macros, reader/expander/package surface, one-way readers, tests, tooling, and applications. Unknown locations and symlinks fail closed. Readers may use host data and control flow through an exact closed vocabulary, may import only core and reader modules, and cannot use external-effect, mutation, registry, process, eval, environment, dynamic-loading, FFI, or threading capabilities. Tests and tooling retain host authority but cannot enter production imports. Applications must use `#lang alone_the_lambdas`. The 85-check boundary suite includes direct rejection probes for each new rule, every nonproduction import direction, and the application language. |
 | The core purity claim remains unchanged. | [`check-purity.rkt`](../tooling/check-purity.rkt) still expands and accepts exactly the same 16 zero-exception `core/` modules. No Phase 20 executable production file was created or modified; the example computations pass through the already accepted facade and layers. |
+
+## Phase 22 canonical-runner evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| The command and `.atl` source contracts are exact. | [`runner-test.rkt`](../tests/runner-test.rkt) uses the copied-package runner for exact help/version output, every command-misuse shape, lowercase-extension precedence, missing/nonregular inputs, exact LF/CRLF/EOF declarations, bare-CR and malformed-declaration rejection, direct symlink refusal, supplied and resolved-parent dotenv refusal, and paths containing spaces and non-ASCII characters. Covered launcher failures write nothing to stdout and use exact statuses 64, 65, and 66; the structural gate separately pins the defensive unexpected-failure status at 70. Phase 23 owns final diagnostic templates and a deterministic internal-failure presentation test. |
+| The runner delegates to the existing language exactly once. | [`atl.rkt`](../runner/atl.rkt) validates one explicit path and invokes `dynamic-require` on that path without importing a reader, expander, codec, runtime, test, tool, or application. The focused suite runs [`hello.atl`](../examples/hello.atl), exercises existing facade currying and UTF-8 String lowering, and proves an unavailable Racket identifier is rejected by the existing expander. [`milestone-two-acceptance-test.rkt`](../tests/milestone-two-acceptance-test.rkt) launches all three real effect applications through the same copied runner. |
+| Runner scaffolding cannot become object-language computation or a second effect bridge. | [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) admits only `runner/atl.rkt`, its exact Racket imports, fixed definition and exit-status sets, two exact input targets, closed vocabulary, no export, terminal `main`, and exactly one `(dynamic-require source-path #f)`. It rejects copied product-version literals, altered metadata/header read targets, extra runner modules, exports, changed loader targets, changed status constants, project imports, environment/process/eval/namespace/network/directory/mutation capabilities, and every production dependency on `runner/`. The 110-check boundary suite proves representative denials, including symlink rejection without target reads and same-named application directories. |
+| Product and package versions have one authority. | Root [`VERSION`](../VERSION) contains exactly `0.2.0-dev` plus LF. Runner expansion/build derives and embeds the CLI value from that source, so a future native artifact needs no runtime version file and the runner source contains no copied public version literal. The boundary gate accepts only the approved `0.2.0-dev` → `0.1.900`, `0.2.0-rc.1` → `0.1.901`, and `0.2.0` → `0.2` package projections and rejects malformed, mismatched, missing, or symlinked version metadata without reading a symlink target. |
+| Completed language failures remain language data. | Runner tests prove a strict contract Error and a real-host `read-file` Result Err both complete with process status 0 and no implicit observation. The runner never decodes, renders, or branches on either value; the unchanged facade module wrapper alone forces requested top-level effects and discards the completed lambda value. |
+| The public application inventory is canonical. | The repository contains exactly `hello.atl`, `stdout.atl`, `file-round-trip.atl`, and `http-server.atl` under `examples/`. The boundary inventory rejects old `.rkt` names, unknown application sources, missing canonical files, non-language modules, and symlinked entries without reading linked content. |
 
 ## Explicit one-bridge evidence map
 
@@ -156,16 +175,20 @@ directory and network effects stayed on an ephemeral loopback port.
 | Raw stdout, filesystem, TCP, registry, and external-failure operations | [`runtime/host.rkt`](../runtime/host.rkt) | Exact `racket/file` and `racket/tcp` imports, host-only primitive identifiers, closed dispatcher vocabulary, and sole-importer scans reject the same capabilities everywhere else in production. Real-host tests prove each approved operation. |
 | Request construction, typing, Result control flow, HTTP parsing/rendering/routing/serving | [`effects/`](../effects) | The effect scanner admits only variables, unary lambdas, unary applications, mechanical forms, pure core/effect imports, and application of an injected unary host argument. Exact fake-host traces prove wrappers issue only canonical requests. |
 | Public access to the same bridge and bound wrappers | [`lang/expander.rkt`](../lang/expander.rkt) | Exact facade imports/exports and nine fixed injection definitions permit only this module to import and re-export the runtime binding; the facade has no direct OS capability. |
+| Process launch and one requested module load | [`runner/atl.rkt`](../runner/atl.rkt) | The separately trusted, non-exporting runner validates host command/path/header metadata and instantiates one source through the existing language. It imports neither `runtime/host.rkt` nor the codec, observes no lambda value, and is unreachable from every object-language module, so it does not add a language-visible bridge. |
 | Host-enabled observation and verification | [`readers/`](../readers), [`tests/`](../tests), and [`tooling/`](../tooling) | These are explicitly nonproduction classes. Reader imports/effects are constrained, every source is inventoried, and every production dependency on any support class is rejected. |
 
 ## What this milestone does not claim
 
 The completed milestone deliberately does not claim sandboxing or per-program
 permission prompts: a real-host program inherits the launching Racket
-process's relevant authority. It has no command-line argument API, separate
-runner, general parser, optimizer, compiler, records, JSON, environment or
-process access, directory operations, atomic file replacement, TLS, UDP,
-timeouts, asynchronous server, production concurrency, or general HTTP
-framework. The minimal HTTP parser/server supports only the documented
+process's relevant authority. Phase 22 now has an exact development runner,
+but not yet a self-contained native executable, distributed runtime, frozen
+Phase 23 diagnostic templates, or downloadable release. The language has no
+program-argument API, general parser, optimizer, compiler, records, JSON,
+environment or process access, directory operations, atomic file replacement,
+TLS, UDP, timeouts, asynchronous server, production concurrency, or general
+HTTP framework. The minimal HTTP parser/server supports only the documented
 blocking HTTP/1.1 subset and one sequential connection at a time. These are
-explicit limits, not unimplemented parts of either completed milestone.
+explicit current limits, not new object-language capabilities implied by the
+runner.

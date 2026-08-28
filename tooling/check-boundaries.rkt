@@ -1,9 +1,9 @@
 #lang racket/base
 
-;; Structural gate for the deliberately nonuniform completed milestone tree.
+;; Structural gate for the deliberately nonuniform language tree.
 ;; `check-purity.rkt` remains the expanded zero-exception proof for core/. This
-;; checker inventories every Racket source and adds the approved classes
-;; without weakening that proof:
+;; checker inventories every Racket or `.atl` source and adds the approved
+;; classes without weakening that proof:
 ;;
 ;;   core/                separately scanned pure unary-lambda computation
 ;;   effects/             pure source forms, including the HTTP server
@@ -14,7 +14,8 @@
 ;;   lang/expander.rkt    exact imports/exports and mechanical expansion only
 ;;   readers/             host observation only; no effects or upward imports
 ;;   tests/, tooling/     host-enabled support code, never production imports
-;;   examples/            standalone language applications, tested end to end
+;;   runner/atl.rkt       closed command/path/module-loading scaffolding
+;;   examples/*.atl       exact standalone applications, tested end to end
 ;;   info.rkt             exact single-collection package metadata
 
 (require racket/file
@@ -75,6 +76,83 @@
 (define forbidden-language-capabilities
   (remove* '(tcp-connect tcp-listen tcp-accept tcp-close)
            forbidden-codec-capabilities))
+
+;; The runner is trusted only to decide whether and how the host process loads
+;; the one explicitly supplied source. Its exact import and source vocabulary
+;; leave dynamic module loading unavailable everywhere else.
+(define forbidden-runner-capabilities
+  '(current-input-port current-environment-variables getenv putenv
+    read read-char read-line read-string read-syntax
+    open-input-file open-output-file call-with-output-file
+    write write-byte write-bytes print printf
+    file->bytes file->string
+    directory-list make-directory make-directory* delete-directory
+    delete-directory/files delete-file rename-file-or-directory copy-file
+    tcp-connect tcp-listen tcp-accept tcp-close udp-open-socket
+    system system* process process* subprocess shell-execute
+    eval eval-syntax load namespace-require make-base-namespace
+    ffi-lib get-ffi-obj
+    thread thread/suspend-to-kill future place
+    set! set-box! vector-set! hash-set! hash-set*! bytes-set! string-set!
+    make-hash make-hasheq make-weak-hash register registry))
+
+(define runner-vocabulary
+  '(#%module-begin = and append arguments binary bitwise-and build-path
+    bytes->string/utf-8 bytes-length bytes? cadr call-with-input-file car cdr
+    command-misuse-status complete-path cond cons content
+    current-command-line-arguments datum->syntax declaration define
+    define-syntax define-values directory? display dotenv-component?
+    dotenv-path? dynamic-require else embedded-product-version eof-object?
+    eprintf eq? equal? exit exn:fail:filesystem? exn:fail:read?
+    exn:fail:syntax? exn:fail? explode-path failure file-or-directory-stat
+    file-type-bits for-syntax for/or hash-ref help-text if in-list input
+    invalid-source-status lambda language-declaration length let link-exists?
+    loop main matched member name newline next null? only-in or parent part path
+    mode path->complete-path path->string path-get-extension path-only path?
+    product-version quote racket/base racket/file racket/path
+    raise-syntax-error read-byte
+    read-bytes reason regexp-match regexp-match? remaining require
+    resolve-parent-path resolve-path resolved resolved-parent resolved-source
+    run-source seen simplify-path source source-name source-path split-path
+    status stop string->path string-append string-downcase stx supplied-path
+    syntax-source terminator unavailable-source-status
+    unexpected-failure-status unless up regular-file-type-bits regular-file?
+    valid-language-declaration?
+    validate-source vector->list when with-handlers))
+
+(define expected-runner-requires
+  '((require (only-in racket/file file-type-bits regular-file-type-bits)
+             (only-in racket/path path-get-extension)
+             (for-syntax racket/base
+                         (only-in racket/path path-only)))))
+
+(define expected-runner-definitions
+  '(command-misuse-status
+    invalid-source-status
+    unavailable-source-status
+    unexpected-failure-status
+    help-text
+    language-declaration
+    embedded-product-version
+    stop
+    dotenv-component?
+    dotenv-path?
+    resolve-parent-path
+    valid-language-declaration?
+    regular-file?
+    validate-source
+    run-source
+    main))
+
+(define expected-runner-status-definitions
+  '((define command-misuse-status 64)
+    (define invalid-source-status 65)
+    (define unavailable-source-status 66)
+    (define unexpected-failure-status 70)))
+
+(define expected-runner-input-targets
+  '((build-path (path-only source) (quote up) "VERSION")
+    source))
 
 ;; Readers may turn completed values into host values for tests and people,
 ;; but they are not another effects layer. Host control flow and data are
@@ -399,13 +477,31 @@
 (define expected-language-reader-forms
   '(alone_the_lambdas/lang/expander))
 
-(define expected-package-info-forms
-  '((define collection "alone_the_lambdas")
+(define product-version-projections
+  '((#"0.2.0-dev\n" . "0.1.900")
+    (#"0.2.0-rc.1\n" . "0.1.901")
+    (#"0.2.0\n" . "0.2")))
+
+(define runner-forbidden-version-literals
+  (append-map
+   (lambda (entry)
+     (define with-newline (car entry))
+     (define without-newline
+       (subbytes with-newline
+                 0
+                 (sub1 (bytes-length with-newline))))
+     (list with-newline
+           without-newline
+           (bytes->string/utf-8 without-newline)))
+   product-version-projections))
+
+(define (expected-package-info-forms package-version)
+  `((define collection "alone_the_lambdas")
     (define deps (quote ("base" "lazy")))
     (define build-deps (quote ("rackunit-lib" "net-lib")))
     (define pkg-desc
       "A pure unary-lambda language with one explicit host boundary")
-    (define version "0.1")))
+    (define version ,package-version)))
 
 (define (normalized path)
   (simplify-path (path->complete-path path) #f))
@@ -501,6 +597,50 @@
 
 (define (violation path kind detail)
   (boundary-violation path kind (format "~s" detail)))
+
+(define (regular-file-path? path)
+  (with-handlers ([exn:fail? (lambda (failure) #f)])
+    (= (bitwise-and
+        (hash-ref (file-or-directory-stat path) 'mode)
+        file-type-bits)
+       regular-file-type-bits)))
+
+(define (version-path project-root)
+  (normalized (build-path project-root "VERSION")))
+
+(define (version-projection project-root)
+  (define path (version-path project-root))
+  (and (safe-source-path? path project-root)
+       (regular-file-path? path)
+       (with-handlers ([exn:fail? (lambda (failure) #f)])
+         (define entry
+           (assoc (file->bytes path)
+                  product-version-projections
+                  bytes=?))
+         (and entry (cdr entry)))))
+
+(define (version-file-violations project-root)
+  (define path (version-path project-root))
+  (cond
+    [(not (safe-source-path? path project-root))
+     (list (violation path 'disallowed-version-path path))]
+    [(not (file-exists? path))
+     (list (violation path 'missing-version-file path))]
+    [(not (regular-file-path? path))
+     (list (violation path 'invalid-version-file-type path))]
+    [else
+     (with-handlers
+         ([exn:fail?
+           (lambda (failure)
+             (list (violation path
+                              'version-read-failure
+                              (exn-message failure))))])
+       (define content (file->bytes path))
+       (if (assoc content product-version-projections bytes=?)
+           '()
+           (list (violation path
+                            'invalid-product-version
+                            content))))]))
 
 (define (require-form? form)
   (and (pair? form) (eq? (car form) 'require)))
@@ -632,8 +772,10 @@
 
 (define (source-file? path project-root)
   (and (safe-source-path? path project-root)
-       (file-exists? path)
-       (equal? (path-get-extension path) #".rkt")))
+       (regular-file-path? path)
+       (member (path-get-extension path)
+               '(#".rkt" #".atl")
+               equal?)))
 
 ;; All opportunistic project-wide reads go through this guard. The one caller
 ;; that has already rejected unsafe/missing paths uses the unchecked reader so
@@ -718,6 +860,33 @@
              (datum-symbols (cdr datum)))]
     [(vector? datum)
      (append-map datum-symbols (vector->list datum))]
+    [else '()]))
+
+(define (datum-occurrence-count target datum)
+  (cond
+    [(equal? target datum) 1]
+    [(pair? datum)
+     (+ (datum-occurrence-count target (car datum))
+        (datum-occurrence-count target (cdr datum)))]
+    [(vector? datum)
+     (for/sum ([element (in-vector datum)])
+       (datum-occurrence-count target element))]
+    [else 0]))
+
+(define (call-first-arguments name datum)
+  (cond
+    [(pair? datum)
+     (append
+      (if (and (eq? (car datum) name)
+               (pair? (cdr datum)))
+          (list (cadr datum))
+          '())
+      (call-first-arguments name (car datum))
+      (call-first-arguments name (cdr datum)))]
+    [(vector? datum)
+     (append-map (lambda (element)
+                   (call-first-arguments name element))
+                 (vector->list datum))]
     [else '()]))
 
 (define (symbol-violations path symbols forbidden kind)
@@ -1062,10 +1231,16 @@
                                  'unapproved-reader-identifier)))
 
 (define (application-violations path info)
-  (exact-language-violations path
-                             info
-                             'alone_the_lambdas/lang/expander
-                             'unexpected-application-language))
+  (append
+   (if (equal? (path-get-extension path) #".atl")
+       '()
+       (list (violation path
+                        'invalid-application-extension
+                        (path-get-extension path))))
+   (exact-language-violations path
+                              info
+                              'alone_the_lambdas/lang/expander
+                              'unexpected-application-language)))
 
 ;; Tests and tooling deliberately have normal Racket authority. Their
 ;; structural rule is classification plus exclusion from every production
@@ -1073,14 +1248,17 @@
 (define (host-support-violations path info class)
   '())
 
-(define (package-info-violations path info)
+(define (package-info-violations path info project-root)
+  (define package-version
+    (version-projection project-root))
   (append
    (exact-language-violations path
                               info
                               'setup/infotab
                               'unexpected-package-info-language)
-   (if (equal? (module-info-forms info)
-               expected-package-info-forms)
+   (if (and package-version
+            (equal? (module-info-forms info)
+                    (expected-package-info-forms package-version)))
        '()
        (list (violation path
                         'invalid-package-info-forms
@@ -1119,7 +1297,104 @@
           (and (list? (cadr form))
                (= (length (cadr form)) 1)
                (caadr form))]
+         [(define-runtime-path)
+          (and (symbol? (cadr form))
+               (cadr form))]
+         [(define-syntax)
+          (let ([binding (cadr form)])
+            (if (pair? binding) (car binding) binding))]
          [else #f])))
+
+(define (runner-violations path info project-root)
+  (define symbols
+    (datum-symbols (module-info-forms info)))
+  (define definitions
+    (filter-map top-level-binding-name
+                (module-info-forms info)))
+  (define status-definitions
+    (filter (lambda (form)
+              (memq (top-level-binding-name form)
+                    '(command-misuse-status
+                      invalid-source-status
+                      unavailable-source-status
+                      unexpected-failure-status)))
+            (module-info-forms info)))
+  (append
+   (exact-language-violations path
+                              info
+                              'racket/base
+                              'unexpected-runner-language)
+   (exact-require-violations path
+                             info
+                             expected-runner-requires
+                             'invalid-runner-imports)
+   (if (null? (filter provide-form? (module-info-forms info)))
+       '()
+       (list (violation path
+                        'invalid-runner-export
+                        (filter provide-form?
+                                (module-info-forms info)))))
+   (if (equal? definitions expected-runner-definitions)
+       '()
+       (list (violation path
+                        'invalid-runner-definition-set
+                        definitions)))
+   (if (equal? status-definitions expected-runner-status-definitions)
+       '()
+       (list (violation path
+                        'invalid-runner-status-definitions
+                        status-definitions)))
+   (if (and (equal? (call-first-arguments
+                     'call-with-input-file
+                     (module-info-forms info))
+                    expected-runner-input-targets)
+            (= (datum-occurrence-count
+                '(valid-language-declaration? resolved-source)
+                (module-info-forms info))
+               1))
+       '()
+       (list (violation path
+                        'invalid-runner-input-targets
+                        (call-first-arguments
+                         'call-with-input-file
+                         (module-info-forms info)))))
+   (for/list ([literal (in-list runner-forbidden-version-literals)]
+              #:when (positive?
+                      (datum-occurrence-count
+                       literal
+                       (module-info-forms info))))
+     (violation path
+                'duplicated-runner-version-literal
+                literal))
+   (if (and (pair? (module-info-forms info))
+            (equal? (last (module-info-forms info)) '(main))
+            (= (count (lambda (name)
+                        (eq? name 'dynamic-require))
+                      symbols)
+               1)
+            (= (datum-occurrence-count
+                '(dynamic-require source-path #f)
+                (module-info-forms info))
+               1)
+            (= (count (lambda (name)
+                        (eq? name 'call-with-input-file))
+                      symbols)
+               2))
+       '()
+       (list (violation path
+                        'invalid-runner-entry-or-loader
+                        'main/dynamic-require)))
+   (symbol-violations path
+                      symbols
+                      forbidden-runner-capabilities
+                      'forbidden-runner-capability)
+   (capability-pattern-violations path
+                                  symbols
+                                  'forbidden-runner-capability)
+   (strict-vocabulary-violations path
+                                 project-root
+                                 runner-vocabulary
+                                 'unapproved-runner-identifier)))
 
 (define (host-violations path info project-root)
   (define host-definitions
@@ -1170,6 +1445,8 @@
      (list (violation source 'disallowed-boundary-path source))]
     [(not (file-exists? source))
      (list (violation source 'missing-boundary-file source))]
+    [(not (regular-file-path? source))
+     (list (violation source 'nonregular-boundary-file source))]
     [else
      (define info
        (with-handlers ([exn:fail? (lambda (failure) failure)])
@@ -1198,8 +1475,10 @@
         (host-support-violations source info class)]
        [(eq? class 'application)
         (application-violations source info)]
+       [(eq? class 'runner)
+        (runner-violations source info root)]
        [(eq? class 'package-info)
-        (package-info-violations source info)]
+        (package-info-violations source info root)]
        [(eq? class 'codec)
         (codec-violations source info root)]
        [(eq? class 'host)
@@ -1223,7 +1502,9 @@
      (append-map racket-files-under
                  (directory-list directory #:build? #t))]
     [(and (file-exists? directory)
-          (equal? (path-get-extension directory) #".rkt"))
+          (member (path-get-extension directory)
+                  '(#".rkt" #".atl")
+                  equal?))
      (list (normalized directory))]
     [else '()]))
 
@@ -1238,7 +1519,12 @@
     (and (pair? relative-parts)
          (path? (car relative-parts))
          (path->string (car relative-parts))))
+  (define extension
+    (path-get-extension source))
   (cond
+    [(equal? extension #".atl")
+     (and (equal? first-part "examples") 'application)]
+    [(not (equal? extension #".rkt")) #f]
     [(equal? source (normalized (build-path root "info.rkt")))
      'package-info]
     [(equal? first-part "core") 'pure-core]
@@ -1276,6 +1562,7 @@
     [(equal? first-part "tests") 'test]
     [(equal? first-part "tooling") 'tooling]
     [(equal? first-part "examples") 'application]
+    [(equal? first-part "runner") 'runner]
     [else #f]))
 
 (define (project-source-classifications
@@ -1298,6 +1585,48 @@
              #:when
              (eq? (source-classification-class classification) class))
     (source-classification-path classification)))
+
+(define expected-application-paths
+  '("hello.atl"
+    "stdout.atl"
+    "file-round-trip.atl"
+    "http-server.atl"))
+
+(define (application-inventory-violations project-root)
+  (define directory
+    (normalized (build-path project-root "examples")))
+  (define expected
+    (map (lambda (name)
+           (normalized (build-path directory name)))
+         expected-application-paths))
+  (cond
+    [(link-exists? directory)
+     (list (violation directory
+                      'disallowed-application-directory
+                      directory))]
+    [(not (directory-exists? directory))
+     (list (violation directory
+                      'missing-application-directory
+                      directory))]
+    [else
+     (define actual
+       (map normalized
+            (directory-list directory #:build? #t)))
+     (append
+      (for/list ([path (in-list expected)]
+                 #:unless (member path actual equal?))
+        (violation path 'missing-canonical-application path))
+      (for/list ([path (in-list actual)]
+                 #:unless (member path expected equal?))
+        (violation path 'unknown-application-source path))
+      (for/list ([path (in-list expected)]
+                 #:when (member path actual equal?)
+                 #:when
+                 (or (link-exists? path)
+                     (not (regular-file-path? path))))
+        (violation path
+                   'disallowed-canonical-application
+                   path)))]))
 
 (define (unsafe-repository-path-violations files project-root)
   (for/list ([path (in-list files)]
@@ -1365,7 +1694,7 @@
   (define nonproduction-directories
     (map (lambda (name)
            (normalized (build-path project-root name)))
-         '("readers" "tests" "tooling" "examples")))
+         '("readers" "tests" "tooling" "examples" "runner")))
   (append-map
    (lambda (source)
      (define info (read-module-info source project-root))
@@ -1446,8 +1775,11 @@
      (define macros-directory (build-path root "macros"))
      (define runtime-directory (build-path root "runtime"))
      (define language-directory (build-path root "lang"))
+     (define runner-directory (build-path root "runner"))
      (define package-info
        (normalized (build-path root "info.rkt")))
+     (define runner
+       (normalized (build-path runner-directory "atl.rkt")))
      (define macro-shell
        (normalized (build-path macros-directory "lazy-with-macros.rkt")))
      (define macro-definitions
@@ -1462,6 +1794,7 @@
      (define macro-files (racket-files-under macros-directory))
      (define runtime-files (racket-files-under runtime-directory))
      (define language-files (racket-files-under language-directory))
+     (define runner-files (racket-files-under runner-directory))
      (define repository-files (racket-files-under root))
      (define classifications
        (filter-map
@@ -1485,9 +1818,11 @@
                runtime-directory
                language-directory))))
      (append
+      (version-file-violations root)
       (unsafe-repository-path-violations repository-files root)
       (unclassified-repository-source-violations repository-files root)
       (unsafe-production-path-violations production-files root)
+      (application-inventory-violations root)
       (append-map (lambda (path)
                     (file-boundary-violations path 'effect root))
                   effect-files)
@@ -1501,6 +1836,7 @@
       (file-boundary-violations language-reader
                                 'language-reader
                                 root)
+      (file-boundary-violations runner 'runner root)
       (file-boundary-violations package-info 'package-info root)
       (append-map (lambda (path)
                     (file-boundary-violations path 'reader root))
@@ -1539,6 +1875,9 @@
                                   (list language-expander language-reader)
                                   equal?))
         (violation path 'unclassified-language-module path))
+      (for/list ([path (in-list runner-files)]
+                 #:unless (equal? path runner))
+        (violation path 'unclassified-runner-module path))
       (unclassified-require-specs production-files root)
       (production-nonproduction-imports production-files root)
       (unauthorized-codec-imports production-files root codec host)
@@ -1559,7 +1898,7 @@
   (cond
     [(null? findings)
      (printf
-      "Boundary check passed: all source classes inventoried; pure effects/readers isolated; sole host enforced.\n")]
+      "Boundary check passed: all sources inventoried; pure computation, sole host, and closed runner enforced.\n")]
     [else
      (for ([finding (in-list findings)])
        (eprintf "~a: ~a: ~a\n"

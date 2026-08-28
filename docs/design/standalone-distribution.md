@@ -1,6 +1,6 @@
 # Standalone distribution design
 
-Status: approved 2026-08-27; feasibility proven; Phase 22 authorized
+Status: approved 2026-08-27; feasibility proven; Phase 22 implemented
 
 Date: 2026-08-27
 
@@ -454,17 +454,33 @@ The proof is consistent with Racket's official documentation:
 
 ## What remains unproven
 
-This proof does not claim that the product is downloadable today. It did not
-implement or test the approved command parser, dotenv rejection, declaration
-preflight, stable diagnostics, version derivation, canonical artifact layout,
-reproducible build, macOS artifacts, Windows artifact, license notices,
-signing, or public download workflow. It used a temporary proof executable
-named `atl-proof`, not the future `atl` runner.
+The Phase 21 proof does not by itself claim that the product is downloadable
+today. At that point it had not implemented or tested the approved command
+parser, dotenv rejection, declaration preflight, stable diagnostics, version
+derivation, canonical artifact layout, reproducible build, macOS artifacts,
+Windows artifact, license notices, signing, or public download workflow. It
+used a temporary proof executable named `atl-proof`, not the Phase 22 `atl`
+runner recorded below.
 
 Linux has only one Ubuntu 24.04 consumer observation so far. The system-library
 floor, cold startup measurements, canonical application suite, filesystem and
 loopback HTTP acceptance, relocation matrix, archive manifest, and clean
 consumer automation belong to Phases 24 through 26.
+
+## Phase 22 implementation record
+
+Phase 22 implemented the approved development surface on 2026-08-27. Root
+`VERSION` now owns `0.2.0-dev`; `info.rkt` carries the verified `0.1.900`
+projection; `runner/atl.rkt` implements the exact three-command grammar and
+embeds the root-derived CLI version during expansion/build, contains no copied
+public version literal, and performs one validated module load; `examples/`
+contains exactly the four canonical `.atl` files. The complete suite passed
+4,412 assertions across 31 test files,
+the unchanged 16-module expanded purity scan, and the 79-source boundary
+inventory. Phase 23 still owns the final user-facing diagnostic templates and
+path/source-position sanitization. Phases 24 through 27 still own native
+artifacts, clean consumer proof, novice documentation, license approval, and
+release-candidate work; nothing in Phase 22 authorizes publication.
 
 ## Approval record
 

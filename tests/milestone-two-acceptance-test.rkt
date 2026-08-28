@@ -10,9 +10,9 @@
          "helpers/fresh-language.rkt")
 
 (define-runtime-path project-root-path "..")
-(define-runtime-path stdout-example "../examples/stdout.rkt")
-(define-runtime-path file-example "../examples/file-round-trip.rkt")
-(define-runtime-path http-example "../examples/http-server.rkt")
+(define-runtime-path stdout-example "../examples/stdout.atl")
+(define-runtime-path file-example "../examples/file-round-trip.atl")
+(define-runtime-path http-example "../examples/http-server.atl")
 
 (define project-root
   (simplify-path project-root-path #f))
@@ -46,7 +46,7 @@
     (raise value))
   value)
 
-(define (check-http-example environment working-directory)
+(define (check-http-example environment runner working-directory)
   (define process #f)
   (define child-output #f)
   (define child-error #f)
@@ -65,6 +65,8 @@
                       #f
                       #f
                       racket-executable
+                      (path->string runner)
+                      "run"
                       (path->string http-example))))
       (set! process started-process)
       (set! child-output started-output)
@@ -146,6 +148,8 @@
      (fresh-language-install-temporary-root installation))
    (define environment
      (fresh-language-install-environment installation))
+   (define runner
+     (build-path temporary-root "package-source" "runner" "atl.rkt"))
 
    (define stdout-directory
      (build-path temporary-root "stdout-example"))
@@ -153,7 +157,9 @@
    (check-command-success
     (run-command environment
                  racket-executable
-                 (list (path->string stdout-example))
+                 (list (path->string runner)
+                       "run"
+                       (path->string stdout-example))
                  20
                  #:current-directory stdout-directory)
     #"Hello from Alone the Lambdas.\n")
@@ -164,7 +170,9 @@
    (check-command-success
     (run-command environment
                  racket-executable
-                 (list (path->string file-example))
+                 (list (path->string runner)
+                       "run"
+                       (path->string file-example))
                  20
                  #:current-directory file-directory)
     #"Alone the Lambdas file round trip.\n")
@@ -177,4 +185,4 @@
    (define http-directory
      (build-path temporary-root "http-example"))
    (make-directory http-directory)
-   (check-http-example environment http-directory)))
+   (check-http-example environment runner http-directory)))

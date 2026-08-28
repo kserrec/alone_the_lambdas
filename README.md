@@ -27,7 +27,12 @@ variables, unary lambdas, and application.
 > public syntax, host-bound effect names, and pure Nat/String literal lowering;
 > Phase 20 adds runnable stdout, isolated file-round-trip, and ephemeral-port
 > HTTP applications plus the final cross-class and milestone acceptance sweep.
-> Separate structural gates enforce every boundary class. See
+> Phase 21 then approves the independent-distribution contract and proves the
+> Racket 9.3 embedding path; Phase 22 adds the canonical `.atl` source names,
+> one separately trusted development runner, and the `0.2.0-dev` product
+> version source without changing the object language or its host authority.
+> The project does not yet ship the no-Racket native archive planned by later
+> phases. Separate structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -39,7 +44,8 @@ variables, unary lambdas, and application.
   computation; pure effect wrappers can invoke only an injected unary host.
 - Racket is limited to modules, lazy evaluation, mechanical macros, readers,
   tests, tooling, deterministic boundary conversion in `runtime/codec.rkt`,
-  and the one approved privileged bridge in `runtime/host.rkt`.
+  the one approved privileged bridge in `runtime/host.rkt`, and the isolated
+  command/path/module-loading scaffolding in `runner/atl.rkt`.
 - Church numerals are used only for tiny fixed discriminants such as type
   tags, Error kinds, and argument positions—not ordinary numbers.
 - Public natural numbers are normalized, most-significant-bit-first binary
@@ -73,6 +79,9 @@ precedence over conflicting examples in the base specification.
   classifications; Phases 14 through 20 implement and accept its `stdout`,
   file, TCP, pure HTTP-message/server, standalone-language, and runnable-
   application slices.
+- [docs/design/standalone-distribution.md](docs/design/standalone-distribution.md)
+  fixes the approved `.atl`, runner, version, artifact, platform, and release
+  contracts for the independent-distribution milestone.
 - [PLAN.md](PLAN.md) divides both milestones into ordered, testable phases.
 - [AGENTS.md](AGENTS.md) contains the project-specific implementation rules
   every contributor and coding agent must follow.
@@ -154,8 +163,9 @@ precedence over conflicting examples in the base specification.
   owns the private monotonic handle registry, normalizes external failures,
   and returns canonical Result/Error values without exposing ports or host
   collections.
-- `info.rkt` declares the repository as the single
-  `alone_the_lambdas` collection with its runtime and test dependencies.
+- `VERSION` is the sole product-version source and currently contains
+  `0.2.0-dev`; `info.rkt` declares the single `alone_the_lambdas` collection
+  and carries its mechanically verified Racket-package projection `0.1.900`.
 - `lang/reader.rkt` retains Racket's Lisp reader syntax and selects the
   standalone expander without adding a parser or reader-time effect.
 - `lang/expander.rkt` exposes the canonical language surface, mechanically
@@ -163,10 +173,16 @@ precedence over conflicting examples in the base specification.
   lowers only nonnegative Nat and UTF-8 String literals into pure existing
   encodings, binds the nine public effect wrappers once to the real `host`,
   and suppresses Racket printing of final lambda values.
-- `examples/stdout.rkt`, `examples/file-round-trip.rkt`, and
-  `examples/http-server.rkt` are exact runnable language programs. The HTTP
-  program uses an ephemeral loopback port, prints its URL, serves one request,
-  closes its caller-owned listener, and exits.
+- `runner/atl.rkt` implements only the approved `run`, `--help`, and
+  `--version` development entry point. It validates the one explicit `.atl`
+  path and delegates once to the existing reader/expander with
+  `dynamic-require`; it exports no binding and cannot enter an object-language
+  dependency path.
+- `examples/hello.atl`, `examples/stdout.atl`,
+  `examples/file-round-trip.atl`, and `examples/http-server.atl` are the exact
+  runnable language programs. The HTTP program uses an ephemeral loopback
+  port, prints its URL, serves one request, closes its caller-owned listener,
+  and exits.
 - `readers/raw-boolean.rkt` observes raw Booleans for tests without entering
   the production dependency graph.
 - `readers/bool.rkt` observes tagged Bool values at the same one-way boundary.
@@ -200,7 +216,10 @@ precedence over conflicting examples in the base specification.
   and production-path component before discovery, rejects symlinks without
   traversing their targets, rejects additional macro/language modules, and
   permits only the facade's exact import and re-export of production `host`.
-  Its repository-wide inventory classifies all 76 Racket sources: readers may
+  It also pins the product/package version projection, the non-exporting
+  runner's exact imports and closed vocabulary, its sole validated loader
+  call, and the four-file application inventory. Its repository-wide
+  inventory classifies all 79 Racket and `.atl` sources: readers may
   observe through a closed source vocabulary but cannot perform effects or
   import upward; tests and tooling retain normal host authority but cannot
   enter a production dependency path; standalone examples must use the public
@@ -226,10 +245,21 @@ surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
+Phase 22 supplies the canonical runner source but not yet the downloadable
+native `atl` executable. After the fresh setup above, invoke that development
+entry point through Racket. The later distribution phases will package the
+same entry point so end users type `atl` without installing Racket.
+
+The minimal hello application emits one line:
+
+```sh
+racket runner/atl.rkt run examples/hello.atl
+```
+
 The stdout application has no side effect beyond these emitted bytes:
 
 ```sh
-racket examples/stdout.rkt
+racket runner/atl.rkt run examples/stdout.atl
 ```
 
 The file application creates or truncates
@@ -242,7 +272,8 @@ repository_directory="$(pwd)"
 scratch_directory="$(mktemp -d)"
 (
   cd "$scratch_directory"
-  racket "$repository_directory/examples/file-round-trip.rkt"
+  racket "$repository_directory/runner/atl.rkt" run \
+    "$repository_directory/examples/file-round-trip.atl"
 )
 ```
 
@@ -250,7 +281,7 @@ The HTTP application binds an operating-system-selected loopback port, prints
 the exact `/lambda` URL, serves one request, closes the listener, and exits:
 
 ```sh
-racket examples/http-server.rkt
+racket runner/atl.rkt run examples/http-server.atl
 ```
 
 ## Development
@@ -275,12 +306,13 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,261 assertions across 30 test files,
+green. The repository currently has 4,412 assertions across 31 test files,
 plus the independent expanded scan of all 16 core modules and the complete
 repository boundary-classification gate. The application acceptance test
 installs a copied package under an isolated Racket user home before running
-the exact three examples. GitHub Actions runs the same suite for pushes and
-pull requests.
+the exact three effect examples through the copied runner; the focused runner
+suite separately covers `hello.atl` and the complete command/source contract.
+GitHub Actions runs the same suite for pushes and pull requests.
 
 Development happens directly on `main`. Commit and push after each meaningful
 phase.

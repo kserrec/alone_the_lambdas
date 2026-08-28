@@ -480,7 +480,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 22 next)
+Status: in progress (Phase 23 next)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -559,30 +559,30 @@ capability has been implemented before approval.
 
 ## Phase 22 — Canonical `.atl` runner
 
-Status: planned
+Status: complete (2026-08-27)
 
-- [ ] Implement the minimal `atl` entry point in its own `runner/` layer with
+- [x] Implement the minimal `atl` entry point in its own `runner/` layer with
   the approved `run`, `--help`, and `--version` interface and no third-party
   dependency.
-- [ ] Load exactly the path supplied to `atl run`, require the canonical
+- [x] Load exactly the path supplied to `atl run`, require the canonical
   `.atl` extension and `#lang alone_the_lambdas` declaration, reject every
   dotenv spelling before content access, preserve source filename/line/column
   information, and avoid implicit directory, package, network, or source-file
   discovery.
-- [ ] Establish one version source shared by package metadata, the CLI, build
+- [x] Establish one version source shared by package metadata, the CLI, build
   scripts, and future artifact names; initialize the public product version as
   `0.2.0-dev`. Because Racket 9.3 rejects that SemVer spelling in `info.rkt`,
   mechanically derive and verify the approved `0.1.900` package-metadata
   projection rather than duplicating version authority.
-- [ ] Add an exact runner classification to the structural boundary gate. It
+- [x] Add an exact runner classification to the structural boundary gate. It
   may contain only the approved command-line and module-loading scaffolding,
   must export no object-language binding, and must remain unreachable from
   core, effects, codec, host, macros, readers, and the language facade.
-- [ ] Rename the three public programs to `.atl`, add the minimal `hello.atl`
+- [x] Rename the three public programs to `.atl`, add the minimal `hello.atl`
   used by the end-user guide, update copied-package and application inventory
   rules to recognize the official extension, and reject unknown or symlinked
   application inputs without inspecting their targets.
-- [ ] Add focused source-tree tests for help, version, argument validation,
+- [x] Add focused source-tree tests for help, version, argument validation,
   paths containing spaces and non-ASCII characters, the hello smoke program,
   all three canonical applications, and proof that the runner uses the
   existing language rather than a second parser or evaluator.
@@ -591,6 +591,19 @@ Acceptance: from the development checkout, the new entry point runs canonical
 `.atl` programs through the existing language with stable command behavior,
 while structural checks prove the loader is scaffolding rather than a second
 object-language escape hatch.
+
+Completion evidence: `./run-all-tests.sh` passed on 2026-08-27 with 4,412
+assertions across 31 test files, the unchanged expanded purity scan over all
+16 `core/` modules, and a zero-finding structural inventory of all 79
+repository source files. The 126-check runner suite used a copied package
+installation under an isolated Racket user home and proved the exact help,
+version, argument, source-contract, path, symlink, dotenv, existing-expander,
+Error, and Result behavior. The 110-check boundary suite pins the one
+non-exporting loader call, exact runner imports and vocabulary, all three
+version projections, the four canonical `.atl` applications, and every
+forbidden dependency direction. The three real effect applications also ran
+through that copied runner. No core, effect, codec, host, macro, reader, or
+language-facade executable behavior changed.
 
 ## Phase 23 — User-facing launch diagnostics
 

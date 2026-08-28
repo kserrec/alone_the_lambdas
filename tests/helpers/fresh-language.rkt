@@ -136,12 +136,54 @@
            #:unless (excluded-package-entry? entry))
        (copy-package-source (build-path source entry)
                             (build-path target entry)))]
-    [(file-exists? source)
+    [(regular-file-path? source)
      (copy-file source target)]
     [else
      (error 'fresh-language-install
             "package source entry disappeared: ~a"
             source)]))
+
+(define canonical-application-names
+  '("hello.atl"
+    "stdout.atl"
+    "file-round-trip.atl"
+    "http-server.atl"))
+
+(define (regular-file-path? path)
+  (with-handlers ([exn:fail? (lambda (failure) #f)])
+    (= (bitwise-and
+        (hash-ref (file-or-directory-stat path) 'mode)
+        file-type-bits)
+       regular-file-type-bits)))
+
+(define (copy-canonical-applications source target)
+  (when (link-exists? source)
+    (error 'fresh-language-install
+           "application directory is a symlink: ~a"
+           source))
+  (unless (directory-exists? source)
+    (error 'fresh-language-install
+           "application directory is unavailable: ~a"
+           source))
+  (define actual-names
+    (sort (map path->string (directory-list source)) string<?))
+  (define expected-names
+    (sort canonical-application-names string<?))
+  (unless (equal? actual-names expected-names)
+    (error 'fresh-language-install
+           "application inventory differs from the canonical four names"))
+  (make-directory target)
+  (for ([name (in-list canonical-application-names)])
+    (define source-path (build-path source name))
+    (when (link-exists? source-path)
+      (error 'fresh-language-install
+             "canonical application is a symlink: ~a"
+             source-path))
+    (unless (regular-file-path? source-path)
+      (error 'fresh-language-install
+             "canonical application is not a regular file: ~a"
+             source-path))
+    (copy-file source-path (build-path target name))))
 
 (define (call-with-fresh-language-install project-root procedure)
   (define temporary-root
@@ -175,12 +217,17 @@
       (make-directory package-source)
       (copy-file (build-path project-root "info.rkt")
                  (build-path package-source "info.rkt"))
+      (copy-file (build-path project-root "VERSION")
+                 (build-path package-source "VERSION"))
       (for ([directory
-             (in-list '("core" "effects" "examples" "lang" "macros"
-                        "runtime"))])
+             (in-list '("core" "effects" "lang" "macros"
+                        "runner" "runtime"))])
         (copy-package-source
          (build-path project-root directory)
          (build-path package-source directory)))
+      (copy-canonical-applications
+       (build-path project-root "examples")
+       (build-path package-source "examples"))
 
       ;; This copy install proves collection resolution from declared package
       ;; metadata rather than a source-tree link. The staging walk rejects

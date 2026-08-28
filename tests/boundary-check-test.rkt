@@ -31,6 +31,13 @@
     (lambda (output)
       (write datum output))))
 
+(define (write-exact-bytes path content)
+  (call-with-output-file path
+    #:exists 'truncate
+    #:mode 'binary
+    (lambda (output)
+      (write-bytes content output))))
+
 (define (read-datum path)
   (call-with-input-file path
     (lambda (input)
@@ -43,6 +50,34 @@
         (cadr datum)
         (caddr datum)
         (append (cadddr datum) (list form))))
+
+(define (replace-package-version datum package-version)
+  (list 'module
+        (cadr datum)
+        (caddr datum)
+        (cons
+         '#%module-begin
+         (map (lambda (form)
+                (if (and (list? form)
+                         (= (length form) 3)
+                         (eq? (car form) 'define)
+                         (eq? (cadr form) 'version))
+                    (list 'define 'version package-version)
+                    form))
+              (cdr (cadddr datum))))))
+
+(define (replace-datum target replacement datum)
+  (cond
+    [(equal? datum target) replacement]
+    [(pair? datum)
+     (cons (replace-datum target replacement (car datum))
+           (replace-datum target replacement (cdr datum)))]
+    [(vector? datum)
+     (list->vector
+      (map (lambda (element)
+             (replace-datum target replacement element))
+           (vector->list datum)))]
+    [else datum]))
 
 (define (kinds findings)
   (map boundary-violation-kind findings))
@@ -105,7 +140,8 @@
     (lambda ()
       (for ([directory
              (in-list '("core" "effects" "macros" "runtime" "lang"
-                        "readers" "tests" "tooling" "examples"))])
+                        "readers" "tests" "tooling" "examples"
+                        "runner"))])
         (make-directory (build-path root directory)))
       (copy-file (build-path project-root "lang" "expander.rkt")
                  (build-path root "lang" "expander.rkt"))
@@ -113,6 +149,16 @@
                  (build-path root "lang" "reader.rkt"))
       (copy-file (build-path project-root "info.rkt")
                  (build-path root "info.rkt"))
+      (copy-file (build-path project-root "VERSION")
+                 (build-path root "VERSION"))
+      (copy-file (build-path project-root "runner" "atl.rkt")
+                 (build-path root "runner" "atl.rkt"))
+      (for ([name (in-list '("hello.atl"
+                             "stdout.atl"
+                             "file-round-trip.atl"
+                             "http-server.atl"))])
+        (copy-file (build-path project-root "examples" name)
+                   (build-path root "examples" name)))
       (write-datum
        (build-path root "macros" "lazy-with-macros.rkt")
        clean-macro-shell-datum)
@@ -168,14 +214,14 @@
         (map source-classification-class project-classifications))
        symbol<?)
  '(application codec effect host language-expander language-reader macro
-   macro-shell package-info pure-core reader test tooling))
+   macro-shell package-info pure-core reader runner test tooling))
 
 (check-equal?
  (count (lambda (classification)
           (eq? (source-classification-class classification)
                'application))
         project-classifications)
- 3)
+ 4)
 
 (check-equal?
  (count (lambda (classification)
@@ -228,8 +274,69 @@
      (file-boundary-violations nonlanguage-application
                                'application
                                root))
-    '(unexpected-application-language))
+    '(invalid-application-extension unexpected-application-language))
    (delete-file nonlanguage-application)
+
+   ;; The official application inventory is exact and uses only `.atl`.
+   (define unknown-application
+     (build-path root "examples" "unknown.atl"))
+   (write-exact-bytes
+    unknown-application
+    #"#lang alone_the_lambdas\n\n(stdout \"unknown\")\n")
+   (check-not-false
+    (member 'unknown-application-source
+            (kinds (project-boundary-violations root))))
+   (delete-file unknown-application)
+
+   (define unknown-application-input
+     (build-path root "examples" "notes.txt"))
+   (write-exact-bytes unknown-application-input #"not an ATL source\n")
+   (check-not-false
+    (member 'unknown-application-source
+            (kinds (project-boundary-violations root))))
+   (delete-file unknown-application-input)
+
+   ;; A canonical application symlink is rejected from link metadata without
+   ;; reading the linked source target.
+   (define canonical-application
+     (build-path root "examples" "hello.atl"))
+   (define saved-canonical-application
+     (build-path root "examples" "hello.atl.backup"))
+   (rename-file-or-directory canonical-application
+                             saved-canonical-application)
+   (make-directory canonical-application)
+   (check-not-false
+    (member 'disallowed-canonical-application
+            (kinds (project-boundary-violations root))))
+   (delete-directory canonical-application)
+   (rename-file-or-directory saved-canonical-application
+                             canonical-application)
+
+   (define application-target
+     (make-temporary-file "atl-application-target-~a.atl"
+                          #f
+                          (path-only root)))
+   (write-exact-bytes
+    application-target
+    #"#lang alone_the_lambdas\n\n(stdout \"target\")\n")
+   (rename-file-or-directory canonical-application
+                             saved-canonical-application)
+   (make-file-or-directory-link application-target
+                                canonical-application)
+   (define-values (application-link-findings application-target-reads)
+     (observe-source-reads
+      (list application-target)
+      (lambda ()
+        (project-boundary-violations root))))
+   (check-not-false
+    (member 'disallowed-repository-source-path
+            (kinds application-link-findings)))
+   (check-equal? application-target-reads 0)
+   (delete-file canonical-application)
+   (rename-file-or-directory saved-canonical-application
+                             canonical-application)
+   (delete-file application-target)
+   (check-equal? (project-boundary-violations root) '())
 
    (define reader-source
      (build-path root "readers" "observer.rkt"))
@@ -281,7 +388,7 @@
    (define clean-dependency-datum
      (read-datum dependency-source))
    (for ([support-directory
-          (in-list '("readers" "tests" "tooling" "examples"))])
+          (in-list '("readers" "tests" "tooling" "examples" "runner"))])
      (write-datum
       dependency-source
       `(module dependency racket/base
@@ -929,6 +1036,150 @@
      (file-boundary-violations package-info 'package-info root))
     '(invalid-package-info-forms))
    (write-datum package-info clean-package-info-datum)
+
+   ;; VERSION is the sole product-version source. Every approved state has
+   ;; one mechanically checked Racket package projection.
+   (define product-version-file
+     (build-path root "VERSION"))
+   (for ([version-pair
+          (in-list '((#"0.2.0-dev\n" "0.1.900")
+                     (#"0.2.0-rc.1\n" "0.1.901")
+                     (#"0.2.0\n" "0.2")))])
+     (write-exact-bytes product-version-file (car version-pair))
+     (write-datum
+      package-info
+      (replace-package-version clean-package-info-datum
+                               (cadr version-pair)))
+     (check-equal? (project-boundary-violations root) '()))
+   (write-exact-bytes product-version-file #"0.2.0-dev\n")
+   (write-datum package-info clean-package-info-datum)
+
+   (write-exact-bytes product-version-file #"0.2.0-dev")
+   (check-project-kind 'invalid-product-version)
+   (write-exact-bytes product-version-file #"0.2.0-dev\n")
+
+   (define saved-version-file
+     (build-path root "VERSION.backup"))
+   (define version-target
+     (make-temporary-file "atl-version-target-~a"
+                          #f
+                          (path-only root)))
+   (write-exact-bytes version-target #"0.2.0-dev\n")
+   (rename-file-or-directory product-version-file saved-version-file)
+   (make-file-or-directory-link version-target product-version-file)
+   (define-values (version-link-findings version-target-reads)
+     (observe-source-reads
+      (list version-target)
+      (lambda ()
+        (project-boundary-violations root))))
+   (check-not-false
+    (member 'disallowed-version-path
+            (kinds version-link-findings)))
+   (check-equal? version-target-reads 0)
+   (delete-file product-version-file)
+   (rename-file-or-directory saved-version-file product-version-file)
+   (delete-file version-target)
+
+   ;; The runner is an exact non-exporting scaffolding class. Its one loader
+   ;; call must receive the validated source path; process, environment, and
+   ;; additional-module surfaces all fail closed.
+   (define runner-file
+     (build-path root "runner" "atl.rkt"))
+   (define clean-runner-datum
+     (read-datum runner-file))
+   (check-equal?
+    (file-boundary-violations runner-file 'runner root)
+    '())
+
+   (write-datum
+    runner-file
+    (append-module-form clean-runner-datum
+                        '(define copied-version "0.2.0-dev")))
+   (check-not-false
+    (member 'duplicated-runner-version-literal
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (replace-datum "VERSION"
+                   "secrets.txt"
+                   clean-runner-datum))
+   (check-not-false
+    (member 'invalid-runner-input-targets
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (replace-datum '(define unexpected-failure-status 70)
+                   '(define unexpected-failure-status 69)
+                   clean-runner-datum))
+   (check-not-false
+    (member 'invalid-runner-status-definitions
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (append-module-form clean-runner-datum
+                        '(provide run-source)))
+   (check-not-false
+    (member 'invalid-runner-export
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (append-module-form
+     clean-runner-datum
+     '(require (only-in racket/system system))))
+   (define process-runner-kinds
+     (kinds (file-boundary-violations runner-file 'runner root)))
+   (check-not-false
+    (member 'invalid-runner-imports process-runner-kinds))
+   (check-not-false
+    (member 'forbidden-runner-capability process-runner-kinds))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (append-module-form
+     clean-runner-datum
+     '(define leaked-environment
+        (current-environment-variables))))
+   (define environment-runner-kinds
+     (kinds (file-boundary-violations runner-file 'runner root)))
+   (check-not-false
+    (member 'invalid-runner-definition-set environment-runner-kinds))
+   (check-not-false
+    (member 'forbidden-runner-capability environment-runner-kinds))
+   (write-datum runner-file clean-runner-datum)
+
+   (write-datum
+    runner-file
+    (replace-datum '(dynamic-require source-path #f)
+                   '(dynamic-require version-path #f)
+                   clean-runner-datum))
+   (check-not-false
+    (member 'invalid-runner-entry-or-loader
+            (kinds
+             (file-boundary-violations runner-file 'runner root))))
+   (write-datum runner-file clean-runner-datum)
+
+   (define extra-runner
+     (build-path root "runner" "alternate.rkt"))
+   (write-datum
+    extra-runner
+    '(module alternate racket/base
+       (#%module-begin)))
+   (check-project-kind 'unclassified-runner-module)
+   (delete-file extra-runner)
+   (check-equal? (project-boundary-violations root) '())
 
    (define extra-macro (build-path root "macros" "extra.rkt"))
    (write-datum

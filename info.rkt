@@ -5,4 +5,4 @@
 (define build-deps '("rackunit-lib" "net-lib"))
 (define pkg-desc
   "A pure unary-lambda language with one explicit host boundary")
-(define version "0.1")
+(define version "0.1.900")

@@ -46,7 +46,12 @@ and canonical Nat/String literal expansion. Phase 20 adds three exact runnable
 applications, executes all four specified effect families from a copied fresh
 installation, inventories every Racket source class, strengthens reader and
 support-code dependency rules, and closes the milestone evidence map without
-changing production semantics or host authority.
+changing production semantics or host authority. Phase 21 fixes and approves
+the independent-distribution contract and proves Racket 9.3 can embed the
+dynamic language closure. Phase 22 adds one exact development runner, the
+canonical `.atl` application names, and a single `0.2.0-dev` version source;
+the runner delegates to the existing reader/expander and remains outside every
+object-language dependency path.
 
 ## Computational boundary
 
@@ -64,9 +69,10 @@ single deliberate exception is the explicit unary `host` value in
 
 Racket supplies the enclosing module system, lazy evaluation, syntactic sugar,
 readers, tests, development tooling, deterministic private conversion in
-`runtime/codec.rkt`, and the approved effects in `runtime/host.rkt`. It must
-not decide ordinary object-language results or become an object-language
-representation.
+`runtime/codec.rkt`, the approved effects in `runtime/host.rkt`, and the
+separately classified command/path/module-loading scaffolding in
+`runner/atl.rkt`. It must not decide ordinary object-language results or
+become an object-language representation.
 
 > Alone the Lambdas does not merely avoid using host libraries for major
 > algorithms. Its production computational terms are built exclusively from
@@ -90,7 +96,8 @@ representation.
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
 | Public language | Canonical exports such as `lambda`, `def`, `let`, `if`, and `cons` |
-| Runnable applications | Public-language stdout, isolated file round trip, and one-request ephemeral-loopback HTTP server |
+| Runner scaffolding | Exact command, path/header validation, version display, and one existing-language module instantiation; no exports or object values |
+| Runnable applications | Public-language hello/stdout, isolated file round trip, and one-request ephemeral-loopback HTTP server |
 | Human boundary | Readers and test diagnostics; never object-language computation |
 
 Dependencies point downward only. Typed operations may use raw operations; raw
@@ -193,13 +200,24 @@ List-of-Char String construction with one Char per UTF-8 byte. No host number
 or host String becomes an object-language value. A custom module wrapper
 forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
-single-collection package metadata used by fresh installs.
+single-collection package metadata used by fresh installs. Root `VERSION` is
+the sole product-version source; the current `0.2.0-dev` state projects
+mechanically to Racket package version `0.1.900`.
 
-The three files under `examples/` import nothing and run only through that
-public language. `stdout.rkt` emits one String. `file-round-trip.rkt` makes
+`runner/atl.rkt` is host launch scaffolding, not an effect primitive. It
+accepts only `run`, `--help`, and `--version`; validates the one supplied path,
+exact `.atl` suffix, dotenv exclusions, final-entry symlink rule, resolved
+parent, regular-file metadata, and exact declaration; then invokes
+`dynamic-require` once on that source. It exports nothing, imports no project
+module, observes no completed lambda value, and has no environment, process,
+directory-scan, network, namespace, evaluator, codec, or reader import.
+
+The four files under `examples/` import nothing and run only through that
+public language. `hello.atl` and `stdout.atl` each emit one String.
+`file-round-trip.atl` makes
 write-before-read sequencing explicit by inspecting the first Result; tests
 run it only in an empty temporary directory because `write-file` deliberately
-truncates its target. `http-server.rkt` listens on loopback port zero, formats
+truncates its target. `http-server.atl` listens on loopback port zero, formats
 the returned bound Nat as decimal using public lambda operations, announces
 the exact URL, serves one request through `make-http-serve-one`, explicitly
 closes the caller-owned listener, and exits. No example adds a production
@@ -492,6 +510,8 @@ runtime/
 lang/
   reader.rkt
   expander.rkt
+runner/
+  atl.rkt
 readers/
   raw-boolean.rkt
   bool.rkt
@@ -502,13 +522,15 @@ readers/
   string.rkt
   error.rkt
 examples/
-  stdout.rkt
-  file-round-trip.rkt
-  http-server.rkt
+  hello.atl
+  stdout.atl
+  file-round-trip.atl
+  http-server.atl
 tests/
 tooling/
   check-purity.rkt
   check-boundaries.rkt
+VERSION
 info.rkt
 run-all-tests.sh
 ```
@@ -517,9 +539,9 @@ Sixteen zero-exception production modules remain under `core/`. The completed
 milestone has seven pure effect modules, two separately pinned mechanical
 macro modules, two separately classified runtime boundary modules, the exact
 reader/expander pair, pinned package metadata, eight one-way value readers,
-three public-language applications, and separately classified tests/tooling.
-All 76 Racket sources are inventoried. New abstraction layers require a
-concrete need.
+one exact non-exporting runner, four public-language applications, and
+separately classified tests/tooling. All 79 Racket and `.atl` sources are
+inventoried. New abstraction layers require a concrete need.
 
 ## Verification boundary
 
@@ -608,11 +630,14 @@ authorizes imports before discovering their exports, validates every component
 of the project root and each production path before discovery, rejects
 symlinks without traversing their targets, and rejects every second codec
 importer, host importer, filesystem/TCP importer, or `host` definition/export.
-It also inventories every Racket source, rejects unknown locations, constrains
-readers to an exact effect-free observation vocabulary with core/reader
-imports, rejects every production import of readers/tests/tooling/applications,
-admits normal host authority only in the test/tooling support classes, and
-requires each example to use the public standalone language. Dedicated
+It also inventories every Racket or `.atl` source, rejects unknown locations,
+pins the root/package/CLI version projection and the one exact runner, rejects
+runner exports, extra loader modules, altered loader targets, and
+process/environment/evaluator capabilities, constrains readers to an exact
+effect-free observation vocabulary with core/reader imports, rejects every
+production import of readers/tests/tooling/applications/runner, admits normal
+host authority only in the test/tooling support classes, and requires the
+exact four `.atl` examples to use the public standalone language. Dedicated
 rejection fixtures prove each new direction and the host-exclusive primitive
 vocabulary.
 Codec tests cover all 256 byte values, canonical and malformed String and Nat
@@ -659,8 +684,9 @@ implementation names, underscore workarounds, and ordinary Racket forms are
 all rejected during expansion.
 
 The second-milestone acceptance suite reuses the same dotenv-excluding,
-symlink-rejecting copied-package installer. It runs the exact three repository
-applications outside the installed collection: exact stdout bytes; a
+symlink-rejecting copied-package installer. It runs the exact three effect
+applications outside the installed collection through the copied Phase 22
+runner: exact stdout bytes; a
 write/read byte round trip in an empty temporary directory; and a one-request
 HTTP server on an ephemeral loopback port reached by a test-side external
 client. The server test checks its announced URL, status, headers, body,
@@ -668,6 +694,17 @@ process exit, empty stderr, and listener cleanup. Together with the focused
 TCP lifecycle suites and the zero-finding boundary inventory, this covers the
 specified `stdout`, `read-file`, `write-file`, and TCP effect families while
 retaining the one-bridge proof.
+
+The runner suite uses that same copied-package installation for 126 focused
+checks. It proves exact help/version output, command misuse, all three version
+states, validation precedence, exact lowercase extension and declaration
+terminators, supplied and resolved-parent dotenv rejection, final symlink
+rejection, regular-file checks, paths with spaces and non-ASCII characters,
+the checked-in hello program, existing-facade currying/UTF-8 behavior,
+existing-expander rejection of a Racket identifier, and successful process
+completion for ordinary lambda Error and Result Err values. The structural
+suite independently proves the runner is one non-exporting loader rather than
+a parser, evaluator, codec, effect bridge, or object-language dependency.
 
 ## Completed milestone boundary
 
