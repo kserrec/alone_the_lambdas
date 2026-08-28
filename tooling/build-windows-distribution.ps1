@@ -377,9 +377,9 @@ try {
     foreach ($name in @('PLTCOLLECTS', 'PLTADDONDIR', 'PLTCONFIGDIR', 'PLTUSERHOME', 'TEMP', 'TMP', 'TMPDIR', 'SOURCE_DATE_EPOCH')) {
         $SavedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
     }
-    [Environment]::SetEnvironmentVariable('PLTCOLLECTS', $null, 'Process')
-    [Environment]::SetEnvironmentVariable('PLTADDONDIR', $null, 'Process')
-    [Environment]::SetEnvironmentVariable('PLTCONFIGDIR', $null, 'Process')
+    foreach ($name in @('PLTCOLLECTS', 'PLTADDONDIR', 'PLTCONFIGDIR')) {
+        Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+    }
     [Environment]::SetEnvironmentVariable('PLTUSERHOME', $isolatedUserHome, 'Process')
     [Environment]::SetEnvironmentVariable('TEMP', $isolatedTemp, 'Process')
     [Environment]::SetEnvironmentVariable('TMP', $isolatedTemp, 'Process')
@@ -643,7 +643,12 @@ catch {
 finally {
     if ($EnvironmentChanged) {
         foreach ($name in $SavedEnvironment.Keys) {
-            [Environment]::SetEnvironmentVariable($name, $SavedEnvironment[$name], 'Process')
+            if ($null -eq $SavedEnvironment[$name]) {
+                Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+            }
+            else {
+                [Environment]::SetEnvironmentVariable($name, $SavedEnvironment[$name], 'Process')
+            }
         }
     }
     if ($null -ne $BuildTempRoot -and [IO.Directory]::Exists($BuildTempRoot)) {

@@ -201,6 +201,7 @@
 (check-true (regexp-match? #rx"1980, 1, 1" windows-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" windows-build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME" windows-build-source))
+(check-true (regexp-match? #rx"Remove-Item.*Env:[$]name" windows-build-source))
 (check-true (regexp-match? #rx"Get-SafeTreeEntries.*-SkipCompiled" windows-build-source))
 (check-false (regexp-match? #rx"--launcher" windows-build-source))
 
