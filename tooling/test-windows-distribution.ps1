@@ -166,11 +166,18 @@ function Find-Dumpbin {
     $programFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
     $vswhere = [IO.Path]::Combine($programFilesX86, 'Microsoft Visual Studio', 'Installer', 'vswhere.exe')
     Assert-RegularNonsymlinkFile $vswhere 'Visual Studio vswhere.exe'
-    $installationPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
+    $vswhereResult = Invoke-CapturedProcess `
+        -Executable $vswhere `
+        -Arguments @('-latest', '-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath') `
+        -WorkingDirectory ([IO.Path]::GetDirectoryName($vswhere))
+    $installationPaths = @(
+        $vswhereResult.Stdout.Replace("`r`n", "`n").Replace("`r", "`n").Split("`n") |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if ($vswhereResult.Status -ne 0 -or $installationPaths.Count -ne 1) {
         Fail 'Visual Studio x64 build tools are unavailable'
     }
-    $msvcRoot = [IO.Path]::Combine($installationPath.Trim(), 'VC', 'Tools', 'MSVC')
+    $msvcRoot = [IO.Path]::Combine($installationPaths[0].Trim(), 'VC', 'Tools', 'MSVC')
     if (-not [IO.Directory]::Exists($msvcRoot)) {
         Fail 'Visual Studio MSVC tool directory is unavailable'
     }
@@ -190,13 +197,16 @@ function Find-Dumpbin {
 }
 
 function Get-PeDependencies([string] $Dumpbin, [string] $Path) {
-    $output = @(& $Dumpbin /NOLOGO /DEPENDENTS $Path 2>&1)
-    if ($LASTEXITCODE -ne 0) {
+    $result = Invoke-CapturedProcess `
+        -Executable $Dumpbin `
+        -Arguments @('/NOLOGO', '/DEPENDENTS', $Path) `
+        -WorkingDirectory ([IO.Path]::GetDirectoryName($Path))
+    if ($result.Status -ne 0) {
         Fail "dumpbin dependency inspection failed for $Path"
     }
     $dependencies = @(
-        $output |
-            ForEach-Object { ([string] $_).Trim() } |
+        $result.Stdout.Replace("`r`n", "`n").Replace("`r", "`n").Split("`n") |
+            ForEach-Object { $_.Trim() } |
             Where-Object { $_ -match '(?i)^[a-z0-9_.-]+[.]dll$' } |
             Sort-Object -Unique
     )
@@ -761,3 +771,4 @@ finally {
 if (-not $Succeeded) {
     exit 2
 }
+exit 0

@@ -221,6 +221,8 @@
 (check-true (regexp-match? #rx"LocalApplicationData" windows-consumer-source))
 (check-true (regexp-match? #rx"relocation_drives=different" windows-consumer-source))
 (check-true (regexp-match? #rx"Get-AuthenticodeSignature" windows-consumer-source))
+(check-false (regexp-match? #rx"LASTEXITCODE" windows-consumer-source))
+(check-true (regexp-match? #rx"exit 0" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*64" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*65" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*66" windows-consumer-source))
