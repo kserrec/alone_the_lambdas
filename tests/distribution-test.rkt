@@ -208,6 +208,8 @@
 (check-true (regexp-match? #rx"Remove-Item.*Env:[$]name" windows-build-source))
 (check-true (regexp-match? #rx"standardToolchainRoots" windows-build-source))
 (check-true (regexp-match? #rx"GetFolderPath[(]'ProgramFiles'" windows-build-source))
+(check-true (regexp-match? #rx"Assert-NoForbiddenBuildPaths" windows-build-source))
+(check-true (regexp-match? #rx"[$]isolatedUserHome" windows-build-source))
 (check-true (regexp-match? #rx"Get-SafeTreeEntries.*-SkipCompiled" windows-build-source))
 (check-false (regexp-match? #rx"--launcher" windows-build-source))
 
@@ -231,6 +233,7 @@
  (regexp-match?
   #rx"'github-checkout-segment' = '\\\\a\\\\'"
   windows-consumer-source))
+(check-false (regexp-match? #rx"isolated-registry-segment" windows-consumer-source))
 (check-true (regexp-match? #rx"exit 0" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*64" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*65" windows-consumer-source))
