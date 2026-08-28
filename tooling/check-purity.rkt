@@ -145,8 +145,13 @@
         #px"(^|\\.)env($|\\.)"
         (string-downcase (path->string name)))))
 
+(define (dotenv-path? path)
+  (for/or ([part (in-list (explode-path (path->complete-path path)))])
+    (and (path? part)
+         (dotenv-name? part))))
+
 (define (safe-production-path? path)
-  (and (not (dotenv-name? path))
+  (and (not (dotenv-path? path))
        (not (link-exists? path))))
 
 (define (resolve-import source-path spec)
@@ -171,7 +176,7 @@
 
 (define (production-files-under path)
   (cond
-    [(dotenv-name? path)
+    [(dotenv-path? path)
      '()]
     [(link-exists? path)
      ;; Reported, never followed: file-violations rejects the link itself.
@@ -727,7 +732,7 @@
    source-path
    (lambda ()
      (define stx
-       (with-handlers ([exn:fail? (lambda (failure) failure)])
+       (with-handlers ([exn:fail? values])
          (read-module-syntax source-path)))
      (cond
        [(exn? stx)
@@ -740,7 +745,7 @@
         (if (pair? shape-findings)
             shape-findings
             (let ([expanded
-                   (with-handlers ([exn:fail? (lambda (failure) failure)])
+                   (with-handlers ([exn:fail? values])
                      (expand-module-syntax stx
                                            source-path
                                            (scan-namespace current)))])
@@ -753,7 +758,7 @@
 
 (define (expanded-module-violations expanded source-path current)
   (define tpl
-    (with-handlers ([exn:fail? (lambda (failure) failure)])
+    (with-handlers ([exn:fail? values])
       (force (scan-templates current))))
   (if (exn? tpl)
       (list (violation 'invalid-production-language-shell

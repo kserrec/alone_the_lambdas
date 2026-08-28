@@ -355,6 +355,20 @@
 (check-equal? (production-files-under (string->path ".env.rkt"))
               '())
 
+;; A directly supplied source beneath a dotenv-named parent is rejected
+;; before the checker attempts to open it. The forbidden parent is not created.
+(let ()
+  (define directory (temporary-tree "dotenv-parent"))
+  (dynamic-wind
+    void
+    (lambda ()
+      (define source
+        (build-path directory "private.env.local" "production.rkt"))
+      (check-equal? (map violation-kind (file-violations source))
+                    '(disallowed-production-path)))
+    (lambda ()
+      (delete-directory/files directory))))
+
 ;; Directory spellings that end in a separator must scan the same files.
 (check-equal? (length (production-files-under
                        (path->directory-path core-directory)))

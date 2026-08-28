@@ -15,7 +15,9 @@
     0)))
 
 (define (type-tag->string type-tag)
-  (case (type-tag->integer type-tag)
+  (define tag-number
+    (type-tag->integer type-tag))
+  (case tag-number
     [(0) "ERROR"]
     [(1) "BOOL"]
     [(2) "LIST"]
@@ -25,4 +27,4 @@
     [(6) "STRING"]
     [else
      (format "TYPE:~a"
-             (type-tag->integer type-tag))]))
+             tag-number)]))

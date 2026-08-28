@@ -37,6 +37,13 @@ dotenv_component() {
   [[ "/$lower_path/" =~ /([^/]*\.)?env(\.[^/]*)?/ ]]
 }
 
+dotenv_name_expression=(
+  -iname '.env' -o
+  -iname '*.env' -o
+  -iname '.env.*' -o
+  -iname '*.env.*'
+)
+
 milliseconds_now() {
   perl -MTime::HiRes=time -e 'printf "%.0f\n", time() * 1000'
 }
@@ -160,7 +167,7 @@ while IFS= read -r -d '' linked_path; do
   die "extracted artifact contains a symlink: ${linked_path#"$first_root/"}"
 done < <(
   find "$first_root" \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type l -print0
 )
 
@@ -185,7 +192,7 @@ done
 actual_top_level="$scratch_root/actual-top-level.txt"
 expected_top_level="$scratch_root/expected-top-level.txt"
 find "$first_root" -mindepth 1 -maxdepth 1 \
-  \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+  \( "${dotenv_name_expression[@]}" \) -prune -o \
   -exec basename {} \; |
   sort > "$actual_top_level"
 printf '%s\n' \
@@ -203,14 +210,14 @@ cmp -s "$actual_top_level" "$expected_top_level" ||
 actual_bin="$scratch_root/actual-bin.txt"
 actual_examples="$scratch_root/actual-examples.txt"
 find "$first_root/bin" -mindepth 1 -maxdepth 1 \
-  \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+  \( "${dotenv_name_expression[@]}" \) -prune -o \
   -exec basename {} \; |
   sort > "$actual_bin"
 printf '%s\n' attalambda > "$scratch_root/expected-bin.txt"
 cmp -s "$actual_bin" "$scratch_root/expected-bin.txt" ||
   die "artifact bin/ inventory differs from the contract"
 find "$first_root/examples" -mindepth 1 -maxdepth 1 \
-  \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+  \( "${dotenv_name_expression[@]}" \) -prune -o \
   -exec basename {} \; |
   sort > "$actual_examples"
 printf '%s\n' file-round-trip.attl hello.attl http-server.attl stdout.attl \
@@ -224,7 +231,7 @@ while IFS= read -r -d '' artifact_file; do
   printf '%s\n' "${artifact_file#"$first_root/"}"
 done < <(
   find "$first_root" \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type f -print0
 ) | sort > "$actual_inventory"
 awk '
@@ -294,7 +301,7 @@ while IFS= read -r -d '' runtime_path; do
   fi
 done < <(
   find "$first_root/bin" "$first_root/lib" \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type f -print0
 )
 sort -u "$actual_mach_o" > "$actual_mach_o.sorted"
@@ -314,7 +321,7 @@ while IFS= read -r -d '' artifact_file; do
   fi
 done < <(
   find "$first_root" \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type f -print0
 )
 

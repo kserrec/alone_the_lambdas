@@ -28,6 +28,13 @@ dotenv_component() {
   [[ "/$lower_path/" =~ /([^/]*\.)?env(\.[^/]*)?/ ]]
 }
 
+dotenv_name_expression=(
+  -iname '.env' -o
+  -iname '*.env' -o
+  -iname '.env.*' -o
+  -iname '*.env.*'
+)
+
 run_inside_consumer() {
   [[ "$#" -eq 3 ]] || die "internal consumer arguments are invalid"
   local archive_name="$1"
@@ -56,6 +63,7 @@ run_inside_consumer() {
   [[ -f "$archive_path" && ! -L "$archive_path" ]] || die "transferred archive is unavailable"
   [[ -f "$checksum_path" && ! -L "$checksum_path" ]] || die "transferred checksum manifest is unavailable"
 
+  local expected_checksum_line
   expected_checksum_line="$(<"$checksum_path")"
   [[ "$expected_checksum_line" =~ ^[0-9a-f]{64}[[:space:]][[:space:]]${archive_name//./\.}$ ]] ||
     die "checksum manifest does not contain exactly the transferred archive"
@@ -79,7 +87,7 @@ run_inside_consumer() {
     die "extracted artifact contains a symlink"
   done < <(
     find "$first_root" \
-      \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+      \( "${dotenv_name_expression[@]}" \) -prune -o \
       -type l -print0
   )
 
@@ -104,7 +112,7 @@ run_inside_consumer() {
   local actual_top_level="$scratch_root/actual-top-level.txt"
   local expected_top_level="$scratch_root/expected-top-level.txt"
   find "$first_root" -mindepth 1 -maxdepth 1 \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -printf '%f\n' |
     sort > "$actual_top_level"
   printf '%s\n' \
@@ -122,14 +130,14 @@ run_inside_consumer() {
   local actual_bin="$scratch_root/actual-bin.txt"
   local actual_examples="$scratch_root/actual-examples.txt"
   find "$first_root/bin" -mindepth 1 -maxdepth 1 \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -printf '%f\n' |
     sort > "$actual_bin"
   printf '%s\n' attalambda > "$scratch_root/expected-bin.txt"
   cmp -s "$actual_bin" "$scratch_root/expected-bin.txt" ||
     die "artifact bin/ inventory differs from the contract"
   find "$first_root/examples" -mindepth 1 -maxdepth 1 \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -printf '%f\n' |
     sort > "$actual_examples"
   printf '%s\n' file-round-trip.attl hello.attl http-server.attl stdout.attl \
@@ -137,10 +145,10 @@ run_inside_consumer() {
   cmp -s "$actual_examples" "$scratch_root/expected-examples.txt" ||
     die "artifact examples/ inventory differs from the contract"
 
-  actual_inventory="$scratch_root/actual-inventory.txt"
-  manifest_inventory="$scratch_root/manifest-inventory.txt"
+  local actual_inventory="$scratch_root/actual-inventory.txt"
+  local manifest_inventory="$scratch_root/manifest-inventory.txt"
   find "$first_root" \
-    \( -iname '.env' -o -iname '*.env' -o -iname '.env.*' -o -iname '*.env.*' \) -prune -o \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type f -printf '%P\n' |
     sort > "$actual_inventory"
   awk '
@@ -240,10 +248,11 @@ run_inside_consumer() {
     kill -0 "$server_pid" 2>/dev/null || break
     sleep 0.05
   done
+  local announcement
   announcement="$(<"$announcement_file")"
   [[ "$announcement" =~ ^Listening[[:space:]]on[[:space:]]http://127\.0\.0\.1:([0-9]+)/lambda$ ]] ||
     die "packaged HTTP example did not announce an ephemeral loopback URL"
-  bound_port="${BASH_REMATCH[1]}"
+  local bound_port="${BASH_REMATCH[1]}"
   exec 3<>"/dev/tcp/127.0.0.1/$bound_port"
   printf 'GET /lambda HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n' >&3
   cat <&3 > "$response_file"

@@ -206,7 +206,8 @@
     cons define details else error error-frames->oldest-first
     error-kind->string error-value->string for/fold force format frame
     frame->string frames function function-name if in-list integer->char kind
-    lambda lazy-apply let let* list list->host-list loop map memv module nat
+    kind-number lambda lazy-apply let let* list list->host-list loop map memv
+    module nat
     nat->host-bits nat->integer null? or position provide quote racket/base
     racket/list racket/promise racket/string raw-boolean raw-boolean->boolean
     raw-char-value raw-error-frame-argument-position
@@ -215,7 +216,7 @@
     raw-make-nat raw-nat-value raw-object-value raw-string-value
     raw-type-mismatch-actual-type raw-type-mismatch-argument-position
     raw-type-mismatch-expected-type read-value remaining require reverse root
-    string string-append string-join string-value->string
+    string string-append string-join string-value->string tag-number
     supported-ascii-code? total type-mismatch-root->string type-tag
     type-tag->integer type-tag->string typed-head typed-is-nil typed-tail value
     values))
@@ -241,7 +242,8 @@
     first-codec-failure for/fold for/list force function
     host-list->object-list if in-bytes in-list integer integer->object-nat
     integer->raw-bits
-    lambda lazy-apply lazy-apply2 length let list list-type loop map memq
+    lambda lazy-apply lazy-apply2 length let list list-type loop
+    malformed-value-failure map memq
     module nat-type nil? not null? object-char->byte object-err
     object-has-type? object-list->host-list object-nat->integer object-ok
     object-string->bytes odd? only-in ormap
@@ -907,6 +909,9 @@
      (append-map datum-symbols (vector->list datum))]
     [else '()]))
 
+(define (module-symbols info)
+  (datum-symbols (module-info-forms info)))
+
 (define (datum-occurrence-count target datum)
   (cond
     [(equal? target datum) 1]
@@ -952,7 +957,7 @@
   (if info
       (for/list ([name (in-list
                         (remove-duplicates
-                         (datum-symbols (module-info-forms info))))]
+                         (module-symbols info)))]
                  #:unless (memq name allowed))
         (violation path kind name))
       '()))
@@ -1114,7 +1119,7 @@
 
 (define (macro-violations path info)
   (define symbols
-    (datum-symbols (module-info-forms info)))
+    (module-symbols info))
   (append
    (exact-language-violations path
                               info
@@ -1193,7 +1198,7 @@
                    (eq? (car form) 'def)))
             (module-info-forms info)))
   (define symbols
-    (datum-symbols (module-info-forms info)))
+    (module-symbols info))
   (append
    (exact-language-violations path
                               info
@@ -1252,7 +1257,7 @@
 
 (define (reader-violations path info project-root)
   (define symbols
-    (datum-symbols (module-info-forms info)))
+    (module-symbols info))
   (append
    (exact-language-violations path
                               info
@@ -1311,7 +1316,7 @@
 
 (define (codec-violations path info project-root)
   (define symbols
-    (datum-symbols (module-info-forms info)))
+    (module-symbols info))
   (append
    (exact-language-violations path
                               info
@@ -1352,7 +1357,7 @@
 
 (define (runner-violations path info project-root)
   (define symbols
-    (datum-symbols (module-info-forms info)))
+    (module-symbols info))
   (define definitions
     (filter-map top-level-binding-name
                 (module-info-forms info)))
@@ -1499,7 +1504,7 @@
                           1))
      (violation path 'missing-required-host-import required))
    (symbol-violations path
-                      (datum-symbols (module-info-forms info))
+                      (module-symbols info)
                       forbidden-host-capabilities
                       'forbidden-host-capability)))
 
@@ -1516,7 +1521,7 @@
      (list (violation source 'nonregular-boundary-file source))]
     [else
      (define info
-       (with-handlers ([exn:fail? (lambda (failure) failure)])
+       (with-handlers ([exn:fail? values])
          (read-module-info/unchecked source root)))
      (cond
        [(exn? info)
@@ -1524,34 +1529,23 @@
                          (exn-message info)))]
        [(not info)
         (list (violation source 'invalid-boundary-module source))]
-       [(eq? class 'effect)
-        (effect-violations source info root)]
-       [(eq? class 'macro-shell)
-        (macro-shell-violations source info)]
-       [(eq? class 'macro)
-        (macro-violations source info)]
-       [(eq? class 'language-expander)
-        (language-expander-violations source info root)]
-       [(eq? class 'language-reader)
-        (language-reader-violations source info)]
-       [(eq? class 'reader)
-        (reader-violations source info root)]
-       [(eq? class 'test)
-        (host-support-violations source info class)]
-       [(eq? class 'tooling)
-        (host-support-violations source info class)]
-       [(eq? class 'application)
-        (application-violations source info)]
-       [(eq? class 'runner)
-        (runner-violations source info root)]
-       [(eq? class 'package-info)
-        (package-info-violations source info root)]
-       [(eq? class 'codec)
-        (codec-violations source info root)]
-       [(eq? class 'host)
-        (host-violations source info root)]
        [else
-        (list (violation source 'unknown-boundary-class class))])]))
+        (case class
+          [(effect) (effect-violations source info root)]
+          [(macro-shell) (macro-shell-violations source info)]
+          [(macro) (macro-violations source info)]
+          [(language-expander)
+           (language-expander-violations source info root)]
+          [(language-reader) (language-reader-violations source info)]
+          [(reader) (reader-violations source info root)]
+          [(test tooling) (host-support-violations source info class)]
+          [(application) (application-violations source info)]
+          [(runner) (runner-violations source info root)]
+          [(package-info) (package-info-violations source info root)]
+          [(codec) (codec-violations source info root)]
+          [(host) (host-violations source info root)]
+          [else
+           (list (violation source 'unknown-boundary-class class))])])]))
 
 (define (excluded-discovery-entry? path)
   (define name
@@ -1632,19 +1626,22 @@
     [(equal? first-part "runner") 'runner]
     [else #f]))
 
+(define (classify-sources paths project-root)
+  (filter-map
+   (lambda (path)
+     (define class
+       (source-class path project-root))
+     (and class
+          (source-classification path class)))
+   paths))
+
 (define (project-source-classifications
          [project-root default-project-root])
   (define root
     (normalized project-root))
   (if (and (safe-absolute-components? root)
            (directory-exists? root))
-      (filter-map
-       (lambda (path)
-         (define class
-           (source-class path root))
-         (and class
-              (source-classification path class)))
-       (racket-files-under root))
+      (classify-sources (racket-files-under root) root)
       '()))
 
 (define (files-in-class classifications class)
@@ -1790,7 +1787,7 @@
              ([name
                (in-list
                 (remove-duplicates
-                 (datum-symbols (module-info-forms info))))]
+                 (module-symbols info)))]
               #:when (memq name privileged-host-only-identifiers))
            (violation source
                       'privileged-identifier-outside-host
@@ -1864,11 +1861,7 @@
      (define runner-files (racket-files-under runner-directory))
      (define repository-files (racket-files-under root))
      (define classifications
-       (filter-map
-        (lambda (path)
-          (define class (source-class path root))
-          (and class (source-classification path class)))
-        repository-files))
+       (classify-sources repository-files root))
      (define reader-files (files-in-class classifications 'reader))
      (define test-files (files-in-class classifications 'test))
      (define tooling-files (files-in-class classifications 'tooling))

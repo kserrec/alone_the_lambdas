@@ -70,10 +70,11 @@
      (lazy-apply2 raw-is-type expected value)))
   (and (boolean? decoded) decoded))
 
+(define (malformed-value-failure failure)
+  (codec-failure 'wrong-type))
+
 (define (object-list->host-list value)
-  (with-handlers ([exn:fail?
-                   (lambda (failure)
-                     (codec-failure 'wrong-type))])
+  (with-handlers ([exn:fail? malformed-value-failure])
     (if (not (object-has-type? list-type value))
         (codec-failure 'wrong-type)
         (let loop ([remaining (force value)]
@@ -111,9 +112,7 @@
                      (loop (cdr remaining))))))
 
 (define (raw-bit->boolean value)
-  (with-handlers ([exn:fail?
-                   (lambda (failure)
-                     (codec-failure 'wrong-type))])
+  (with-handlers ([exn:fail? malformed-value-failure])
     (raw-boolean->boolean value)))
 
 (define (raw-bits->integer bits-value)
@@ -147,9 +146,7 @@
     [else (codec-failure 'out-of-range)]))
 
 (define (object-char->byte value)
-  (with-handlers ([exn:fail?
-                   (lambda (failure)
-                     (codec-failure 'wrong-type))])
+  (with-handlers ([exn:fail? malformed-value-failure])
     (if (object-has-type? char-type value)
         (raw-bits->byte
          (lazy-apply raw-char-value value))
@@ -162,9 +159,7 @@
     [else (first-codec-failure (cdr values))]))
 
 (define (object-string->bytes value)
-  (with-handlers ([exn:fail?
-                   (lambda (failure)
-                     (codec-failure 'wrong-type))])
+  (with-handlers ([exn:fail? malformed-value-failure])
     (if (not (object-has-type? string-type value))
         (codec-failure 'wrong-type)
         (let ([chars
@@ -183,9 +178,7 @@
                      (apply bytes decoded)))))))))
 
 (define (object-nat->integer value)
-  (with-handlers ([exn:fail?
-                   (lambda (failure)
-                     (codec-failure 'wrong-type))])
+  (with-handlers ([exn:fail? malformed-value-failure])
     (if (object-has-type? nat-type value)
         (raw-bits->integer
          (lazy-apply raw-nat-value value))

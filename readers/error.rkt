@@ -14,7 +14,9 @@
   ((force function) argument))
 
 (define (error-kind->string kind)
-  (case (type-tag->integer kind)
+  (define kind-number
+    (type-tag->integer kind))
+  (case kind-number
     [(0) "TYPE-MISMATCH"]
     [(1) "EMPTY-LIST"]
     [(2) "INVALID-NAT"]
@@ -24,7 +26,7 @@
     [(6) "WRONG-RESULT-VARIANT"]
     [else
      (format "ERROR-KIND:~a"
-             (type-tag->integer kind))]))
+             kind-number)]))
 
 (define (error-frames->oldest-first error)
   (reverse

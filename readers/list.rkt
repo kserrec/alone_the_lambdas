@@ -9,8 +9,8 @@
 (define (lazy-apply function argument)
   ((force function) argument))
 
-(define (list->host-list list read-value)
-  (let loop ([remaining list])
+(define (list->host-list value read-value)
+  (let loop ([remaining value])
     (if (bool->boolean
          (lazy-apply typed-is-nil remaining))
         '()
