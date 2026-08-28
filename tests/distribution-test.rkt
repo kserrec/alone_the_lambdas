@@ -161,6 +161,7 @@
 (check-true (regexp-match? #rx"uname -s.*Darwin" macos-build-source))
 (check-true (regexp-match? #rx"[+][+]lang alone_the_lambdas" macos-build-source))
 (check-true (regexp-match? #rx"raco_executable.*distribute" macos-build-source))
+(check-true (regexp-match? #rx"mkdir -m 0755 \"[$]artifact_root/lib\"" macos-build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME=" macos-build-source))
 (check-true (regexp-match? #rx"otool -L" macos-build-source))
 (check-true (regexp-match? #rx"lipo -archs" macos-build-source))

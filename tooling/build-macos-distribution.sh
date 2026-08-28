@@ -294,8 +294,14 @@ done < <(
 
 [[ -x "$artifact_root/bin/atl" && ! -L "$artifact_root/bin/atl" ]] ||
   die "raco distribute did not produce bin/atl"
-[[ -d "$artifact_root/lib" && ! -L "$artifact_root/lib" ]] ||
-  die "raco distribute did not produce lib/"
+if [[ -e "$artifact_root/lib" || -L "$artifact_root/lib" ]]; then
+  [[ -d "$artifact_root/lib" && ! -L "$artifact_root/lib" ]] ||
+    die "raco distribute produced an invalid lib/ path"
+else
+  # Racket omits lib/ when the executable needs no separate support files.
+  # Keep the Alone the Lambdas archive layout stable across native targets.
+  mkdir -m 0755 "$artifact_root/lib"
+fi
 
 mkdir -p "$artifact_root/examples"
 for example_name in hello.atl stdout.atl file-round-trip.atl http-server.atl; do
