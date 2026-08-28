@@ -223,6 +223,14 @@
 (check-true (regexp-match? #rx"Get-AuthenticodeSignature" windows-consumer-source))
 (check-false (regexp-match? #rx"LASTEXITCODE" windows-consumer-source))
 (check-true (regexp-match? #rx"forbidden path marker" windows-consumer-source))
+(check-true
+ (regexp-match?
+  #rx"'github-checkout-segment' = '\\\\a\\\\alone_the_lambdas\\\\alone_the_lambdas\\\\'"
+  windows-consumer-source))
+(check-false
+ (regexp-match?
+  #rx"'github-checkout-segment' = '\\\\a\\\\'"
+  windows-consumer-source))
 (check-true (regexp-match? #rx"exit 0" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*64" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*65" windows-consumer-source))

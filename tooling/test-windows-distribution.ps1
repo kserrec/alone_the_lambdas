@@ -218,7 +218,7 @@ function Get-PeDependencies([string] $Dumpbin, [string] $Path) {
 
 function Assert-NoBuildRunnerPaths([string[]] $Files) {
     $forbiddenFragments = [ordered]@{
-        'github-checkout-segment' = '\a\'
+        'github-checkout-segment' = '\a\alone_the_lambdas\alone_the_lambdas\'
         'runner-temp-segment' = '\_temp\'
         'runner-profile-segment' = '\runneradmin\'
         'build-root-name' = 'alone-the-lambdas-windows-build-'
