@@ -87,6 +87,41 @@
     ((raw-cons s)
      ((raw-cons t) NIL)))))
 
+(def raw-content-length-name-chars =
+  ((raw-cons C)
+   ((raw-cons o)
+    ((raw-cons n)
+     ((raw-cons t)
+      ((raw-cons e)
+       ((raw-cons n)
+        ((raw-cons t)
+         ((raw-cons HYPHEN)
+          ((raw-cons L)
+           ((raw-cons e)
+            ((raw-cons n)
+             ((raw-cons g)
+              ((raw-cons t)
+               ((raw-cons h) NIL)))))))))))))))
+
+(def raw-transfer-encoding-name-chars =
+  ((raw-cons T)
+   ((raw-cons r)
+    ((raw-cons a)
+     ((raw-cons n)
+      ((raw-cons s)
+       ((raw-cons f)
+        ((raw-cons e)
+         ((raw-cons r)
+          ((raw-cons HYPHEN)
+           ((raw-cons E)
+            ((raw-cons n)
+             ((raw-cons c)
+              ((raw-cons o)
+               ((raw-cons d)
+                ((raw-cons i)
+                 ((raw-cons n)
+                  ((raw-cons g) NIL))))))))))))))))))
+
 (def raw-space-chars =
   ((raw-cons SPACE) NIL))
 
@@ -120,6 +155,9 @@
 (def raw-plus-char =
   (raw-http-char-succ raw-asterisk-char))
 
+(def raw-at-char =
+  (raw-http-char-succ QUESTION))
+
 (def raw-caret-char =
   (raw-http-char-succ RIGHT-BRACKET))
 
@@ -148,6 +186,30 @@
               ((raw-cons raw-backtick-char)
                ((raw-cons raw-pipe-char)
                 ((raw-cons raw-tilde-char) NIL))))))))))))))))
+
+;; RFC 3986 pchar punctuation, plus slash and question mark for the
+;; origin-form path and query. Percent is handled separately so malformed
+;; escape triplets cannot pass as ordinary punctuation.
+(def raw-origin-target-punctuation-chars =
+  ((raw-cons raw-exclamation-char)
+   ((raw-cons raw-dollar-char)
+    ((raw-cons AMPERSAND)
+     ((raw-cons raw-apostrophe-char)
+      ((raw-cons LEFT-PAREN)
+       ((raw-cons RIGHT-PAREN)
+        ((raw-cons raw-asterisk-char)
+         ((raw-cons raw-plus-char)
+          ((raw-cons COMMA)
+           ((raw-cons HYPHEN)
+            ((raw-cons DOT)
+             ((raw-cons SLASH)
+              ((raw-cons COLON)
+               ((raw-cons SEMICOLON)
+                ((raw-cons EQUAL)
+                 ((raw-cons QUESTION)
+                  ((raw-cons raw-at-char)
+                   ((raw-cons UNDERSCORE)
+                    ((raw-cons raw-tilde-char) NIL))))))))))))))))))))
 
 (def raw-high-byte-start-bits =
   ((raw-nat-mult
@@ -287,6 +349,27 @@
     char)
    choices))
 
+(def raw-ascii-hex-digit? char =
+  ((raw-or
+    (((raw-http-char-between? char)
+      DIGIT-0)
+     DIGIT-9))
+   ((raw-or
+     (((raw-http-char-between? char) A) F))
+    (((raw-http-char-between? char) a) f))))
+
+(def raw-origin-target-unescaped-char? char =
+  ((raw-or
+    ((raw-or
+      ((raw-or
+        (((raw-http-char-between? char) A) Z))
+       (((raw-http-char-between? char) a) z)))
+     (((raw-http-char-between? char)
+       DIGIT-0)
+      DIGIT-9)))
+   ((raw-http-char-member? char)
+    raw-origin-target-punctuation-chars)))
+
 (def raw-char-list-all-step recur predicate chars =
   (((raw-if
      (raw-list-is-nil chars))
@@ -344,6 +427,64 @@
 (def raw-string-ci-equal =
   (raw-fix raw-string-ci-equal-step))
 
+(def raw-http-ows-char? char =
+  ((raw-or
+    ((raw-http-char-equal char) SPACE))
+   ((raw-http-char-equal char) TAB)))
+
+(def raw-http-all-ows-step recur chars =
+  (((raw-if
+     (raw-list-is-nil chars))
+    raw-true)
+   ((raw-and
+     (raw-http-ows-char?
+      (raw-list-head chars)))
+    (recur
+     (raw-list-tail chars)))))
+
+(def raw-http-all-ows? =
+  (raw-fix raw-http-all-ows-step))
+
+(def raw-zero-content-length-digits-step recur chars =
+  (((raw-if
+     (raw-list-is-nil chars))
+    raw-true)
+   (lambda-let current =
+     (raw-list-head chars)
+     (((raw-if
+        ((raw-http-char-equal current)
+         DIGIT-0))
+       (recur
+        (raw-list-tail chars)))
+      (((raw-if
+         (raw-http-ows-char? current))
+        (raw-http-all-ows?
+         (raw-list-tail chars)))
+       raw-false)))))
+
+(def raw-zero-content-length-digits? =
+  (raw-fix raw-zero-content-length-digits-step))
+
+(def raw-zero-content-length-value-step recur chars =
+  (((raw-if
+     (raw-list-is-nil chars))
+    raw-false)
+   (lambda-let current =
+     (raw-list-head chars)
+     (((raw-if
+        (raw-http-ows-char? current))
+       (recur
+        (raw-list-tail chars)))
+      (((raw-if
+         ((raw-http-char-equal current)
+          DIGIT-0))
+        (raw-zero-content-length-digits?
+         (raw-list-tail chars)))
+       raw-false)))))
+
+(def raw-zero-content-length-value? =
+  (raw-fix raw-zero-content-length-value-step))
+
 (def raw-header-name-valid? chars =
   ((raw-and
     (raw-not
@@ -385,10 +526,22 @@
                      ((raw-string-ci-equal name)
                       raw-host-name-chars)
                      (((raw-if
-                        ((raw-and is-host) host-seen))
+                        ((raw-string-ci-equal name)
+                         raw-transfer-encoding-name-chars))
                        raw-false)
-                      ((recur after)
-                       ((raw-or host-seen) is-host)))))
+                      (((raw-if
+                         ((raw-and
+                           ((raw-string-ci-equal name)
+                            raw-content-length-name-chars))
+                          (raw-not
+                           (raw-zero-content-length-value?
+                            (raw-split-after field-split)))))
+                        raw-false)
+                       (((raw-if
+                          ((raw-and is-host) host-seen))
+                         raw-false)
+                        ((recur after)
+                         ((raw-or host-seen) is-host)))))))
                   raw-false)))
               raw-false))))))
      raw-false)))
@@ -406,13 +559,44 @@
      (raw-list-head chars))
     SLASH)))
 
-(def raw-request-target-chars-valid? chars =
-  ((raw-char-list-all?
-    (lambda (char)
-      (((raw-http-char-between? char)
-        raw-exclamation-char)
-       raw-tilde-char)))
-   chars))
+(def raw-percent-encoded-tail-valid? recur chars =
+  (((raw-if
+     (raw-list-is-nil chars))
+    raw-false)
+   (lambda-let after-first =
+     (raw-list-tail chars)
+     (((raw-if
+        (raw-list-is-nil after-first))
+       raw-false)
+      (((raw-if
+         ((raw-and
+           (raw-ascii-hex-digit?
+            (raw-list-head chars)))
+          (raw-ascii-hex-digit?
+           (raw-list-head after-first))))
+        (recur
+         (raw-list-tail after-first)))
+       raw-false)))))
+
+(def raw-request-target-chars-valid-step recur chars =
+  (((raw-if
+     (raw-list-is-nil chars))
+    raw-true)
+   (lambda-let current =
+     (raw-list-head chars)
+     (((raw-if
+        ((raw-http-char-equal current)
+         PERCENT))
+       ((raw-percent-encoded-tail-valid? recur)
+        (raw-list-tail chars)))
+      (((raw-if
+         (raw-origin-target-unescaped-char? current))
+        (recur
+         (raw-list-tail chars)))
+       raw-false)))))
+
+(def raw-request-target-chars-valid? =
+  (raw-fix raw-request-target-chars-valid-step))
 
 (def raw-incomplete-http-request-result =
   (raw-make-err incomplete-http-request-error))

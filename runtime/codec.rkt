@@ -14,7 +14,6 @@
                   NIL
                   raw-cons
                   raw-list-head
-                  raw-list-is-nil
                   raw-list-tail)
          (only-in "../core/logic.rkt"
                   raw-false
@@ -85,23 +84,18 @@
                (codec-failure 'wrong-type)]
               [(not (object-has-type? list-type remaining))
                (codec-failure 'wrong-type)]
+              [(eq? remaining (force NIL))
+               (reverse reversed)]
               [else
-               (define nil?
-                 (raw-boolean->boolean
-                  (lazy-apply raw-list-is-nil remaining)))
-               (cond
-                 [(codec-failure? nil?) nil?]
-                 [nil? (reverse reversed)]
-                 [else
-                  (define tail
-                    (force (lazy-apply raw-list-tail remaining)))
-                  (if (not (object-has-type? list-type tail))
-                      (codec-failure 'wrong-type)
-                      (loop tail
-                            (cons (force
-                                   (lazy-apply raw-list-head remaining))
-                                  reversed)
-                            (cons remaining seen)))])])))))
+               (define tail
+                 (force (lazy-apply raw-list-tail remaining)))
+               (if (not (object-has-type? list-type tail))
+                   (codec-failure 'wrong-type)
+                   (loop tail
+                         (cons (force
+                                (lazy-apply raw-list-head remaining))
+                               reversed)
+                         (cons remaining seen)))])))))
 
 (define (host-list->object-list values)
   (let loop ([remaining values])

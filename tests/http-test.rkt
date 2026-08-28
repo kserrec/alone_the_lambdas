@@ -103,6 +103,12 @@
                #"/")
          (list #"GET /hello?name=lambda HTTP/1.1\r\nHost: localhost\r\n\r\n"
                #"/hello?name=lambda")
+         (list #"GET /escaped%20path?next=%2Fok HTTP/1.1\r\nHost: localhost\r\n\r\n"
+               #"/escaped%20path?next=%2Fok")
+         (list #"GET /pchar!$&'()*+,-.:;=@_~?query/with?mark HTTP/1.1\r\nHost: localhost\r\n\r\n"
+               #"/pchar!$&'()*+,-.:;=@_~?query/with?mark")
+         (list #"GET /empty-body HTTP/1.1\r\nHost: localhost\r\nContent-Length:\t00 \r\n\r\n"
+               #"/empty-body")
          (list #"GET /mixed HTTP/1.1\r\nhOsT: localhost\r\n\r\n"
                #"/mixed")
          (list #"GET /headers HTTP/1.1\r\nUser-Agent: test\r\nHOST: localhost\r\nAccept: */*\r\n\r\n"
@@ -175,7 +181,17 @@
               #"GET / HTTP/1.1\r\nBad/Name: x\r\nHost: x\r\n\r\n"
               #"GET / HTTP/1.1\r\nBad\0Name: x\r\nHost: x\r\n\r\n"
               #"GET / HTTP/1.1\r\nHost: x\r\nX-Test: bad\0value\r\n\r\n"
-              #"GET /bad\tpath HTTP/1.1\r\nHost: x\r\n\r\n"))])
+              #"GET /bad\tpath HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /bad#fragment HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /bad% HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /bad%0 HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /bad%GG HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /bad\\path HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /bad[path] HTTP/1.1\r\nHost: x\r\n\r\n"
+              #"GET /body HTTP/1.1\r\nHost: x\r\nContent-Length: 3\r\n\r\n"
+              #"GET /missing-length HTTP/1.1\r\nHost: x\r\nContent-Length:\t \r\n\r\n"
+              #"GET /split-zero HTTP/1.1\r\nHost: x\r\nContent-Length: 0 0\r\n\r\n"
+              #"GET /chunked HTTP/1.1\r\nHost: x\r\ntransfer-encoding: chunked\r\n\r\n"))])
   (check-parse-err malformed 10))
 
 (for ([unsupported

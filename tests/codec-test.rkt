@@ -114,6 +114,21 @@
                (object-list->host-list malformed-list-predicate))
               'wrong-type)
 
+;; Only the one canonical NIL object terminates a decoded List. A forged cell
+;; with an ordinary value in its head and an unrelated Error in its tail is
+;; malformed; it must not be mistaken for an empty List and silently truncate.
+(define false-nil-list
+  (apply2 raw-make-object
+          list-type
+          (apply2 raw-pair A invalid-nat-error)))
+(check-equal? (failure-reason
+               (object-list->host-list false-nil-list))
+              'wrong-type)
+(check-equal? (failure-reason
+               (object-string->bytes
+                (lazy-apply raw-make-string false-nil-list)))
+              'wrong-type)
+
 (define (bits->raw bits)
   (host-list->object-list
    (map (lambda (bit)
