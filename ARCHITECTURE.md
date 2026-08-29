@@ -307,11 +307,15 @@ same native isolation contract for the `0.2.0-rc.1` candidate, with the
 approved license/notices and novice guide replacing the transitional
 development payload. Phase 29 changed the delivery state to final `0.2.0`,
 updated the version-specific notice heading and release wording, and staged
-the exact native archives before a separate publication decision. All four
-no-Racket consumers execute the printed download, checksum, extraction,
-version, hello, and custom-program workflow. This changes delivery metadata
-and intended version output, not object-language computation or the host
-boundary.
+the exact native archives. A separate approval then authorized the unsigned
+annotated `v0.2.0` tag and public latest non-prerelease GitHub Release with
+only those four archives and `SHA256SUMS`; every public file was anonymously
+downloaded and matched staging byte-for-byte. All four native no-Racket
+consumers execute the printed download, checksum, extraction, version, hello,
+and custom-program workflow, and the anonymously downloaded Linux archive
+passed that full consumer again after publication. This changes delivery
+metadata and intended version output, not object-language computation or the
+host boundary.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate

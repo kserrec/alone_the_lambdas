@@ -1,8 +1,8 @@
 # Standalone distribution design
 
 Status: original contract approved 2026-08-27; Phases 22 through 28
-implemented; Phase 29 final-but-unpublished implementation verified and
-staged 2026-08-29; publication not authorized
+implemented; Phase 29 final implementation, native verification, and exact
+public `0.2.0` publication completed 2026-08-29
 
 Date: 2026-08-27
 
@@ -10,7 +10,8 @@ This document fixes the current contract for distributing AttaLambda as an
 independently runnable language. It is subordinate to the three canonical
 [specifications](../specifications/README.md) and to the already approved
 [host boundary](host-boundary.md). Approval authorized the implementation
-work that began in Phase 22; it does not authorize a public release.
+work that began in Phase 22. The separate exact public-release approval and
+its execution are recorded below.
 
 ## Verified starting state
 
@@ -509,8 +510,8 @@ The proof is consistent with Racket's official documentation:
 
 ## What remains unproven
 
-The Phase 21 proof does not by itself claim that the product is downloadable
-today. At that point it had not implemented or tested the approved command
+The Phase 21 proof did not by itself claim that the product was downloadable
+at that point. It had not implemented or tested the approved command
 parser, dotenv rejection, declaration preflight, stable diagnostics, version
 derivation, canonical artifact layout, reproducible build, macOS artifacts,
 Windows artifact, license notices, signing, or public download workflow. It
@@ -527,8 +528,11 @@ establishes no older macOS floor. Phase 26 supplies a native Windows x86-64
 artifact plus clean cross-drive consumer proof on Microsoft Windows Server
 2025 Datacenter 10.0.26100, build 26100; it establishes no older Windows floor
 or Windows client-edition support. Lower compatibility floors, the final legal
-inventory, a signed artifact, installer behavior, and publication remain
-unproven.
+inventory, a signed artifact, installer behavior, and publication remained
+unproven at the end of those phases. Phases 27 through 29 later supplied the
+legal inventory and exact public release; lower compatibility floors,
+Windows client-edition support, identity-backed signing, and installer
+behavior remain unproven.
 
 ## Phase 22 implementation record
 
@@ -964,13 +968,15 @@ fallback. The workflow excludes tag pushes so a later tag cannot repeat the
 transfer, and ordinary `always()` cleanup is restored for every future branch
 or pull-request run.
 
-No Phase 29 implementation or transfer approval authorizes paid GitHub usage,
-a tag, GitHub Release, signing operation, release-asset upload, public-download
-claim, or publication. Those external mutations remain blocked until the
+The Phase 29 implementation and transfer approvals alone did not authorize
+paid GitHub usage, a tag, GitHub Release, signing operation, release-asset
+upload, public-download claim, or publication. Those external mutations
+remained blocked until the
 exact tested source commit, four archive checksums and measurements, one
 combined manifest, demonstrated platforms, unsigned/signing state, known
 limitations, and public consequences are presented literally and Kyle
-approves that exact proposal.
+approved that exact proposal. The later publication approval is recorded
+below.
 
 Local Racket CS 9.3 verification of the release-preparation commit passed
 4,751 assertions across all 32 test files, the unchanged expanded purity proof
@@ -990,7 +996,7 @@ zero-finding source-boundary inventory. Each consumer reported absent Racket
 and `raco` commands, no source checkout where applicable,
 `guide_workflow=passed`, relocation success, and final acceptance.
 
-The exact final-but-unpublished archive observations are:
+The exact archive observations before publication were:
 
 | Target | Exact consumer | Compressed bytes | Unpacked regular-file bytes | SHA-256 | Startup before / after relocation |
 | --- | --- | ---: | ---: | --- | ---: |
@@ -1002,8 +1008,8 @@ The exact final-but-unpublished archive observations are:
 Those four hashes form one exact 410-byte `SHA256SUMS`; its own SHA-256 is
 `7786bf553caac0087ab22f3636d546a1fe00f89a446611c1516cc58f411f6f7f`,
 and all four entries pass a fresh local checksum verification. The five files
-are staged together outside the repository. They remain publication inputs,
-not public downloads.
+were staged together outside the repository as publication inputs before the
+separate public-release approval.
 
 Linux stayed inside one workflow job. The CI log preserved its exact digest
 and measurements but not a cross-job copy, so local staging rebuilt it from
@@ -1034,8 +1040,58 @@ IDs `9717803836`, `9717807355`, and `9717796683`. Their downloaded contents
 matched their one-entry manifests and the hashes above. Codex deleted those
 three exact IDs through the GitHub API; a follow-up query for run 33262922610
 returned `total_count: 0`. The ordinary two `always()` cleanup jobs are now
-restored. No tag, GitHub Release, release asset, signing operation, public
-download, purchase, paid usage, or publication was created or authorized.
+restored. At the end of staging, no tag, GitHub Release, release asset,
+signing operation, public download, purchase, paid usage, or publication had
+yet been created or authorized.
+
+## Phase 29 publication record
+
+Kyle separately authorized the exact public release on 2026-08-29 after the
+source commit, five files, hashes, native evidence, signing state, limitations,
+account use, cost, and public consequences were presented literally. The
+unsigned annotated tag `v0.2.0` was created with annotation
+`AttaLambda 0.2.0` and pushed alone. Its public tag-object SHA is
+`5537cf8b4dc1db31f8855e10118729ac78bc0dd0`; it peels to exact tested source
+commit `42ff0a7810ebeced445ab23561433a2dc423e433`. The unauthenticated public tag
+API reports `verified: false`, reason `unsigned`, and no signature or signed
+payload. No tag-triggered GitHub Actions run exists.
+
+GitHub Release ID `379061612` was created first as a draft, titled exactly
+`AttaLambda 0.2.0`, associated with `v0.2.0`, marked non-prerelease, and
+manually given only these five assets:
+
+| Asset | Bytes | GitHub asset ID | SHA-256 |
+| --- | ---: | ---: | --- |
+| `attalambda-0.2.0-linux-x86_64.tar.gz` | `13,728,716` | `535549598` | `86f980d696b45b42c251b78e6a66b9cd875f649217bfb09731cf6b47c66b00ac` |
+| `attalambda-0.2.0-macos-arm64.tar.gz` | `13,743,188` | `535549609` | `5791ca3c28717972409d0d3503e135f685bcb7011ec24e6e4f9e70c7e5426b2b` |
+| `attalambda-0.2.0-macos-x86_64.tar.gz` | `13,714,720` | `535549602` | `72f56f4d95665a3ca802160175c4082ce42b08054a35b963a10b0597b9d91fdc` |
+| `attalambda-0.2.0-windows-x86_64.zip` | `15,296,844` | `535549611` | `0ffcf7cd7218459efe1de1de87c7ff650328d01b16caa253deb6aa621188015a` |
+| `SHA256SUMS` | `410` | `535549605` | `7786bf553caac0087ab22f3636d546a1fe00f89a446611c1516cc58f411f6f7f` |
+
+Authenticated draft downloads matched all five staging files byte-for-byte.
+The verified draft was then published as the latest non-prerelease Release at
+<https://github.com/kserrec/attalambda/releases/tag/v0.2.0>. GitHub supplies
+its automatic source-code ZIP and tarball links in addition to the five
+manual assets; no other file was manually uploaded.
+
+All five public asset URLs were then downloaded with an anonymous client.
+Their names and byte counts were exact, every entry in the public combined
+manifest verified, the manifest's own SHA-256 matched, and every downloaded
+file compared byte-for-byte with staging. The anonymous Linux archive also
+passed the complete digest-pinned Ubuntu 24.04 no-Racket consumer: no
+`racket` or `raco`, no external network other than loopback, exact archive and
+payload inventory, printed guide workflow, relocation, and final consumer
+acceptance all passed. Its observed startup measurements in that post-release
+run were 286 ms before and 295 ms after relocation.
+
+Unauthenticated public API and HTML checks confirmed the exact title, tag,
+published non-prerelease state, latest designation, five manual asset names,
+sizes, GitHub SHA-256 digests and URLs, release notes, checksum text, and
+signing warnings. The anonymous `/releases/latest` endpoint resolves to the
+release and returns HTTP 200. Publication used no identity-backed or detached
+signing, notarization, paid GitHub feature, purchase, or GitHub Actions run.
+No invalid-draft or failed-publication rollback was needed, and the tag was
+not deleted.
 
 ## Approval record
 
@@ -1185,9 +1241,32 @@ local-staging transfer boundary by replying:
 Approve the temporary Phase 29 GitHub Actions transfer in the public kserrec/attalambda repository of the two final-but-unpublished macOS 0.2.0 archives and one final-but-unpublished Windows 0.2.0 archive, their one-entry checksums, and their self-contained consumer harnesses. After all three consumer tests pass, keep the artifacts only long enough for Codex to download and verify the exact tested bytes into local staging, then delete them immediately through the GitHub API; one-day retention is only the automatic fallback. Linux must remain within one job. This does not authorize paid GitHub usage, a Git tag, GitHub Release, signing operation, release-asset upload, public download claim, or publication.
 ```
 
-These approvals permit commits and pushes to public `main`, exactly one set of
-three temporary cross-job artifacts for the final staging run, local staging
-of the four verified archives and combined checksum manifest, and immediate
-API deletion after download. They grant no authority to create or push a tag,
-create a GitHub Release, sign anything, upload a release asset, call the files
-public downloads, spend money, or publish AttaLambda `0.2.0`.
+Those two approvals permitted commits and pushes to public `main`, exactly one
+set of three temporary cross-job artifacts for the final staging run, local
+staging of the four verified archives and combined checksum manifest, and
+immediate API deletion after download. By themselves they granted no authority
+to create or push a tag, create a GitHub Release, sign anything, upload a
+release asset, call the files public downloads, spend money, or publish
+AttaLambda `0.2.0`.
+
+After the exact publication proposal was presented, Kyle separately approved
+the public release on 2026-08-29 by replying:
+
+```text
+Approve publishing AttaLambda 0.2.0 in the public kserrec/attalambda repository exactly as proposed: create
+  and push the unsigned annotated tag v0.2.0 at commit 42ff0a7810ebeced445ab23561433a2dc423e433 with
+  annotation AttaLambda 0.2.0; create the public latest non-prerelease GitHub Release titled AttaLambda 0.2.0;
+  manually upload only the four named native archives and SHA256SUMS with the listed hashes; accept GitHub’s
+  automatic source-code ZIP and tarball links; use no identity-backed or detached signing, notarization, paid
+  GitHub feature, purchase, or GitHub Actions run; verify the draft and every anonymous public download as
+  stated; delete only an invalid draft or return a failed public Release to draft; and never delete the tag
+  without new approval.
+```
+
+That approval authorized only the named unsigned annotated tag at the exact
+tested commit, the named latest non-prerelease public Release, the five exact
+manual assets, GitHub's automatic source links, and the stated verification
+and conditional rollback. It prohibited the listed signing, notarization,
+paid, purchase, and Actions operations and withheld authority to delete the
+tag. The publication record above confirms that this authority was exercised
+without invoking either rollback path.

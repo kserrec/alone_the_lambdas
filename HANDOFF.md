@@ -1,16 +1,17 @@
 # Session handoff
 
-Status recorded: 2026-08-29 after Phase 29 final-but-unpublished staging.
-Publication has not been authorized or attempted.
+Status recorded: 2026-08-29 after the verified public AttaLambda 0.2.0
+publication and repository closeout.
 
-This handoff becomes stale if `main` changes, any staged release input moves or
-changes, or Kyle authorizes or rejects the exact publication proposal.
+This handoff becomes stale if `main`, tag `v0.2.0`, GitHub Release `v0.2.0`,
+or any of its five manually uploaded assets changes.
 
 ## Exact stop point
 
-- Final source commit `42ff0a7810ebeced445ab23561433a2dc423e433` is
-  pushed to public `main`. It sets root `VERSION` to exactly `0.2.0` and
-  `info.rkt` to `0.2`; unchanged runner source derives `AttaLambda 0.2.0`.
+- Final release source commit
+  `42ff0a7810ebeced445ab23561433a2dc423e433` is pushed to public `main`. It
+  sets root `VERSION` to exactly `0.2.0` and `info.rkt` to `0.2`; unchanged
+  runner source derives `AttaLambda 0.2.0`.
 - The only notice edit is the AttaLambda heading version. The resulting
   `distribution/THIRD_PARTY_NOTICES.md.in` is 100,024 bytes with SHA-256
   `516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad`;
@@ -30,12 +31,28 @@ changes, or Kyle authorizes or rejects the exact publication proposal.
   the API, and a follow-up run-artifact query returned `total_count: 0`.
   Ordinary `always()` cleanup is restored for future macOS and Windows
   transfer jobs; tag pushes remain excluded.
-- No tag, GitHub Release, signing operation, release-asset upload, public
-  download, publication, purchase, or paid GitHub usage is authorized.
+- Kyle separately approved the exact publication. The unsigned annotated tag
+  `v0.2.0` has tag-object SHA
+  `5537cf8b4dc1db31f8855e10118729ac78bc0dd0`, annotation
+  `AttaLambda 0.2.0`, and peels to the exact release source commit above. The
+  public tag API reports it as `unsigned` with no signature or payload.
+- Public GitHub Release ID `379061612` is the latest non-prerelease Release,
+  is titled `AttaLambda 0.2.0`, and is available at
+  <https://github.com/kserrec/attalambda/releases/tag/v0.2.0>. It has exactly
+  the four approved native archives and `SHA256SUMS` as manual assets, plus
+  GitHub's automatic source-code ZIP and tarball links.
+- The authenticated draft downloads and all five later anonymous public
+  downloads matched local staging byte-for-byte. The public API, public HTML,
+  and anonymous latest-release redirect were also verified. The anonymously
+  downloaded Linux archive passed the full digest-pinned no-Racket Ubuntu
+  24.04 consumer again.
+- Publication used no identity-backed or detached signing, notarization,
+  paid GitHub feature, purchase, or GitHub Actions run. No invalid-draft or
+  failed-publication rollback was needed, and the tag was not deleted.
 
-## Exact local staging
+## Exact release files and public verification
 
-The five final-but-unpublished files are in
+The five exact publication inputs remain in
 `/tmp/attalambda-phase29-release-1wXfDu/assets`:
 
 ```text
@@ -47,7 +64,10 @@ The five final-but-unpublished files are in
 
 The combined `SHA256SUMS` is exactly 410 bytes, has SHA-256
 `7786bf553caac0087ab22f3636d546a1fe00f89a446611c1516cc58f411f6f7f`,
-and all four entries pass `sha256sum -c`.
+and all four entries pass `sha256sum -c`. The five anonymous public downloads
+are in `/tmp/attalambda-phase29-public-download-o8dXoA`; their names and sizes
+are exact, every manifest entry passes, the manifest's own hash matches, and
+all five files compare byte-for-byte with staging.
 
 Linux stayed within one CI job. A second unchanged local build proved the
 nonstandard `/tmp` Racket installation deterministic, then an isolated Ubuntu
@@ -87,14 +107,10 @@ distribution tooling and tests, CI staging, and documentation.
 
 ## Work remaining
 
-1. Present one literal proposal naming the annotated unsigned tag, GitHub
-   Release title, five exact asset names and hashes, observed platforms,
-   unsigned/notarization state, current limitations, account use, cost, and
-   public consequence.
-2. Wait for a new exact approval. Do not create a tag, Release, signature,
-   upload, or public-download claim before that approval.
-3. If approved, publish only those exact inputs, download every public asset,
-   reverify every checksum and command, and leave `main` clean and synchronized.
+No Phase 29 work remains. Any later replacement asset, Release edit, signing
+or notarization operation, new tag, or deletion of `v0.2.0` is new work and
+requires its own authority. In particular, never delete `v0.2.0` without new
+approval.
 
 The pre-existing ignored Racket 8.10 `compiled/` directories encountered
 during verification were moved intact—not deleted—to

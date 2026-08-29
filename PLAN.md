@@ -484,8 +484,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 29 final-but-unpublished artifacts verified and
-staged; publication approval pending)
+Status: complete (2026-08-29)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -1015,8 +1014,7 @@ change is the runner's version projection from `0.2.0-dev` to `0.2.0-rc.1`.
 
 ## Phase 29 — First independent release
 
-Status: in progress (final-but-unpublished artifacts verified and staged
-2026-08-29; exact publication approval pending)
+Status: complete (2026-08-29)
 
 Kyle separately approved the exact final-version implementation scope and the
 one-time temporary transfer of only the two macOS and one Windows final-but-
@@ -1027,7 +1025,8 @@ three exact GitHub artifacts through the API, and verified that the run now
 has zero artifacts. Linux remained within one job, and ordinary `always()`
 cleanup is restored. Neither approval authorizes paid GitHub usage, a tag,
 GitHub Release, signing, release-asset upload, public-download claim, or
-publication. The literal approval text is recorded in
+publication. Kyle later gave a separate exact publication approval; its
+literal text and the resulting public evidence are recorded in
 `docs/design/standalone-distribution.md`.
 
 - [x] Set `0.2.0` as the single release version, make the CLI, package
@@ -1036,27 +1035,27 @@ publication. The literal approval text is recorded in
 - [x] Run the complete source suite, expanded core purity proof, repository
   boundary inventory, four native artifact builds, and four no-Racket consumer
   suites from the exact commit proposed for release.
-- [ ] Present the final license, public Git tag, GitHub Release, artifact
+- [x] Present the final license, public Git tag, GitHub Release, artifact
   names, checksums, platform support, unsigned/signing status, and any user
   warnings to Kyle, then obtain explicit permission to publish that exact
   release. State any account, credential, monetary, or irreversible
   consequence literally before requesting it.
-- [ ] After approval, create the annotated Git tag (cryptographically signed
+- [x] After approval, create the annotated Git tag (cryptographically signed
   only if separately approved signing credentials are available) and public
   GitHub Release, attach only the verified artifacts and checksum manifest,
   then download and reverify each published artifact rather than trusting the
   upload step.
-- [ ] Confirm the public instructions resolve from a clean browser-visible
+- [x] Confirm the public instructions resolve from a clean browser-visible
   release URL, `attalambda --version` reports `0.2.0`, all checksums match, and
   `main` remains clean and synchronized with its verified remote.
 
-Staging evidence: source commit
+Completion evidence: source commit
 `42ff0a7810ebeced445ab23561433a2dc423e433` passed 4,751 assertions across
 all 32 test files, the unchanged 16-module purity proof, the complete
 zero-finding source inventory, all four native builds, and all four clean
 consumers in [GitHub Actions run
 33262922610](https://github.com/kserrec/attalambda/actions/runs/33262922610).
-The locally staged final-but-unpublished archives have SHA-256 values
+The exact published archives have SHA-256 values
 `86f980d696b45b42c251b78e6a66b9cd875f649217bfb09731cf6b47c66b00ac`
 (Linux x86-64),
 `5791ca3c28717972409d0d3503e135f685bcb7011ec24e6e4f9e70c7e5426b2b`
@@ -1066,7 +1065,19 @@ The locally staged final-but-unpublished archives have SHA-256 values
 `0ffcf7cd7218459efe1de1de87c7ff650328d01b16caa253deb6aa621188015a`
 (Windows x86-64). Their 410-byte combined `SHA256SUMS` has SHA-256
 `7786bf553caac0087ab22f3636d546a1fe00f89a446611c1516cc58f411f6f7f`;
-all four entries verify. These are staged release inputs, not public downloads.
+all four entries verify. The unsigned annotated tag `v0.2.0` peels to that
+exact source commit and carries annotation `AttaLambda 0.2.0`. The public
+latest non-prerelease [AttaLambda 0.2.0
+Release](https://github.com/kserrec/attalambda/releases/tag/v0.2.0) contains
+only those four manually uploaded archives and the combined manifest, in
+addition to GitHub's automatic source-code links. An authenticated draft
+download and a subsequent anonymous public download both matched all five
+staging files byte-for-byte. The anonymous Linux archive then passed the full
+digest-pinned, no-Racket Ubuntu 24.04 consumer again. The public API and HTML
+show the exact title, tag, non-prerelease/latest state, asset names, sizes,
+digests, notes, signing warnings, and public URLs; the anonymous latest URL
+resolves successfully. Publication used no signing or notarization operation,
+paid GitHub feature, purchase, or GitHub Actions run.
 
 Acceptance: AttaLambda has a verified public `0.2.0` release whose users
 download a platform archive, write `.attl`, and run `attalambda` without

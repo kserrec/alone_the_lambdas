@@ -51,9 +51,12 @@ variables, unary lambdas, and application.
 > immediately. Phase 29 promoted the source and archive contract to final
 > version `0.2.0`; commit `42ff0a7` passed all four native builders and clean
 > consumers, the three approved temporary artifacts were verified into local
-> staging and deleted, and ordinary immediate cleanup was restored. No tag,
-> GitHub Release, release asset, or public download is authorized yet. Separate
-> structural gates enforce every boundary class. See
+> staging and deleted, and ordinary immediate cleanup was restored. The
+> separately approved unsigned annotated tag `v0.2.0` and public latest
+> non-prerelease [AttaLambda 0.2.0 release](https://github.com/kserrec/attalambda/releases/tag/v0.2.0)
+> now publish those exact four archives and `SHA256SUMS`; all five public files
+> were anonymously downloaded and verified byte-for-byte after publication.
+> Separate structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -61,13 +64,12 @@ variables, unary lambdas, and application.
 ## Download, verify, extract, and run
 
 AttaLambda `0.2.0` is the first independently runnable release. Its
-authoritative public distribution is a GitHub Release titled
-`AttaLambda 0.2.0` on the
-[AttaLambda Releases page](https://github.com/kserrec/attalambda/releases)
-that supplies all four archives and their sibling `SHA256SUMS`. Until that
-Release exists, no binary download is authorized merely because public
-`main` reports the final version. Archive users do not install Racket, run
-`raco`, or register a package.
+authoritative public distribution is the
+[AttaLambda 0.2.0 GitHub Release](https://github.com/kserrec/attalambda/releases/tag/v0.2.0),
+which supplies all four archives and their sibling `SHA256SUMS`. The five
+manually uploaded files were anonymously downloaded and verified
+byte-for-byte against the tested staging files after publication. Archive
+users do not install Racket, run `raco`, or register a package.
 
 Choose the archive matching the computer that will run it:
 
@@ -370,10 +372,11 @@ inspect and trust a program before running it.
 Phases 24 through 27 proved native development artifacts and the current
 AttaLambda names. Phase 28 promoted the source to `0.2.0-rc.1`, installed the
 approved runtime notices and novice guide, and validated four unpublished
-candidates. Phase 29 staged the final `0.2.0` archives, but a separate exact
-publication approval still controls the tag, GitHub Release, release assets,
-and public download. After the contributor setup above, invoke the
-source-checkout development entry point through Racket.
+candidates. Phase 29 staged the final `0.2.0` archives, then a separate exact
+approval authorized and produced the unsigned annotated `v0.2.0` tag and
+public Release with only those four archives and `SHA256SUMS`. After the
+contributor setup above, invoke the source-checkout development entry point
+through Racket.
 
 The minimal hello application emits one line:
 
@@ -450,6 +453,7 @@ Copyright 2026 Kyle Serrecchia.
 AttaLambda is licensed under the [Apache License 2.0](LICENSE). Bundled Racket
 runtime components retain the exact separately approved terms in
 [`distribution/THIRD_PARTY_NOTICES.md.in`](distribution/THIRD_PARTY_NOTICES.md.in).
-Source version `0.2.0` and construction of final archives do not themselves
-authorize a public download. Only the separately approved Git tag, GitHub
-Release, and exact release assets constitute publication.
+Source version `0.2.0` and construction of final archives did not themselves
+authorize a public download. The separately approved `v0.2.0` Git tag,
+GitHub Release, and five exact release assets constitute the current
+publication.
