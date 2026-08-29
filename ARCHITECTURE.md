@@ -49,7 +49,8 @@ support-code dependency rules, and closes the milestone evidence map without
 changing production semantics or host authority. Phase 21 fixes and approves
 the independent-distribution contract and proves Racket 9.3 can embed the
 dynamic language closure. Phase 22 adds one exact development runner, the
-canonical `.attl` application names, and a single `0.2.0-dev` version source;
+canonical `.attl` application names, and a single version source now promoted
+to `0.2.0-rc.1`;
 the runner delegates to the existing reader/expander and remains outside every
 object-language dependency path. Phase 23 freezes AttaLambda-level launch diagnostics,
 strict UTF-8 preflight, source-position sanitization, and the distinction among
@@ -213,8 +214,8 @@ forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
 single-collection package metadata used by fresh installs and declares the
 repository's approved `Apache-2.0` SPDX license identifier. Root `VERSION` is
-the sole product-version source; the current `0.2.0-dev` state projects
-mechanically to Racket package version `0.1.900`.
+the sole product-version source; the current `0.2.0-rc.1` state projects
+mechanically to Racket package version `0.1.901`.
 
 `runner/attalambda.rkt` is host launch scaffolding, not an effect primitive. It
 accepts only direct `.attl` execution, `--help`, and `--version`; validates the one supplied path,
@@ -246,11 +247,11 @@ temporary package, installs that copy under an isolated `PLTUSERHOME`, invokes
 `raco exe ++lang attalambda` and `raco distribute`, and normalizes the
 resulting tar/gzip metadata. Its output directory must resolve outside the
 checkout, and it never uses the developer's Racket package registry. The
-archive contains only `bin/attalambda`, its private runtime, the canonical examples,
-an internal guide, a path-free build manifest, exact provisional Racket
-license text, and an unpublished-artifact warning. Its final digest lives in a
-sibling `SHA256SUMS`, because a file inside an archive cannot authenticate the
-archive bytes that contain that file.
+archive contains only `bin/attalambda`, its private runtime, the canonical
+examples, the novice guide, a path-free build manifest, the repository
+`LICENSE`, and the exact approved bundled-runtime notices. Its final digest
+lives in a sibling `SHA256SUMS`, because a file inside an archive cannot
+authenticate the archive bytes that contain that file.
 
 `tooling/test-linux-distribution.sh` copies only the archive, checksum, and
 consumer harness across a temporary transfer boundary. A digest-pinned Ubuntu
@@ -298,11 +299,12 @@ different drive before repeating smoke checks. Its workflow artifact has the
 same one-day fallback retention and immediate verified deletion contract.
 
 The native Phase 24 through 26 measurements in the plan and distribution
-design belong to disposable pre-rename `atl`/`.atl` artifacts. The current
-tooling is structurally verified for `attalambda`/`.attl`, but no renamed
-macOS or Windows artifact is claimed until a newly authorized cross-job CI run
-passes. This distinction changes delivery evidence, not the object-language
-or host boundary.
+design belong to disposable pre-rename `atl`/`.atl` artifacts. Phase 27
+separately proved the renamed development archives. Phase 28 uses the same
+native isolation boundary for the `0.2.0-rc.1` candidate, with the approved
+license/notices and novice guide replacing the transitional development
+payload. This changes delivery evidence, not the object-language or host
+boundary.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -610,7 +612,7 @@ examples/
 distribution/
   GETTING_STARTED.md.in
   THIRD_PARTY_NOTICES.md.in
-  UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt
+  UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt  historical pre-RC input, not packaged
 tests/
 tooling/
   build-linux-distribution.sh

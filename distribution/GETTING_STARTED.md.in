@@ -1,31 +1,125 @@
-# AttaLambda @VERSION@
+# AttaLambda @VERSION@ — @TARGET_NAME@
 
-This is an unpublished development artifact for internal testing on Linux
-x86-64. It is not a public release.
+This is an unpublished release candidate for testing. It is not a public
+release or a supported compatibility promise. The archive contains the
+`attalambda` command, its private Racket CS 9.3 runtime, and four example
+programs. You do not need to install Racket, run `raco`, or register a package.
 
-The archive contains the `attalambda` executable, its private Racket runtime, and four
-example `.attl` programs. A separate Racket installation is neither required nor
-used.
+## Download, verify, and extract
 
-From the extracted `@ROOT_NAME@` directory:
+Obtain both `@ARCHIVE_NAME@` and its sibling `SHA256SUMS`, and keep them in the
+same directory. Before extracting the archive, verify that its bytes match the
+supplied checksum:
 
-```text
-./bin/attalambda --help
-./bin/attalambda --version
-./bin/attalambda examples/hello.attl
+```@COMMAND_LANGUAGE@
+@VERIFY_COMMAND@
 ```
 
-Every source file must use the lowercase `.attl` extension and begin with this
-exact declaration:
+If verification succeeds, extract the archive and enter its root directory:
+
+```@COMMAND_LANGUAGE@
+@EXTRACT_COMMAND@
+@ENTER_COMMAND@
+```
+
+## Run the first program
+
+Confirm the packaged version, then run the included hello program:
+
+```@COMMAND_LANGUAGE@
+@EXECUTABLE@ --version
+@EXECUTABLE@ examples@PATH_SEPARATOR@hello.attl
+```
+
+The output is:
 
 ```text
+AttaLambda @VERSION@
+Hello from AttaLambda.
+```
+
+## Write an AttaLambda program
+
+AttaLambda source is UTF-8 text with the lowercase `.attl` extension. The
+first line must be exactly `#lang attalambda`. The language currently uses
+Racket-style Lisp parentheses; no Racket installation is involved at run
+time.
+
+Save this as `my-program.attl` in the extracted archive root:
+
+```racket
 #lang attalambda
+
+(stdout "My first AttaLambda program.\n")
 ```
 
-`attalambda FILE.attl` executes with the launching process's filesystem and network
-authority. This development artifact does not sandbox programs, ask for
-permissions, or make backups.
+Run it with:
 
-Verify the archive against the sibling `SHA256SUMS` file before extracting it.
-The internal `BUILD-MANIFEST.txt` identifies the source revision, toolchain,
-payload inventory, and observed Linux system-library assumptions.
+```@COMMAND_LANGUAGE@
+@EXECUTABLE@ my-program.attl
+```
+
+## Command results and exit statuses
+
+`attalambda FILE.attl` writes the program's requested stdout bytes directly.
+The command itself prints no representation of the final lambda value.
+
+| Status | Meaning |
+| ---: | --- |
+| `0` | The source loaded and completed, including when its final value is an AttaLambda Error or Result Err. |
+| `64` | The command arguments were invalid. |
+| `65` | The filename, `#lang` declaration, UTF-8 source, or AttaLambda syntax was invalid. |
+| `66` | The source was missing, unreadable, a symbolic link, not a regular file, or refused by the dotenv-file rule. |
+| `70` | The launcher encountered an unexpected internal failure. |
+
+Diagnostics use the `AttaLambda:` prefix on standard error. Run
+`@EXECUTABLE@ --help` for the complete command grammar.
+
+## Authority and safety
+
+AttaLambda does not sandbox programs. A program runs with the launching
+process's authority:
+
+- `stdout` can write to the terminal or redirected output.
+- `read-file` can read files that the process can access.
+- `write-file` can create, truncate, or replace files that the process can
+  access; AttaLambda does not prompt or make backups.
+- TCP operations can connect to reachable hosts and listen on permitted local
+  ports.
+
+Inspect and trust an `.attl` program before running it. Run unfamiliar programs
+from a directory and operating-system account whose files and network access
+you are willing to expose.
+
+## Release notes
+
+AttaLambda `@VERSION@` is the first self-contained release candidate. It
+provides native archives for Linux x86-64, macOS x86-64, macOS arm64, and
+Windows x86-64; the direct `attalambda FILE.attl` command; the canonical
+`.attl` and `#lang attalambda` source contract; and stdout, whole-file, TCP,
+and minimal HTTP examples backed by the single language-visible host boundary.
+
+## Known limitations
+
+- This archive was tested only on the exact target and operating-system
+  version recorded in `BUILD-MANIFEST.txt`; that observation is not a minimum
+  compatibility guarantee.
+- There is no installer, automatic PATH configuration, REPL, program-argument
+  API, package manager, updater, formatter, debugger, or editor integration.
+- Programs receive no sandbox, permission prompt, backup, timeout, or
+  concurrency layer.
+- The networking surface is blocking TCP plus the documented minimal
+  HTTP/1.1 subset. It does not provide TLS, UDP, asynchronous serving, or a
+  general HTTP framework.
+- The archive has no AttaLambda cryptographic signature. macOS artifacts are
+  not notarized by AttaLambda; the Windows executable's observed Authenticode
+  status is recorded in `BUILD-MANIFEST.txt`.
+- This release candidate is unpublished. No public-download or support claim
+  follows from its existence.
+
+## License and build record
+
+`LICENSE` contains AttaLambda's Apache License 2.0. `THIRD_PARTY_NOTICES.md`
+contains the approved notices and complete license texts for the bundled
+Racket CS 9.3 runtime components. `BUILD-MANIFEST.txt` records the source
+commit, exact payload inventory, target, toolchain, and observed @DEPENDENCY_KIND@.

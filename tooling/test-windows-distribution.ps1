@@ -13,9 +13,9 @@ $Usage = @'
 Usage:
   tooling/test-windows-distribution.ps1 OUTPUT_DIRECTORY
 
-Test one transferred unpublished Windows x86-64 archive on a clean Windows
-consumer with no Racket installation or source checkout, including relocation
-to a different drive and a path containing spaces.
+Test one transferred unpublished Windows x86-64 release-candidate archive on
+a clean Windows consumer with no Racket installation or source checkout,
+including relocation to a different drive and a path containing spaces.
 '@
 
 function Fail([string] $Message) {
@@ -553,7 +553,7 @@ try {
         'examples/hello.attl', 'examples/stdout.attl',
         'examples/file-round-trip.attl', 'examples/http-server.attl',
         'GETTING_STARTED.md', 'BUILD-MANIFEST.txt',
-        'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt', 'THIRD_PARTY_NOTICES.md'
+        'LICENSE', 'THIRD_PARTY_NOTICES.md'
     )
     foreach ($relativePath in $requiredFiles) {
         Assert-RegularNonsymlinkFile ([IO.Path]::Combine($firstRoot, $relativePath.Replace('/', '\'))) "required artifact file $relativePath"
@@ -565,12 +565,13 @@ try {
     if (@(Get-SafeTreeEntries -Root $libPath -RejectDotenv).Count -ne 0) {
         Fail 'embedded-DLL Windows artifact unexpectedly has loose lib/ contents'
     }
-    if ([IO.File]::Exists([IO.Path]::Combine($firstRoot, 'LICENSE')) -or [IO.Directory]::Exists([IO.Path]::Combine($firstRoot, 'LICENSE'))) {
-        Fail 'development artifact must not contain an unapproved repository license'
+    if ([IO.File]::Exists([IO.Path]::Combine($firstRoot, 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt')) -or
+        [IO.Directory]::Exists([IO.Path]::Combine($firstRoot, 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt'))) {
+        Fail 'release candidate contains the retired development warning'
     }
 
     $topLevel = @($artifactEntries | Where-Object { -not $_.RelativePath.Contains('/') } | ForEach-Object { $_.RelativePath } | Sort-Object -CaseSensitive)
-    $expectedTopLevel = @('BUILD-MANIFEST.txt', 'GETTING_STARTED.md', 'THIRD_PARTY_NOTICES.md', 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt', 'bin', 'examples', 'lib') | Sort-Object -CaseSensitive
+    $expectedTopLevel = @('BUILD-MANIFEST.txt', 'GETTING_STARTED.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin', 'examples', 'lib') | Sort-Object -CaseSensitive
     Assert-ExactSequence $topLevel $expectedTopLevel 'artifact top-level layout'
     $binInventory = @($artifactEntries | Where-Object { $_.RelativePath.StartsWith('bin/', [StringComparison]::Ordinal) -and -not $_.IsDirectory } | ForEach-Object { $_.RelativePath.Substring(4) } | Sort-Object -CaseSensitive)
     Assert-ExactSequence $binInventory @('attalambda.exe') 'artifact bin/ inventory'
@@ -583,6 +584,9 @@ try {
         "Product version: $productVersion",
         "Target identifier: $TargetIdentifier",
         'Racket version: 9.3', 'Racket variant: CS',
+        'Artifact status: unpublished release candidate',
+        'Repository license SHA-256: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30',
+        'Third-party notices SHA-256: 1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd',
         'Archive checksum: external sibling SHA256SUMS'
     )) {
         if (@($manifest.Replace("`r`n", "`n").Split("`n") | Where-Object { $_ -ceq $requiredLine }).Count -ne 1) {
@@ -598,13 +602,24 @@ try {
     $actualInventory = @($artifactEntries | Where-Object { -not $_.IsDirectory } | ForEach-Object { $_.RelativePath } | Sort-Object -CaseSensitive)
     $manifestInventory = @(Get-ManifestSection $manifest 'Artifact file inventory')
     Assert-ExactSequence $actualInventory $manifestInventory 'BUILD-MANIFEST.txt file inventory'
-    $warning = [IO.File]::ReadAllText([IO.Path]::Combine($firstRoot, 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt'))
-    if (-not $warning.Contains('UNPUBLISHED DEVELOPMENT ARTIFACT', [StringComparison]::Ordinal)) {
-        Fail 'development warning is absent'
+    if ((Get-Sha256 ([IO.Path]::Combine($firstRoot, 'LICENSE'))) -cne 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30') {
+        Fail 'repository license bytes differ from the approved license'
     }
-    $notices = [IO.File]::ReadAllText([IO.Path]::Combine($firstRoot, 'THIRD_PARTY_NOTICES.md'))
-    if (-not $notices.Contains('LICENSE-APACHE.txt', [StringComparison]::Ordinal)) {
-        Fail 'provisional Racket notice is incomplete'
+    if ((Get-Sha256 ([IO.Path]::Combine($firstRoot, 'THIRD_PARTY_NOTICES.md'))) -cne '1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd') {
+        Fail 'third-party notices differ from the exact Phase 28 approval'
+    }
+    $guide = [IO.File]::ReadAllText([IO.Path]::Combine($firstRoot, 'GETTING_STARTED.md'))
+    foreach ($guideCommand in @(
+        "Get-FileHash .\$archiveName -Algorithm SHA256",
+        "Expand-Archive -LiteralPath .\$archiveName -DestinationPath .",
+        "Set-Location .\$artifactRootName",
+        '.\bin\attalambda.exe --version',
+        '.\bin\attalambda.exe examples\hello.attl',
+        '.\bin\attalambda.exe my-program.attl'
+    )) {
+        if (-not $guide.Contains($guideCommand, [StringComparison]::Ordinal)) {
+            Fail "guide command is absent: $guideCommand"
+        }
     }
 
     $dumpbin = Find-Dumpbin
@@ -682,6 +697,12 @@ try {
     $firstStartupMilliseconds = $versionResult.Milliseconds
     $helpResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('--help') -WorkingDirectory $workRoot
     Assert-ProcessResult $helpResult 0 "Usage:`n  attalambda FILE.attl`n  attalambda --help`n  attalambda --version`n" '' 'packaged help'
+    $helloResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('examples\hello.attl') -WorkingDirectory $firstRoot
+    Assert-ProcessResult $helloResult 0 "Hello from AttaLambda.`n" '' 'guide hello'
+    $guideSource = [IO.Path]::Combine($firstRoot, 'my-program.attl')
+    Write-LfUtf8 $guideSource "#lang attalambda`n`n(stdout `"My first AttaLambda program.\n`")`n"
+    $guideResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('my-program.attl') -WorkingDirectory $firstRoot
+    Assert-ProcessResult $guideResult 0 "My first AttaLambda program.`n" '' 'guide custom program'
     $misuseResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @() -WorkingDirectory $workRoot
     Assert-ProcessResult $misuseResult 64 '' "AttaLambda: expected attalambda FILE.attl, attalambda --help, or attalambda --version`n" 'command misuse'
     $extensionResult = Invoke-CapturedProcess -Executable $attalambda -Arguments @('missing.rkt') -WorkingDirectory $workRoot

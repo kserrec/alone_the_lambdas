@@ -401,12 +401,12 @@ the directory remains present for a stable archive shape and is empty when
 Racket emits no separate support files. The executable must resolve any
 support files relative to the relocated archive root.
 
-The repository now has an approved Apache License 2.0. Internal development
-artifacts still substitute `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` for
-`LICENSE` and carry provisional bundled-Racket notices until Phase 28 approves
-the exact runtime notice set and release-candidate contents. Such an artifact
-is not a public download, and repository-license approval does not authorize
-its publication.
+The repository has an approved Apache License 2.0, and Kyle approved the exact
+Phase 28 bundled-runtime notices after reviewing their complete text. Release-
+candidate archives therefore carry the root `LICENSE` and the exact approved
+`THIRD_PARTY_NOTICES.md`; they do not carry the transitional
+`UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt`. A candidate remains unpublished, and
+these approvals do not authorize its publication.
 
 `BUILD-MANIFEST.txt` records at least the product version, source commit,
 target identifier, Racket version/variant, artifact file inventory, and
@@ -959,3 +959,34 @@ workflow must delete all three artifacts immediately afterward; one-day
 retention is only a cleanup-failure fallback. This approval does not authorize
 a release candidate, binary release, Git tag, GitHub Release, signing
 operation, or public download.
+
+For Phase 28, a read-only inventory of the pinned Racket CS 9.3 executable
+closure and native runtime inputs produced the complete proposed
+`THIRD_PARTY_NOTICES.md`. The reviewed file was 100,029 bytes, had SHA-256
+`1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd`,
+and reproduced 22 pinned notice or license blocks exactly. Kyle approved only
+those exact notice bytes on 2026-08-29 by replying:
+
+```text
+Approve the exact bundled Racket CS 9.3 runtime notices presented for Phase 28.
+```
+
+Kyle then approved the Phase 28 repository, documentation, version, and four-
+target unpublished candidate scope by replying:
+
+```text
+Approve the Phase 28 implementation scope (docs restructure, VERSION → 0.2.0-rc.1, build/stage the four unpublished RC archives). This does not authorize a tag, GitHub Release, upload, or public download.
+```
+
+Finally, Kyle separately approved the only required upload boundary by
+replying:
+
+```text
+Approve the temporary Phase 28 GitHub Actions transfer of the two unpublished macOS RC archives and one unpublished Windows RC archive, their checksums, and their consumer harnesses, with one-day fallback retention and immediate deletion after testing.
+```
+
+That final approval applies only to the three named build-to-consumer workflow
+artifacts in `kserrec/attalambda`. It does not authorize a Git tag, GitHub
+Release, signing operation, public download, or publication. The Linux archive
+remains local to one job, and all three transferred artifacts must be deleted
+immediately after their consumer checks.

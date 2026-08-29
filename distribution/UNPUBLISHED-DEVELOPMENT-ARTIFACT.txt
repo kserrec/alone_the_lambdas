@@ -1,10 +1,10 @@
-UNPUBLISHED DEVELOPMENT ARTIFACT
+HISTORICAL UNPUBLISHED DEVELOPMENT ARTIFACT MARKER
 
-This archive exists only for internal build and acceptance testing. AttaLambda
-is licensed under Apache License 2.0, but this archive is not authorized for
-publication, upload, public download, or redistribution.
+Phases 24 through 27 copied this marker into disposable development archives
+used only for internal build and acceptance testing. It remains in the source
+tree solely to document that historical payload.
 
-The bundled Racket components remain subject to their own terms, reproduced in
-THIRD_PARTY_NOTICES.md. Phase 28 must complete the legal inventory and Kyle
-must approve the exact runtime notices and release-candidate contents before
-any public release candidate is built.
+Phase 28 release-candidate builders must not copy this file. They instead copy
+the repository LICENSE and the exact approved THIRD_PARTY_NOTICES.md. Neither
+the historical development archives nor the Phase 28 release-candidate
+archives are authorized for publication or public download.

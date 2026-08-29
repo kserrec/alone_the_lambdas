@@ -3,3 +3,4 @@
 *.rkt text eol=lf
 *.sh text eol=lf
 *.attl text eol=lf
+distribution/THIRD_PARTY_NOTICES.md.in text eol=lf whitespace=-trailing-space

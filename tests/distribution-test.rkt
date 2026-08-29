@@ -80,7 +80,7 @@
    "Usage:\n"
    "  tooling/build-linux-distribution.sh [--allow-dirty] OUTPUT_DIRECTORY\n"
    "\n"
-   "Build the unpublished Linux x86-64 archive with Racket CS 9.3. The output\n"
+   "Build the unpublished Linux x86-64 release-candidate archive with Racket CS 9.3. The output\n"
    "directory must be outside the source checkout and must not already contain the\n"
    "versioned archive or SHA256SUMS.\n"))
  #"")
@@ -93,9 +93,9 @@
    "Usage:\n"
    "  tooling/test-linux-distribution.sh OUTPUT_DIRECTORY\n"
    "\n"
-   "Transfer the unpublished Linux archive and its checksum into a locked-down\n"
-   "Ubuntu 24.04 container with no Racket installation, then run the Phase 24\n"
-   "consumer and relocation acceptance checks.\n"))
+   "Transfer the unpublished Linux release-candidate archive and its checksum into\n"
+   "a locked-down Ubuntu 24.04 container with no Racket installation, then run the\n"
+   "Phase 28 guide, consumer, and relocation acceptance checks.\n"))
  #"")
 
 (check-exact-result
@@ -106,7 +106,7 @@
    "Usage:\n"
    "  tooling/build-macos-distribution.sh [--allow-dirty] TARGET_IDENTIFIER OUTPUT_DIRECTORY\n"
    "\n"
-   "Build one unpublished native macOS archive with Racket CS 9.3.\n"
+   "Build one unpublished native macOS release-candidate archive with Racket CS 9.3.\n"
    "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64. OUTPUT_DIRECTORY must\n"
    "already exist outside the source checkout and must not contain the versioned\n"
    "archive or SHA256SUMS.\n"))
@@ -120,9 +120,9 @@
    "Usage:\n"
    "  tooling/test-macos-distribution.sh OUTPUT_DIRECTORY TARGET_IDENTIFIER\n"
    "\n"
-   "Test one transferred unpublished macOS archive on clean native hardware with\n"
-   "no Racket installation or source checkout. TARGET_IDENTIFIER must be\n"
-   "macos-x86_64 or macos-arm64.\n"))
+   "Test one transferred unpublished macOS release-candidate archive on clean\n"
+   "native hardware with no Racket installation or source checkout.\n"
+   "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64.\n"))
  #"")
 
 (check-exact-result
@@ -159,6 +159,13 @@
 (check-true (regexp-match? #rx"PLTUSERHOME=" build-source))
 (check-true (regexp-match? #rx"gzip -n -9" build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" build-source))
+(check-true (regexp-match? #rx"unpublished release candidate" build-source))
+(check-true (regexp-match? #rx"project_root/LICENSE" build-source))
+(check-true
+ (regexp-match?
+  #rx"1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+  build-source))
+(check-false (regexp-match? #rx"UNPUBLISHED-DEVELOPMENT-ARTIFACT" build-source))
 
 (define consumer-source
   (file->string consumer-script))
@@ -171,6 +178,8 @@
 (check-not-false
  (string-contains? consumer-source
                    "printf 'consumer_acceptance=passed\\n'"))
+(check-true (regexp-match? #rx"guide custom program" consumer-source))
+(check-true (regexp-match? #rx"Artifact status: unpublished release candidate" consumer-source))
 
 (define macos-build-source
   (file->string macos-build-script))
@@ -186,6 +195,13 @@
 (check-true (regexp-match? #rx"gtar" macos-build-source))
 (check-true (regexp-match? #rx"gzip -n -9" macos-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" macos-build-source))
+(check-true (regexp-match? #rx"unpublished release candidate" macos-build-source))
+(check-true (regexp-match? #rx"project_root/LICENSE" macos-build-source))
+(check-true
+ (regexp-match?
+  #rx"1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+  macos-build-source))
+(check-false (regexp-match? #rx"UNPUBLISHED-DEVELOPMENT-ARTIFACT" macos-build-source))
 (check-false (regexp-match? #rx"--launcher" macos-build-source))
 
 (define macos-consumer-source
@@ -200,6 +216,8 @@
 (check-not-false
  (string-contains? macos-consumer-source
                    "printf 'consumer_acceptance=passed\\n'"))
+(check-true (regexp-match? #rx"guide custom program" macos-consumer-source))
+(check-true (regexp-match? #rx"archive_sha256=" macos-consumer-source))
 
 (define windows-build-source
   (file->string windows-build-script))
@@ -216,6 +234,13 @@
   windows-build-source))
 (check-true (regexp-match? #rx"1980, 1, 1" windows-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" windows-build-source))
+(check-true (regexp-match? #rx"unpublished release candidate" windows-build-source))
+(check-true (regexp-match? #rx"repository LICENSE" windows-build-source))
+(check-true
+ (regexp-match?
+  #rx"1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+  windows-build-source))
+(check-false (regexp-match? #rx"UNPUBLISHED-DEVELOPMENT-ARTIFACT" windows-build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME" windows-build-source))
 (check-true (regexp-match? #rx"Remove-Item.*Env:[$]name" windows-build-source))
 (check-true (regexp-match? #rx"standardToolchainRoots" windows-build-source))
@@ -259,6 +284,8 @@
 (check-not-false
  (string-contains? windows-consumer-source
                    "Write-Output 'consumer_acceptance=passed'"))
+(check-true (regexp-match? #rx"guide custom program" windows-consumer-source))
+(check-true (regexp-match? #rx"Artifact status: unpublished release candidate" windows-consumer-source))
 
 (define workflow-source
   (file->string workflow-file))
@@ -334,6 +361,34 @@
   (define template-content
     (file->string (build-path distribution-directory template-name)))
   (check-false (regexp-match? #rx"0[.]2[.]0-dev" template-content)))
+
+(define getting-started-template
+  (file->string (build-path distribution-directory "GETTING_STARTED.md.in")))
+(for ([required-text
+       (in-list
+        '("## Download, verify, and extract"
+          "## Run the first program"
+          "## Write an AttaLambda program"
+          "## Command results and exit statuses"
+          "## Authority and safety"
+          "## Release notes"
+          "## Known limitations"
+          "#lang attalambda"
+          "0` | The source loaded and completed"
+          "64` | The command arguments were invalid"
+          "65` | The filename"
+          "66` | The source was missing"
+          "70` | The launcher encountered"
+          "does not sandbox programs"
+          "write-file` can create, truncate, or replace files"))])
+  (check-not-false (string-contains? getting-started-template required-text)))
+
+(check-equal?
+ (call-with-input-file
+     (build-path distribution-directory "THIRD_PARTY_NOTICES.md.in")
+   (lambda (input)
+     (bytes->hex-string (sha256-bytes input))))
+ "1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd")
 
 (check-false
  (or (file-exists? (build-path distribution-directory "LICENSE"))

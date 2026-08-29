@@ -12,9 +12,9 @@ usage() {
 Usage:
   tooling/test-macos-distribution.sh OUTPUT_DIRECTORY TARGET_IDENTIFIER
 
-Test one transferred unpublished macOS archive on clean native hardware with
-no Racket installation or source checkout. TARGET_IDENTIFIER must be
-macos-x86_64 or macos-arm64.
+Test one transferred unpublished macOS release-candidate archive on clean
+native hardware with no Racket installation or source checkout.
+TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64.
 USAGE
 }
 
@@ -71,7 +71,7 @@ case "$target_identifier" in
   *) die "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64" ;;
 esac
 
-for command_name in awk basename cat cmp env file find grep lipo mkdir mktemp mv otool perl rm sed shasum sleep sort stat sw_vers tar tr uname; do
+for command_name in awk basename cat cmp env file find grep lipo mkdir mktemp mv otool perl rm sed shasum sleep sort stat sw_vers tar tr uname wc; do
   require_command "$command_name"
 done
 
@@ -179,15 +179,16 @@ for required_path in \
   examples/http-server.attl \
   GETTING_STARTED.md \
   BUILD-MANIFEST.txt \
-  UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
+  LICENSE \
   THIRD_PARTY_NOTICES.md; do
   [[ -f "$first_root/$required_path" && ! -L "$first_root/$required_path" ]] ||
     die "artifact is missing required file: $required_path"
 done
 [[ -d "$first_root/lib" && ! -L "$first_root/lib" ]] || die "artifact is missing lib/"
 [[ -x "$first_root/bin/attalambda" ]] || die "bin/attalambda is not executable"
-[[ ! -e "$first_root/LICENSE" && ! -L "$first_root/LICENSE" ]] ||
-  die "development artifact must not contain an unapproved repository license"
+[[ ! -e "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" &&
+   ! -L "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" ]] ||
+  die "release candidate contains the retired development warning"
 
 actual_top_level="$scratch_root/actual-top-level.txt"
 expected_top_level="$scratch_root/expected-top-level.txt"
@@ -198,8 +199,8 @@ find "$first_root" -mindepth 1 -maxdepth 1 \
 printf '%s\n' \
   BUILD-MANIFEST.txt \
   GETTING_STARTED.md \
+  LICENSE \
   THIRD_PARTY_NOTICES.md \
-  UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
   bin \
   examples \
   lib |
@@ -234,6 +235,19 @@ done < <(
     \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type f -print0
 ) | sort > "$actual_inventory"
+artifact_file_count="$(wc -l < "$actual_inventory")"
+unpacked_regular_file_bytes="$(
+  while IFS= read -r relative_path; do
+    stat -f '%z' "$first_root/$relative_path"
+  done < "$actual_inventory" |
+    awk '{ total += $1 } END { print total }'
+)"
+runtime_file_count="$(
+  find "$first_root/bin" "$first_root/lib" \
+    \( "${dotenv_name_expression[@]}" \) -prune -o \
+    -type f -print |
+    wc -l
+)"
 awk '
   /^Artifact file inventory:$/ { inventory=1; next }
   inventory && /^  / { sub(/^  /, ""); print; next }
@@ -254,10 +268,30 @@ grep -Eq '^Source commit: [0-9a-f]{40}$' "$first_root/BUILD-MANIFEST.txt" ||
   die "build manifest source commit is invalid"
 grep -Fxq 'Archive checksum: external sibling SHA256SUMS' "$first_root/BUILD-MANIFEST.txt" ||
   die "build manifest checksum contract mismatch"
-grep -Fq 'UNPUBLISHED DEVELOPMENT ARTIFACT' "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" ||
-  die "development warning is absent"
-grep -Fq 'LICENSE-APACHE.txt' "$first_root/THIRD_PARTY_NOTICES.md" ||
-  die "provisional Racket notice is incomplete"
+grep -Fxq 'Artifact status: unpublished release candidate' "$first_root/BUILD-MANIFEST.txt" ||
+  die "build manifest release-candidate status mismatch"
+grep -Fxq 'Repository license SHA-256: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30' "$first_root/BUILD-MANIFEST.txt" ||
+  die "build manifest repository-license hash mismatch"
+grep -Fxq 'Third-party notices SHA-256: 1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd' "$first_root/BUILD-MANIFEST.txt" ||
+  die "build manifest notice hash mismatch"
+[[ "$(sha256_file "$first_root/LICENSE")" == \
+    "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30" ]] ||
+  die "repository license bytes differ from the approved license"
+[[ "$(sha256_file "$first_root/THIRD_PARTY_NOTICES.md")" == \
+    "1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd" ]] ||
+  die "third-party notices differ from the exact Phase 28 approval"
+grep -Fxq "awk '\$2 == \"$archive_name\" { print }' SHA256SUMS | shasum -a 256 -c -" "$first_root/GETTING_STARTED.md" ||
+  die "guide checksum command mismatch"
+grep -Fxq "tar -xzf $archive_name" "$first_root/GETTING_STARTED.md" ||
+  die "guide extraction command mismatch"
+grep -Fxq "cd $artifact_root_name" "$first_root/GETTING_STARTED.md" ||
+  die "guide directory command mismatch"
+grep -Fxq './bin/attalambda --version' "$first_root/GETTING_STARTED.md" ||
+  die "guide version command mismatch"
+grep -Fxq './bin/attalambda examples/hello.attl' "$first_root/GETTING_STARTED.md" ||
+  die "guide hello command mismatch"
+grep -Fxq './bin/attalambda my-program.attl' "$first_root/GETTING_STARTED.md" ||
+  die "guide custom-program command mismatch"
 grep -Eq '/Users/|/private/var/folders/|/Volumes/' "$first_root/BUILD-MANIFEST.txt" &&
   die "build manifest contains a private macOS path"
 
@@ -353,6 +387,19 @@ check_captured_output \
   $'Usage:\n  attalambda FILE.attl\n  attalambda --help\n  attalambda --version\n' \
   "packaged help"
 
+(cd "$first_root" && run_attalambda examples/hello.attl \
+  >"$stdout_file" 2>"$stderr_file")
+check_captured_output $'Hello from AttaLambda.\n' "guide hello"
+
+printf '%s\n' \
+  '#lang attalambda' \
+  '' \
+  '(stdout "My first AttaLambda program.\n")' \
+  > "$first_root/my-program.attl"
+(cd "$first_root" && run_attalambda my-program.attl \
+  >"$stdout_file" 2>"$stderr_file")
+check_captured_output $'My first AttaLambda program.\n' "guide custom program"
+
 generated_directory="$scratch_root/generated source path with spaces"
 mkdir -p "$generated_directory"
 generated_source="$generated_directory/generated-after-packaging.attl"
@@ -446,6 +493,13 @@ printf 'consumer_architecture=%s\n' "$(uname -m)"
 printf 'consumer_racket_command=absent\n'
 printf 'consumer_raco_command=absent\n'
 printf 'consumer_checkout=absent\n'
+printf 'archive_sha256=%s\n' "${expected_checksum_line%% *}"
+printf 'compressed_bytes=%s\n' "$(stat -f '%z' "$archive_path")"
+printf 'unpacked_regular_file_bytes=%s\n' "$unpacked_regular_file_bytes"
+printf 'artifact_files=%s\n' "$artifact_file_count"
+printf 'runtime_files=%s\n' "$runtime_file_count"
+printf 'system_libraries=%s\n' \
+  "$(awk 'BEGIN { separator="" } { printf "%s%s", separator, $0; separator="," } END { print "" }' "$actual_dynamic")"
 printf 'relocation=passed\n'
 printf 'first_startup_milliseconds=%s\n' "$first_startup_milliseconds"
 printf 'relocated_startup_milliseconds=%s\n' "$relocated_startup_milliseconds"

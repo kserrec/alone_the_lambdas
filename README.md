@@ -43,13 +43,76 @@ variables, unary lambdas, and application.
 > `AttaLambda`, `attalambda`, `.attl`, `#lang attalambda`, and direct
 > `attalambda FILE.attl` rename across the project, then revalidated all four
 > renamed native archives in independent no-Racket consumers and deleted the
-> three temporary cross-job artifacts immediately. All artifacts remain
-> unpublished; the final bundled-runtime inventory, release candidate, and
-> explicit release approval still belong to later phases. Separate structural gates enforce
-> every boundary class. See
+> three temporary cross-job artifacts immediately. For Phase 28, the complete
+> bundled-runtime notice set, implementation scope, and temporary native
+> artifact transfer have received explicit approval; the source is now the
+> `0.2.0-rc.1` candidate while four-target validation is completed. All
+> artifacts remain unpublished, and Phase 29 alone may authorize a public
+> release. Separate structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
+
+## Download, verify, extract, and run
+
+AttaLambda `0.2.0-rc.1` is an unpublished release candidate. There is no
+authorized public download yet. These instructions apply when an archive and
+its sibling `SHA256SUMS` are supplied for testing; end users do not install
+Racket, run `raco`, or register a package.
+
+Choose the archive matching the computer that will run it:
+
+| Computer | Archive |
+| --- | --- |
+| Linux x86-64 | `attalambda-0.2.0-rc.1-linux-x86_64.tar.gz` |
+| macOS Intel | `attalambda-0.2.0-rc.1-macos-x86_64.tar.gz` |
+| macOS Apple Silicon | `attalambda-0.2.0-rc.1-macos-arm64.tar.gz` |
+| Windows x86-64 | `attalambda-0.2.0-rc.1-windows-x86_64.zip` |
+
+Keep the archive and `SHA256SUMS` in the same directory. On Linux x86-64:
+
+```sh
+awk '$2 == "attalambda-0.2.0-rc.1-linux-x86_64.tar.gz" { print }' SHA256SUMS | sha256sum -c -
+tar -xzf attalambda-0.2.0-rc.1-linux-x86_64.tar.gz
+cd attalambda-0.2.0-rc.1-linux-x86_64
+./bin/attalambda examples/hello.attl
+```
+
+On macOS Intel:
+
+```sh
+awk '$2 == "attalambda-0.2.0-rc.1-macos-x86_64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
+tar -xzf attalambda-0.2.0-rc.1-macos-x86_64.tar.gz
+cd attalambda-0.2.0-rc.1-macos-x86_64
+./bin/attalambda examples/hello.attl
+```
+
+On macOS Apple Silicon:
+
+```sh
+awk '$2 == "attalambda-0.2.0-rc.1-macos-arm64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
+tar -xzf attalambda-0.2.0-rc.1-macos-arm64.tar.gz
+cd attalambda-0.2.0-rc.1-macos-arm64
+./bin/attalambda examples/hello.attl
+```
+
+On Windows x86-64 PowerShell:
+
+```powershell
+$archive = 'attalambda-0.2.0-rc.1-windows-x86_64.zip'
+$line = @(Get-Content .\SHA256SUMS | Where-Object { $_ -like "*$archive" })
+if ($line.Count -ne 1) { throw 'checksum entry mismatch' }
+$expected = ($line[0] -split '\s+')[0]
+$actual = (Get-FileHash ".\$archive" -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -cne $expected) { throw 'SHA-256 mismatch' }
+Expand-Archive -LiteralPath ".\$archive" -DestinationPath .
+Set-Location .\attalambda-0.2.0-rc.1-windows-x86_64
+.\bin\attalambda.exe examples\hello.attl
+```
+
+Successful execution prints `Hello from AttaLambda.`. The archive's
+`GETTING_STARTED.md` then explains `.attl` source syntax, exit statuses,
+runtime authority, release notes, and exact known limitations.
 
 ## Commitments
 
@@ -178,8 +241,8 @@ precedence over conflicting examples in the base specification.
   and returns canonical Result/Error values without exposing ports or host
   collections.
 - `VERSION` is the sole product-version source and currently contains
-  `0.2.0-dev`; `info.rkt` declares the single `attalambda` collection
-  and carries its mechanically verified Racket-package projection `0.1.900`.
+  `0.2.0-rc.1`; `info.rkt` declares the single `attalambda` collection
+  and carries its mechanically verified Racket-package projection `0.1.901`.
 - `lang/reader.rkt` retains Racket's Lisp reader syntax and selects the
   standalone expander without adding a parser or reader-time effect.
 - `lang/expander.rkt` exposes the canonical language surface, mechanically
@@ -213,12 +276,11 @@ precedence over conflicting examples in the base specification.
   arbitrary-source, stdout, file, loopback HTTP, embedded-reader precedence,
   and relocation behavior. The workflow then deletes both temporary transfer
   artifacts immediately.
-- `distribution/` contains only the internal getting-started and provisional
-  notice templates. The repository is licensed under Apache License 2.0, but
-  generated development archives continue to carry
-  `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt` instead of `LICENSE` until Phase 28
-  completes and receives approval for the exact bundled-runtime notices and
-  release-candidate staging.
+- `distribution/` contains the platform-expanded novice guide, the exact
+  approved bundled-runtime notice text, and the retired development-warning
+  input retained as historical implementation evidence. Phase 28 candidate
+  builders package the repository `LICENSE` and approved notices, never the
+  development warning.
 - `examples/hello.attl`, `examples/stdout.attl`,
   `examples/file-round-trip.attl`, and `examples/http-server.attl` are the exact
   runnable language programs. The HTTP program uses an ephemeral loopback
@@ -267,11 +329,12 @@ precedence over conflicting examples in the base specification.
   enter a production dependency path; standalone examples must use the public
   language; and unknown source locations fail closed.
 
-## Fresh setup
+## Contributor setup
 
-From a new checkout, this command registers and compiles the collection in
-the current Racket user installation. It changes that user-level package
-registry but does not require administrator privileges:
+This section is for contributors working from source; archive users do not
+need it. From a new checkout, this command registers and compiles the
+collection in the current Racket user installation. It changes that user-level
+package registry but does not require administrator privileges:
 
 ```sh
 raco pkg install --auto --name attalambda .
@@ -280,21 +343,18 @@ raco pkg install --auto --name attalambda .
 The package declares only Racket's `base` and `lazy` runtime packages, plus
 `rackunit-lib` and `net-lib` for tests. There is no third-party dependency.
 
-## Runnable applications
+## Contributor runnable applications
 
 Every application uses only `#lang attalambda` and the public language
 surface. Programs run with the real `host` have the same relevant stdout,
 filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
-Phases 24 through 26 first proved native Linux x86-64, macOS x86_64, macOS
-arm64, and Windows x86-64 development artifacts under the former public names.
-Phase 27 rebuilt and independently consumed all four under the AttaLambda
-names. Those disposable artifacts were neither checked in nor published; the
-three temporary cross-job artifacts were deleted immediately. After the fresh
-setup above, invoke the renamed source-checkout development entry point through
-Racket. Phase 28 still owns the release candidate and novice download guide;
-Phase 29 owns any authorized public release.
+Phases 24 through 27 proved native development artifacts and the current
+AttaLambda names. Phase 28 promotes the source to `0.2.0-rc.1`, installs the
+approved runtime notices and novice guide, and rebuilds the four unpublished
+archives. Phase 29 alone may authorize a public release. After the contributor
+setup above, invoke the source-checkout development entry point through Racket.
 
 The minimal hello application emits one line:
 
@@ -368,7 +428,8 @@ phase.
 
 Copyright 2026 Kyle Serrecchia.
 
-AttaLambda is licensed under the
-[Apache License 2.0](LICENSE). Bundled Racket runtime components retain their
-separate licenses. Phase 28 has not yet approved their final target-specific
-notices or any release-candidate artifact.
+AttaLambda is licensed under the [Apache License 2.0](LICENSE). Bundled Racket
+runtime components retain the exact separately approved terms in
+[`distribution/THIRD_PARTY_NOTICES.md.in`](distribution/THIRD_PARTY_NOTICES.md.in).
+Approval and construction of an unpublished release candidate do not authorize
+a public download; publication remains a separate Phase 29 decision.

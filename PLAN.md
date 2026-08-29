@@ -484,7 +484,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 27 complete; Phase 28 next)
+Status: in progress (Phase 28 implementation and four-target validation active)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -959,19 +959,17 @@ Deferred hardening (named reason — redesign, not a spot fix):
 
 ## Phase 28 — Downloadable release candidate and novice documentation
 
-Status: planned; notice-inventory preparation is unblocked, implementation and
-artifact transfer are approval-gated
+Status: in progress; all three explicit approvals satisfied (2026-08-29)
 
-The current third-party notice template is explicitly provisional, so no exact
-runtime notice set yet exists for Kyle to approve. Before requesting that
-approval, a narrow preparation pass must inspect the pinned Racket CS 9.3
-toolchain, assemble the complete proposed notice text in disposable review
-material, and present the exact terms to Kyle. That preparation pass may not
-modify the repository, change the version, build or stage release-candidate
-archives, transfer an artifact through CI, create a tag or release, upload a
-file, or publish anything. Phase implementation may begin only after Kyle has
-approved the notice text he was shown, the implementation scope, and the
-separate temporary CI artifact transfer.
+The pinned Racket CS 9.3 inventory produced a 100,029-byte exact notice file
+with SHA-256
+`1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd`.
+Kyle reviewed and approved those exact bytes, then separately approved the
+Phase 28 implementation scope and the temporary transfer of only the two
+macOS and one Windows unpublished candidates, checksums, and consumer
+harnesses. The full approval text and boundaries are recorded in
+`docs/design/standalone-distribution.md`. No approval authorizes a tag, GitHub
+Release, signing operation, public download, or publication.
 
 - [ ] Prepare and present the exact bundled Racket runtime notices, obtain
   approval only after Kyle has seen those terms, then include the approved

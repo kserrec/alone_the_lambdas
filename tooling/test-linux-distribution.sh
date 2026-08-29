@@ -12,9 +12,9 @@ usage() {
 Usage:
   tooling/test-linux-distribution.sh OUTPUT_DIRECTORY
 
-Transfer the unpublished Linux archive and its checksum into a locked-down
-Ubuntu 24.04 container with no Racket installation, then run the Phase 24
-consumer and relocation acceptance checks.
+Transfer the unpublished Linux release-candidate archive and its checksum into
+a locked-down Ubuntu 24.04 container with no Racket installation, then run the
+Phase 28 guide, consumer, and relocation acceptance checks.
 USAGE
 }
 
@@ -67,7 +67,7 @@ run_inside_consumer() {
   expected_checksum_line="$(<"$checksum_path")"
   [[ "$expected_checksum_line" =~ ^[0-9a-f]{64}[[:space:]][[:space:]]${archive_name//./\.}$ ]] ||
     die "checksum manifest does not contain exactly the transferred archive"
-  (cd "$transfer_directory" && sha256sum --check --strict SHA256SUMS >/dev/null)
+  (cd "$transfer_directory" && sha256sum -c SHA256SUMS >/dev/null)
 
   while IFS= read -r archive_entry; do
     [[ "$archive_entry" == "$artifact_root_name" ||
@@ -99,15 +99,16 @@ run_inside_consumer() {
     examples/http-server.attl \
     GETTING_STARTED.md \
     BUILD-MANIFEST.txt \
-    UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
+    LICENSE \
     THIRD_PARTY_NOTICES.md; do
     [[ -f "$first_root/$required_path" && ! -L "$first_root/$required_path" ]] ||
       die "artifact is missing required file: $required_path"
   done
   [[ -d "$first_root/lib" && ! -L "$first_root/lib" ]] || die "artifact is missing lib/"
   [[ -x "$first_root/bin/attalambda" ]] || die "bin/attalambda is not executable"
-  [[ ! -e "$first_root/LICENSE" && ! -L "$first_root/LICENSE" ]] ||
-    die "development artifact must not contain an unapproved repository license"
+  [[ ! -e "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" &&
+     ! -L "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" ]] ||
+    die "release candidate contains the retired development warning"
 
   local actual_top_level="$scratch_root/actual-top-level.txt"
   local expected_top_level="$scratch_root/expected-top-level.txt"
@@ -118,8 +119,8 @@ run_inside_consumer() {
   printf '%s\n' \
     BUILD-MANIFEST.txt \
     GETTING_STARTED.md \
+    LICENSE \
     THIRD_PARTY_NOTICES.md \
-    UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt \
     bin \
     examples \
     lib |
@@ -151,6 +152,22 @@ run_inside_consumer() {
     \( "${dotenv_name_expression[@]}" \) -prune -o \
     -type f -printf '%P\n' |
     sort > "$actual_inventory"
+  local artifact_file_count
+  local unpacked_regular_file_bytes
+  local runtime_file_count
+  artifact_file_count="$(wc -l < "$actual_inventory")"
+  unpacked_regular_file_bytes="$(
+    find "$first_root" \
+      \( "${dotenv_name_expression[@]}" \) -prune -o \
+      -type f -printf '%s\n' |
+      awk '{ total += $1 } END { print total }'
+  )"
+  runtime_file_count="$(
+    find "$first_root/bin" "$first_root/lib" \
+      \( "${dotenv_name_expression[@]}" \) -prune -o \
+      -type f -printf '.\n' |
+      wc -l
+  )"
   awk '
     /^Artifact file inventory:$/ { inventory=1; next }
     /^Observed dynamic system-library assumptions:$/ { inventory=0 }
@@ -171,10 +188,30 @@ run_inside_consumer() {
     die "build manifest source commit is invalid"
   grep -Fxq 'Archive checksum: external sibling SHA256SUMS' "$first_root/BUILD-MANIFEST.txt" ||
     die "build manifest checksum contract mismatch"
-  grep -Fq 'UNPUBLISHED DEVELOPMENT ARTIFACT' "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" ||
-    die "development warning is absent"
-  grep -Fq 'LICENSE-APACHE.txt' "$first_root/THIRD_PARTY_NOTICES.md" ||
-    die "provisional Racket notice is incomplete"
+  grep -Fxq 'Artifact status: unpublished release candidate' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest release-candidate status mismatch"
+  grep -Fxq 'Repository license SHA-256: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest repository-license hash mismatch"
+  grep -Fxq 'Third-party notices SHA-256: 1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest notice hash mismatch"
+  [[ "$(sha256sum "$first_root/LICENSE" | awk '{print $1}')" == \
+      "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30" ]] ||
+    die "repository license bytes differ from the approved license"
+  [[ "$(sha256sum "$first_root/THIRD_PARTY_NOTICES.md" | awk '{print $1}')" == \
+      "1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd" ]] ||
+    die "third-party notices differ from the exact Phase 28 approval"
+  grep -Fxq "awk '\$2 == \"$archive_name\" { print }' SHA256SUMS | sha256sum -c -" "$first_root/GETTING_STARTED.md" ||
+    die "guide checksum command mismatch"
+  grep -Fxq "tar -xzf $archive_name" "$first_root/GETTING_STARTED.md" ||
+    die "guide extraction command mismatch"
+  grep -Fxq "cd $artifact_root_name" "$first_root/GETTING_STARTED.md" ||
+    die "guide directory command mismatch"
+  grep -Fxq './bin/attalambda --version' "$first_root/GETTING_STARTED.md" ||
+    die "guide version command mismatch"
+  grep -Fxq './bin/attalambda examples/hello.attl' "$first_root/GETTING_STARTED.md" ||
+    die "guide hello command mismatch"
+  grep -Fxq './bin/attalambda my-program.attl' "$first_root/GETTING_STARTED.md" ||
+    die "guide custom-program command mismatch"
 
   local attalambda="$first_root/bin/attalambda"
   local stdout_file="$scratch_root/stdout.txt"
@@ -202,6 +239,19 @@ run_inside_consumer() {
   check_captured_output \
     $'Usage:\n  attalambda FILE.attl\n  attalambda --help\n  attalambda --version\n' \
     "packaged help"
+
+  (cd "$first_root" && ./bin/attalambda examples/hello.attl \
+    >"$stdout_file" 2>"$stderr_file")
+  check_captured_output $'Hello from AttaLambda.\n' "guide hello"
+
+  printf '%s\n' \
+    '#lang attalambda' \
+    '' \
+    '(stdout "My first AttaLambda program.\n")' \
+    > "$first_root/my-program.attl"
+  (cd "$first_root" && ./bin/attalambda my-program.attl \
+    >"$stdout_file" 2>"$stderr_file")
+  check_captured_output $'My first AttaLambda program.\n' "guide custom program"
 
   local generated_source="$scratch_root/generated-after-packaging.attl"
   printf '%s\n' \
@@ -285,6 +335,11 @@ run_inside_consumer() {
   printf 'consumer_racket_command=absent\n'
   printf 'consumer_raco_command=absent\n'
   printf 'consumer_network=none-with-loopback-only\n'
+  printf 'archive_sha256=%s\n' "${expected_checksum_line%% *}"
+  printf 'compressed_bytes=%s\n' "$(stat -c '%s' "$archive_path")"
+  printf 'unpacked_regular_file_bytes=%s\n' "$unpacked_regular_file_bytes"
+  printf 'artifact_files=%s\n' "$artifact_file_count"
+  printf 'runtime_files=%s\n' "$runtime_file_count"
   printf 'relocation=passed\n'
   printf 'first_startup_milliseconds=%s\n' "$first_startup_milliseconds"
   printf 'relocated_startup_milliseconds=%s\n' "$relocated_startup_milliseconds"
@@ -327,7 +382,7 @@ checksum_path="$output_directory/SHA256SUMS"
 expected_checksum_line="$(<"$checksum_path")"
 [[ "$expected_checksum_line" =~ ^[0-9a-f]{64}[[:space:]][[:space:]]${archive_name//./\.}$ ]] ||
   die "SHA256SUMS must contain exactly the versioned Linux archive"
-(cd "$output_directory" && sha256sum --check --strict SHA256SUMS >/dev/null)
+(cd "$output_directory" && sha256sum -c SHA256SUMS >/dev/null)
 
 consumer_transfer_root="$(mktemp -d /tmp/attalambda-linux-transfer-XXXXXX)"
 cleanup_host() {

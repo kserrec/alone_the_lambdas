@@ -12,13 +12,14 @@ $ProgramName = 'build-windows-distribution'
 $RequiredRacketBanner = 'Welcome to Racket v9.3 [cs].'
 $RequiredRacketVersion = '9.3'
 $TargetIdentifier = 'windows-x86_64'
+$ApprovedNoticeSha256 = '1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd'
 $Usage = @'
 Usage:
   tooling/build-windows-distribution.ps1 [-AllowDirty] OUTPUT_DIRECTORY
 
-Build the unpublished native Windows x86-64 archive with Racket CS 9.3. The
-output directory must already exist outside the source checkout and must not
-contain the versioned archive or SHA256SUMS.
+Build the unpublished native Windows x86-64 release-candidate archive with
+Racket CS 9.3. The output directory must already exist outside the source
+checkout and must not contain the versioned archive or SHA256SUMS.
 '@
 
 function Fail([string] $Message) {
@@ -483,41 +484,35 @@ try {
     foreach ($exampleName in @('hello.attl', 'stdout.attl', 'file-round-trip.attl', 'http-server.attl')) {
         Copy-RegularFile ([IO.Path]::Combine($ProjectRoot, 'examples', $exampleName)) ([IO.Path]::Combine($artifactExamples, $exampleName)) "canonical example $exampleName"
     }
-    foreach ($assetName in @('GETTING_STARTED.md.in', 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt', 'THIRD_PARTY_NOTICES.md.in')) {
+    foreach ($assetName in @('GETTING_STARTED.md.in', 'THIRD_PARTY_NOTICES.md.in')) {
         Assert-RegularNonsymlinkFile ([IO.Path]::Combine($ProjectRoot, 'distribution', $assetName)) "distribution asset $assetName"
     }
+    $licensePath = [IO.Path]::Combine($ProjectRoot, 'LICENSE')
+    Assert-RegularNonsymlinkFile $licensePath 'repository LICENSE'
 
     $guide = [IO.File]::ReadAllText([IO.Path]::Combine($ProjectRoot, 'distribution', 'GETTING_STARTED.md.in'))
-    $guide = $guide.Replace('@VERSION@', $productVersion).Replace('@ROOT_NAME@', $artifactRootName)
-    $guide = $guide.Replace("on Linux`nx86-64", "on Windows`nx86-64")
-    $guide = $guide.Replace('`attalambda` executable', '`attalambda.exe` executable')
-    $guide = $guide.Replace('./bin/attalambda --help', '.\bin\attalambda.exe --help')
-    $guide = $guide.Replace('./bin/attalambda --version', '.\bin\attalambda.exe --version')
-    $guide = $guide.Replace('./bin/attalambda examples/hello.attl', '.\bin\attalambda.exe examples\hello.attl')
-    $guide = $guide.Replace('observed Linux system-library assumptions', 'observed Windows system-DLL assumptions')
+    $verifyCommand = '$line = @(Get-Content .\SHA256SUMS | Where-Object { $_ -like "*' + $archiveName + '" }); if ($line.Count -ne 1) { throw ''checksum entry mismatch'' }; $expected = ($line[0] -split ''\s+'')[0]; $actual = (Get-FileHash .\' + $archiveName + ' -Algorithm SHA256).Hash.ToLowerInvariant(); if ($actual -cne $expected) { throw ''SHA-256 mismatch'' }'
+    $guide = $guide.Replace('@VERSION@', $productVersion)
+    $guide = $guide.Replace('@TARGET_NAME@', 'Windows x86-64')
+    $guide = $guide.Replace('@ARCHIVE_NAME@', $archiveName)
+    $guide = $guide.Replace('@COMMAND_LANGUAGE@', 'powershell')
+    $guide = $guide.Replace('@VERIFY_COMMAND@', $verifyCommand)
+    $guide = $guide.Replace('@EXTRACT_COMMAND@', "Expand-Archive -LiteralPath .\$archiveName -DestinationPath .")
+    $guide = $guide.Replace('@ENTER_COMMAND@', "Set-Location .\$artifactRootName")
+    $guide = $guide.Replace('@EXECUTABLE@', '.\bin\attalambda.exe')
+    $guide = $guide.Replace('@PATH_SEPARATOR@', '\')
+    $guide = $guide.Replace('@DEPENDENCY_KIND@', 'Windows system-DLL assumptions')
     if ($guide.Contains('@')) {
         Fail 'unexpanded getting-started placeholder'
     }
     Write-LfUtf8 ([IO.Path]::Combine($artifactRoot, 'GETTING_STARTED.md')) $guide
-    Copy-RegularFile ([IO.Path]::Combine($ProjectRoot, 'distribution', 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt')) ([IO.Path]::Combine($artifactRoot, 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt')) 'unpublished development warning'
-
-    $shareDirectory = (& $racket.Source -e '(require setup/dirs) (display (path->string (find-share-dir)))' | Out-String).TrimEnd("`r", "`n")
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($shareDirectory)) {
-        Fail 'Racket share directory could not be determined'
+    Copy-RegularFile $licensePath ([IO.Path]::Combine($artifactRoot, 'LICENSE')) 'repository LICENSE'
+    $licenseDigest = Get-Sha256 $licensePath
+    $noticePath = [IO.Path]::Combine($ProjectRoot, 'distribution', 'THIRD_PARTY_NOTICES.md.in')
+    if ((Get-Sha256 $noticePath) -cne $ApprovedNoticeSha256) {
+        Fail 'third-party notices differ from the exact Phase 28 approval'
     }
-    $noticeTemplate = [IO.File]::ReadAllText([IO.Path]::Combine($ProjectRoot, 'distribution', 'THIRD_PARTY_NOTICES.md.in')).Replace('@RACKET_VERSION@', $RequiredRacketVersion)
-    $noticeBuilder = [Text.StringBuilder]::new()
-    [void] $noticeBuilder.Append($noticeTemplate.Replace("`r`n", "`n").Replace("`r", "`n").TrimEnd("`n"))
-    foreach ($licenseName in @('LICENSE.txt', 'LICENSE-APACHE.txt', 'LICENSE-MIT.txt', 'LICENSE-LGPL.txt')) {
-        $licensePath = [IO.Path]::Combine($shareDirectory, $licenseName)
-        Assert-RegularNonsymlinkFile $licensePath "Racket toolchain license file $licenseName"
-        $licenseText = [IO.File]::ReadAllText($licensePath).Replace("`r`n", "`n").Replace("`r", "`n").TrimEnd("`n")
-        $licenseDigest = Get-Sha256 $licensePath
-        [void] $noticeBuilder.Append("`n`n## Racket ``$licenseName```n`n")
-        [void] $noticeBuilder.Append("Toolchain SHA-256: ``$licenseDigest```n`n")
-        [void] $noticeBuilder.Append("``````text`n$licenseText`n```````n")
-    }
-    Write-LfUtf8 ([IO.Path]::Combine($artifactRoot, 'THIRD_PARTY_NOTICES.md')) $noticeBuilder.ToString()
+    Copy-RegularFile $noticePath ([IO.Path]::Combine($artifactRoot, 'THIRD_PARTY_NOTICES.md')) 'approved third-party notices'
 
     $attalambdaExecutable = [IO.Path]::Combine($artifactBin, 'attalambda.exe')
     $distributedVersion = (& $attalambdaExecutable --version | Out-String).TrimEnd("`r", "`n")
@@ -590,7 +585,9 @@ try {
     [void] $manifest.Append("Target identifier: $TargetIdentifier`n")
     [void] $manifest.Append("Racket version: $RequiredRacketVersion`n")
     [void] $manifest.Append("Racket variant: CS`n")
-    [void] $manifest.Append("Artifact status: unpublished development artifact`n")
+    [void] $manifest.Append("Artifact status: unpublished release candidate`n")
+    [void] $manifest.Append("Repository license SHA-256: $licenseDigest`n")
+    [void] $manifest.Append("Third-party notices SHA-256: $ApprovedNoticeSha256`n")
     [void] $manifest.Append("Archive checksum: external sibling SHA256SUMS`n")
     [void] $manifest.Append("Executable Authenticode status: $authenticodeStatus`n")
     [void] $manifest.Append("`nArtifact file inventory:`n")

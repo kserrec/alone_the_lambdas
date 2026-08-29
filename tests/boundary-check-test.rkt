@@ -1060,12 +1060,12 @@
       (replace-package-version clean-package-info-datum
                                (cadr version-pair)))
      (check-equal? (project-boundary-violations root) '()))
-   (write-exact-bytes product-version-file #"0.2.0-dev\n")
+   (write-exact-bytes product-version-file #"0.2.0-rc.1\n")
    (write-datum package-info clean-package-info-datum)
 
-   (write-exact-bytes product-version-file #"0.2.0-dev")
+   (write-exact-bytes product-version-file #"0.2.0-rc.1")
    (check-project-kind 'invalid-product-version)
-   (write-exact-bytes product-version-file #"0.2.0-dev\n")
+   (write-exact-bytes product-version-file #"0.2.0-rc.1\n")
 
    (define saved-version-file
      (build-path root "VERSION.backup"))
@@ -1073,7 +1073,7 @@
      (make-temporary-file "attalambda-version-target-~a"
                           #f
                           (path-only root)))
-   (write-exact-bytes version-target #"0.2.0-dev\n")
+   (write-exact-bytes version-target #"0.2.0-rc.1\n")
    (rename-file-or-directory product-version-file saved-version-file)
    (make-file-or-directory-link version-target product-version-file)
    (define-values (version-link-findings version-target-reads)

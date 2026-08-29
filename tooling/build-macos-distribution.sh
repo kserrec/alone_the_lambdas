@@ -9,13 +9,14 @@ umask 022
 program_name="build-macos-distribution"
 required_racket_banner="Welcome to Racket v9.3 [cs]."
 required_racket_version="9.3"
+approved_notice_sha256="1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
 
 usage() {
   cat <<'USAGE'
 Usage:
   tooling/build-macos-distribution.sh [--allow-dirty] TARGET_IDENTIFIER OUTPUT_DIRECTORY
 
-Build one unpublished native macOS archive with Racket CS 9.3.
+Build one unpublished native macOS release-candidate archive with Racket CS 9.3.
 TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64. OUTPUT_DIRECTORY must
 already exist outside the source checkout and must not contain the versioned
 archive or SHA256SUMS.
@@ -82,10 +83,12 @@ case "$target_identifier" in
   macos-x86_64)
     expected_uname_architecture="x86_64"
     expected_macho_architecture="x86_64"
+    target_name="macOS x86-64"
     ;;
   macos-arm64)
     expected_uname_architecture="arm64"
     expected_macho_architecture="arm64"
+    target_name="macOS arm64"
     ;;
   *) die "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64" ;;
 esac
@@ -132,6 +135,7 @@ artifact_root_name="attalambda-$product_version-$target_identifier"
 archive_name="$artifact_root_name.tar.gz"
 archive_path="$output_directory/$archive_name"
 checksum_path="$output_directory/SHA256SUMS"
+verify_command="awk '\$2 == \"$archive_name\" { print }' SHA256SUMS | shasum -a 256 -c -"
 [[ ! -e "$archive_path" && ! -L "$archive_path" ]] || die "refusing to replace existing output: $archive_path"
 [[ ! -e "$checksum_path" && ! -L "$checksum_path" ]] || die "refusing to replace existing output: $checksum_path"
 
@@ -311,45 +315,36 @@ for example_name in hello.attl stdout.attl file-round-trip.attl http-server.attl
   install -m 0644 "$example_source" "$artifact_root/examples/$example_name"
 done
 
-for asset_name in GETTING_STARTED.md.in UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt THIRD_PARTY_NOTICES.md.in; do
+for asset_name in GETTING_STARTED.md.in THIRD_PARTY_NOTICES.md.in; do
   asset_path="$project_root/distribution/$asset_name"
   [[ -f "$asset_path" && ! -L "$asset_path" ]] ||
     die "distribution asset is unavailable or symlinked: $asset_name"
 done
+[[ -f "$project_root/LICENSE" && ! -L "$project_root/LICENSE" ]] ||
+  die "repository LICENSE is unavailable or symlinked"
 
 sed \
-  -e "s/@VERSION@/$product_version/g" \
-  -e "s/@ROOT_NAME@/$artifact_root_name/g" \
+  -e "s~@VERSION@~$product_version~g" \
+  -e "s~@TARGET_NAME@~$target_name~g" \
+  -e "s~@ARCHIVE_NAME@~$archive_name~g" \
+  -e "s~@COMMAND_LANGUAGE@~sh~g" \
+  -e "s~@VERIFY_COMMAND@~$verify_command~g" \
+  -e "s~@EXTRACT_COMMAND@~tar -xzf $archive_name~g" \
+  -e "s~@ENTER_COMMAND@~cd $artifact_root_name~g" \
+  -e "s~@EXECUTABLE@~./bin/attalambda~g" \
+  -e "s~@PATH_SEPARATOR@~/~g" \
+  -e "s~@DEPENDENCY_KIND@~macOS system-library assumptions~g" \
   "$project_root/distribution/GETTING_STARTED.md.in" \
   > "$artifact_root/GETTING_STARTED.md"
 grep -Fq '@' "$artifact_root/GETTING_STARTED.md" &&
   die "unexpanded getting-started placeholder"
-install -m 0644 \
-  "$project_root/distribution/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" \
-  "$artifact_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt"
-
-racket_share_directory="$("${racket_environment[@]}" "$racket_executable" -e \
-  '(require setup/dirs) (display (path->string (find-share-dir)))')"
-for license_name in LICENSE.txt LICENSE-APACHE.txt LICENSE-MIT.txt LICENSE-LGPL.txt; do
-  license_path="$racket_share_directory/$license_name"
-  [[ -f "$license_path" && ! -L "$license_path" ]] ||
-    die "Racket toolchain license file is unavailable or symlinked: $license_name"
-done
-
-sed -e "s/@RACKET_VERSION@/$required_racket_version/g" \
-  "$project_root/distribution/THIRD_PARTY_NOTICES.md.in" \
-  > "$artifact_root/THIRD_PARTY_NOTICES.md"
-for license_name in LICENSE.txt LICENSE-APACHE.txt LICENSE-MIT.txt LICENSE-LGPL.txt; do
-  license_path="$racket_share_directory/$license_name"
-  license_digest="$(sha256_file "$license_path")"
-  {
-    printf '\n## Racket `%s`\n\n' "$license_name"
-    printf 'Toolchain SHA-256: `%s`\n\n' "$license_digest"
-    printf '```text\n'
-    cat "$license_path"
-    printf '\n```\n'
-  } >> "$artifact_root/THIRD_PARTY_NOTICES.md"
-done
+install -m 0644 "$project_root/LICENSE" "$artifact_root/LICENSE"
+license_digest="$(sha256_file "$project_root/LICENSE")"
+notice_path="$project_root/distribution/THIRD_PARTY_NOTICES.md.in"
+notice_digest="$(sha256_file "$notice_path")"
+[[ "$notice_digest" == "$approved_notice_sha256" ]] ||
+  die "third-party notices differ from the exact Phase 28 approval"
+install -m 0644 "$notice_path" "$artifact_root/THIRD_PARTY_NOTICES.md"
 
 while IFS= read -r -d '' linked_path; do
   die "artifact contains a symlink: ${linked_path#"$artifact_root/"}"
@@ -419,7 +414,9 @@ done < <(
   printf 'Target identifier: %s\n' "$target_identifier"
   printf 'Racket version: %s\n' "$required_racket_version"
   printf 'Racket variant: CS\n'
-  printf 'Artifact status: unpublished development artifact\n'
+  printf 'Artifact status: unpublished release candidate\n'
+  printf 'Repository license SHA-256: %s\n' "$license_digest"
+  printf 'Third-party notices SHA-256: %s\n' "$notice_digest"
   printf 'Archive checksum: external sibling SHA256SUMS\n'
   printf '\nArtifact file inventory:\n'
   sed 's/^/  /' "$artifact_inventory_file"
