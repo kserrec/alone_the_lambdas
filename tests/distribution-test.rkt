@@ -180,6 +180,9 @@
 (check-not-false
  (string-contains? consumer-source
                    "printf 'consumer_acceptance=passed\\n'"))
+(check-not-false
+ (string-contains? consumer-source
+                   "printf 'guide_workflow=passed\\n'"))
 (check-true (regexp-match? #rx"guide custom program" consumer-source))
 (check-true (regexp-match? #rx"Artifact status: unpublished release candidate" consumer-source))
 
@@ -220,6 +223,9 @@
 (check-not-false
  (string-contains? macos-consumer-source
                    "printf 'consumer_acceptance=passed\\n'"))
+(check-not-false
+ (string-contains? macos-consumer-source
+                   "printf 'guide_workflow=passed\\n'"))
 (check-true (regexp-match? #rx"guide custom program" macos-consumer-source))
 (check-true (regexp-match? #rx"archive_sha256=" macos-consumer-source))
 
@@ -291,6 +297,9 @@
 (check-not-false
  (string-contains? windows-consumer-source
                    "Write-Output 'consumer_acceptance=passed'"))
+(check-not-false
+ (string-contains? windows-consumer-source
+                   "WriteLine('guide_workflow=passed')"))
 (check-true (regexp-match? #rx"guide custom program" windows-consumer-source))
 (check-true (regexp-match? #rx"Artifact status: unpublished release candidate" windows-consumer-source))
 

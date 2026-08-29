@@ -80,7 +80,13 @@ run_inside_consumer() {
   done < <(tar -tzf "$archive_path")
 
   mkdir -p -- "$first_parent"
-  tar -xzf "$archive_path" -C "$first_parent"
+  cp -- "$archive_path" "$first_parent/$archive_name"
+  cp -- "$checksum_path" "$first_parent/SHA256SUMS"
+  (
+    cd "$first_parent"
+    awk '$2 == "'"$archive_name"'" { print }' SHA256SUMS | sha256sum -c -
+    tar -xzf "$archive_name"
+  )
   [[ -d "$first_root" && ! -L "$first_root" ]] || die "archive root is unavailable"
 
   while IFS= read -r -d '' linked_path; do
@@ -230,7 +236,11 @@ run_inside_consumer() {
   local first_startup_end
   local first_startup_milliseconds
   first_startup_begin="$(date +%s%N)"
-  "$attalambda" --version >"$stdout_file" 2>"$stderr_file"
+  (
+    cd "$first_parent"
+    cd "$artifact_root_name"
+    ./bin/attalambda --version >"$stdout_file" 2>"$stderr_file"
+  )
   first_startup_end="$(date +%s%N)"
   first_startup_milliseconds=$(( (first_startup_end - first_startup_begin + 999999) / 1000000 ))
   check_captured_output "AttaLambda $product_version"$'\n' "packaged version"
@@ -340,6 +350,7 @@ run_inside_consumer() {
   printf 'unpacked_regular_file_bytes=%s\n' "$unpacked_regular_file_bytes"
   printf 'artifact_files=%s\n' "$artifact_file_count"
   printf 'runtime_files=%s\n' "$runtime_file_count"
+  printf 'guide_workflow=passed\n'
   printf 'relocation=passed\n'
   printf 'first_startup_milliseconds=%s\n' "$first_startup_milliseconds"
   printf 'relocated_startup_milliseconds=%s\n' "$relocated_startup_milliseconds"

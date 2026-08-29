@@ -542,7 +542,21 @@ try {
     $firstParent = [IO.Path]::Combine($ScratchRoot, 'first extraction path with spaces')
     $firstRoot = [IO.Path]::Combine($firstParent, $artifactRootName)
     [IO.Directory]::CreateDirectory($firstParent) | Out-Null
-    [IO.Compression.ZipFile]::ExtractToDirectory($archivePath, $firstParent, $false)
+    [IO.File]::Copy($archivePath, [IO.Path]::Combine($firstParent, $archiveName), $false)
+    [IO.File]::Copy($checksumPath, [IO.Path]::Combine($firstParent, 'SHA256SUMS'), $false)
+    Push-Location -LiteralPath $firstParent
+    try {
+        $line = @(Get-Content .\SHA256SUMS | Where-Object { $_ -like "*$archiveName" })
+        if ($line.Count -ne 1) { throw 'checksum entry mismatch' }
+        $expected = ($line[0] -split '\s+')[0]
+        $actual = (Get-FileHash .\$archiveName -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $expected) { throw 'SHA-256 mismatch' }
+        Expand-Archive -LiteralPath .\$archiveName -DestinationPath .
+        Set-Location .\$artifactRootName
+    }
+    finally {
+        Pop-Location
+    }
     if (-not [IO.Directory]::Exists($firstRoot)) {
         Fail 'archive root is unavailable after extraction'
     }
@@ -779,6 +793,7 @@ try {
     [Console]::Out.WriteLine("pe_files=$($peFiles.Count)")
     [Console]::Out.WriteLine("system_dlls=$($actualSystem -join ',')")
     [Console]::Out.WriteLine("authenticode_status=$authenticodeStatus")
+    [Console]::Out.WriteLine('guide_workflow=passed')
     [Console]::Out.WriteLine('relocation_drives=different')
     [Console]::Out.WriteLine('relocation=passed')
     [Console]::Out.WriteLine("first_startup_milliseconds=$firstStartupMilliseconds")

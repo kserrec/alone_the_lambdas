@@ -71,7 +71,7 @@ case "$target_identifier" in
   *) die "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64" ;;
 esac
 
-for command_name in awk basename cat cmp env file find grep lipo mkdir mktemp mv otool perl rm sed shasum sleep sort stat sw_vers tar tr uname wc; do
+for command_name in awk basename cat cmp cp env file find grep lipo mkdir mktemp mv otool perl rm sed shasum sleep sort stat sw_vers tar tr uname wc; do
   require_command "$command_name"
 done
 
@@ -160,7 +160,13 @@ while IFS= read -r archive_entry; do
 done < <(tar -tzf "$archive_path")
 
 mkdir -p "$first_parent"
-tar -xzf "$archive_path" -C "$first_parent"
+cp "$archive_path" "$first_parent/$archive_name"
+cp "$checksum_path" "$first_parent/SHA256SUMS"
+(
+  cd "$first_parent"
+  awk '$2 == "'"$archive_name"'" { print }' SHA256SUMS | shasum -a 256 -c -
+  tar -xzf "$archive_name"
+)
 [[ -d "$first_root" && ! -L "$first_root" ]] || die "archive root is unavailable"
 
 while IFS= read -r -d '' linked_path; do
@@ -377,7 +383,12 @@ run_attalambda() {
 }
 
 first_startup_begin="$(milliseconds_now)"
-run_attalambda --version >"$stdout_file" 2>"$stderr_file"
+(
+  cd "$first_parent"
+  cd "$artifact_root_name"
+  env -u PLTCOLLECTS -u PLTADDONDIR -u PLTCONFIGDIR \
+    ./bin/attalambda --version >"$stdout_file" 2>"$stderr_file"
+)
 first_startup_end="$(milliseconds_now)"
 first_startup_milliseconds=$((first_startup_end - first_startup_begin))
 check_captured_output "AttaLambda $product_version"$'\n' "packaged version"
@@ -500,6 +511,7 @@ printf 'artifact_files=%s\n' "$artifact_file_count"
 printf 'runtime_files=%s\n' "$runtime_file_count"
 printf 'system_libraries=%s\n' \
   "$(awk 'BEGIN { separator="" } { printf "%s%s", separator, $0; separator="," } END { print "" }' "$actual_dynamic")"
+printf 'guide_workflow=passed\n'
 printf 'relocation=passed\n'
 printf 'first_startup_milliseconds=%s\n' "$first_startup_milliseconds"
 printf 'relocated_startup_milliseconds=%s\n' "$relocated_startup_milliseconds"
