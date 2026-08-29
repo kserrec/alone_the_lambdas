@@ -897,6 +897,32 @@ commit. Product version remains `0.2.0-dev`, and no Git tag, GitHub Release,
 release-candidate file, signature, binary release, or public download was
 created.
 
+## Post-Phase 27 maintenance — seam refactor, bug hunt, and test audit
+
+Status: complete (2026-08-28)
+
+- [x] Simplify the deterministic codec, readers, structural gates, and native
+  consumer helpers without changing language behavior or boundary authority.
+- [x] Correct the pure HTTP parser's origin-target grammar and request-body
+  framing validation, including zero-only `Content-Length` and rejection of
+  `Transfer-Encoding` in the bodyless request subset.
+- [x] Reject forged noncanonical List terminators in deterministic codec
+  conversion instead of silently truncating them as `NIL`.
+- [x] Audit the complete test suite, prove representative tests by temporary
+  mutation, and close the four confirmed gaps: exact stdout Error frames,
+  inherited `PLTCOLLECTS`, automatic CI triggers, and external completion
+  attestation for the source suite and native artifact consumers.
+
+Completion evidence: commits `706acee79392f011e056b94418d63b998a15e261`,
+`a9da8b72ea58ef8a4b3c4dc4bad15847b3d2c0ef`, and
+`505a46bba37d68efb4f3ffcb17048c03d85fb767` contain the refactor, three
+correctness fixes, and test-audit hardening respectively. The final local
+verification passed 4,687 assertions across all 32 test files, the expanded
+purity scan over all 16 `core/` modules, and the complete repository boundary
+and source-inventory gate. A fresh read-only cold review found no remaining
+test-audit issue. No release artifact, tag, signature, version change, or new
+language/host capability was created.
+
 ## Phase 28 — Downloadable release candidate and novice documentation
 
 Status: planned and approval-gated
