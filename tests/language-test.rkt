@@ -12,13 +12,33 @@
 (define project-root
   (simplify-path project-root-path #f))
 
-(call-with-fresh-language-install
- project-root
- (lambda (installation)
+(define inherited-environment
+  (environment-variables-copy
+   (current-environment-variables)))
+(define collection-path-separator
+  (if (eq? (system-type 'os) 'windows)
+      #";"
+      #":"))
+(environment-variables-set!
+ inherited-environment
+ #"PLTCOLLECTS"
+ (bytes-append
+  (path->bytes
+   (build-path (find-system-path 'temp-dir)
+               "attalambda-external-collections"))
+  collection-path-separator))
+
+(define (run-language-tests)
+  (call-with-fresh-language-install
+   project-root
+   (lambda (installation)
     (define temporary-root
       (fresh-language-install-temporary-root installation))
     (define isolated-environment
       (fresh-language-install-environment installation))
+
+    (check-false
+     (environment-variables-ref isolated-environment #"PLTCOLLECTS"))
 
     (check-command-success
      (run-command isolated-environment
@@ -213,4 +233,7 @@ PROBE
                     (list (path->string isolated-program))
                     20)
        #rx"unbound identifier|not allowed in an expression")))
-)
+  ))
+
+(parameterize ([current-environment-variables inherited-environment])
+  (run-language-tests))

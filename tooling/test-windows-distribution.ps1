@@ -762,7 +762,7 @@ try {
     [Console]::Out.WriteLine('relocation=passed')
     [Console]::Out.WriteLine("first_startup_milliseconds=$firstStartupMilliseconds")
     [Console]::Out.WriteLine("relocated_startup_milliseconds=$($relocatedVersion.Milliseconds)")
-    [Console]::Out.WriteLine('consumer_acceptance=passed')
+    Write-Output 'consumer_acceptance=passed'
     $Succeeded = $true
 }
 catch {

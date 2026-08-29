@@ -6,6 +6,7 @@
          racket/list
          racket/path
          racket/runtime-path
+         racket/string
          "helpers/fresh-language.rkt")
 
 (define-runtime-path project-root-path "..")
@@ -25,6 +26,8 @@
   (build-path project-root "tooling" "test-windows-distribution.ps1"))
 (define workflow-file
   (build-path project-root ".github" "workflows" "tests.yml"))
+(define test-runner-script
+  (build-path project-root "run-all-tests.sh"))
 (define distribution-directory
   (build-path project-root "distribution"))
 (define repository-license-file
@@ -165,6 +168,9 @@
   consumer-source))
 (check-true (regexp-match? #rx"--network none" consumer-source))
 (check-true (regexp-match? #rx"--read-only" consumer-source))
+(check-not-false
+ (string-contains? consumer-source
+                   "printf 'consumer_acceptance=passed\\n'"))
 
 (define macos-build-source
   (file->string macos-build-script))
@@ -191,6 +197,9 @@
 (check-true (regexp-match? #rx"/dev/tcp/127[.]0[.]0[.]1" macos-consumer-source))
 (check-true (regexp-match? #rx"second relocated path" macos-consumer-source))
 (check-true (regexp-match? #rx"sw_vers -productVersion" macos-consumer-source))
+(check-not-false
+ (string-contains? macos-consumer-source
+                   "printf 'consumer_acceptance=passed\\n'"))
 
 (define windows-build-source
   (file->string windows-build-script))
@@ -247,9 +256,52 @@
 (check-true (regexp-match? #rx"Assert-ProcessResult.*64" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*65" windows-consumer-source))
 (check-true (regexp-match? #rx"Assert-ProcessResult.*66" windows-consumer-source))
+(check-not-false
+ (string-contains? windows-consumer-source
+                   "Write-Output 'consumer_acceptance=passed'"))
 
 (define workflow-source
   (file->string workflow-file))
+(define test-runner-source
+  (file->string test-runner-script))
+
+(define (substring-count text substring)
+  (length
+   (regexp-match* (regexp (regexp-quote substring)) text)))
+
+(check-true
+ (regexp-match? #px"(?m:^on:\n  push:\n  pull_request:\n)"
+                workflow-source))
+(check-not-false
+ (string-contains?
+  test-runner-source
+  "echo \"All ${#test_files[@]} test files passed.\""))
+(check-not-false
+ (string-contains? workflow-source
+                   "./run-all-tests.sh | tee \"$suite_log\""))
+(check-not-false
+ (string-contains?
+  workflow-source
+  "[[ \"$(tail -n 1 \"$suite_log\")\" =~ ^All\\ [1-9][0-9]*\\ test\\ files\\ passed[.]$ ]]"))
+(check-equal?
+ (substring-count workflow-source
+                  "| tee \"$consumer_log\"")
+ 2)
+(check-equal?
+ (substring-count
+  workflow-source
+  "[[ \"$(tail -n 1 \"$consumer_log\")\" == \"consumer_acceptance=passed\" ]]")
+ 2)
+(check-not-false
+ (string-contains? workflow-source
+                   "$consumerCompletion = @("))
+(check-not-false
+ (string-contains? workflow-source
+                   "$consumerCompletion.Count -ne 1 -or"))
+(check-not-false
+ (string-contains?
+  workflow-source
+  "$consumerCompletion[0] -cne 'consumer_acceptance=passed'"))
 (check-true (regexp-match? #rx"runner: macos-15-intel" workflow-source))
 (check-true (regexp-match? #rx"runner: macos-15" workflow-source))
 (check-true (regexp-match? #rx"racket-architecture: x64" workflow-source))

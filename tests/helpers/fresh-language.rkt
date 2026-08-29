@@ -205,6 +205,10 @@
          (current-environment-variables)))
       (environment-variables-set!
        isolated-environment
+       #"PLTCOLLECTS"
+       #f)
+      (environment-variables-set!
+       isolated-environment
        #"PLTUSERHOME"
        (path->bytes isolated-home))
       (environment-variables-set!

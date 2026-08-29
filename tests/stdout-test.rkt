@@ -11,6 +11,7 @@
          "../effects/protocol.rkt"
          "../effects/stdout.rkt"
          "../readers/bool.rkt"
+         "../readers/error.rkt"
          "../readers/raw-boolean.rkt"
          "../runtime/codec.rkt"
          "helpers/lazy.rkt")
@@ -75,11 +76,15 @@
 (define wrong-type
   (lazy-apply stdout-with-fake TRUE))
 (check-true (typed-value? error-type wrong-type))
+(check-equal? (error-value->string wrong-type)
+              "stdout(arg1 expected STRING got BOOL)")
 (check-equal? calls 1)
 
 (define incoming-error
   (lazy-apply stdout-with-fake invalid-nat-error))
 (check-true (typed-value? error-type incoming-error))
+(check-equal? (error-value->string incoming-error)
+              "INVALID-NAT\n  -> stdout(arg1 expected STRING)")
 (check-equal? calls 1)
 
 ;; Result values from an injected host cross the wrapper unchanged.

@@ -28,7 +28,11 @@ jobs:
         run: racket -e '(require lazy)'
 
       - name: Run test suite
-        run: ./run-all-tests.sh
+        run: |
+          set -euo pipefail
+          suite_log="$RUNNER_TEMP/attalambda-test-suite.log"
+          ./run-all-tests.sh | tee "$suite_log"
+          [[ "$(tail -n 1 "$suite_log")" =~ ^All\ [1-9][0-9]*\ test\ files\ passed[.]$ ]]
 
   linux-distribution:
     runs-on: ubuntu-24.04
@@ -50,7 +54,12 @@ jobs:
         run: ./tooling/build-linux-distribution.sh "$RUNNER_TEMP/attalambda-artifacts"
 
       - name: Test transferred archive without Racket
-        run: ./tooling/test-linux-distribution.sh "$RUNNER_TEMP/attalambda-artifacts"
+        run: |
+          set -euo pipefail
+          consumer_log="$RUNNER_TEMP/attalambda-linux-consumer.log"
+          ./tooling/test-linux-distribution.sh \
+            "$RUNNER_TEMP/attalambda-artifacts" | tee "$consumer_log"
+          [[ "$(tail -n 1 "$consumer_log")" == "consumer_acceptance=passed" ]]
 
   macos-distribution-build:
     name: macOS build (${{ matrix.target }})
@@ -128,10 +137,13 @@ jobs:
 
       - name: Test without Racket or a source checkout
         run: |
+          set -euo pipefail
           chmod 0555 "$RUNNER_TEMP/attalambda-transfer/consumer.sh"
+          consumer_log="$RUNNER_TEMP/attalambda-${{ matrix.target }}-consumer.log"
           "$RUNNER_TEMP/attalambda-transfer/consumer.sh" \
             "$RUNNER_TEMP/attalambda-transfer" \
-            "${{ matrix.target }}"
+            "${{ matrix.target }}" | tee "$consumer_log"
+          [[ "$(tail -n 1 "$consumer_log")" == "consumer_acceptance=passed" ]]
 
   macos-distribution-artifact-cleanup:
     name: Delete temporary macOS transfer artifacts
@@ -230,8 +242,16 @@ jobs:
       - name: Test without Racket or a source checkout
         shell: pwsh
         run: |
-          & "$env:RUNNER_TEMP\attalambda-transfer\consumer.ps1" "$env:RUNNER_TEMP\attalambda-transfer"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $consumerCompletion = @(
+            & "$env:RUNNER_TEMP\attalambda-transfer\consumer.ps1" "$env:RUNNER_TEMP\attalambda-transfer"
+          )
+          $consumerStatus = $LASTEXITCODE
+          $consumerCompletion | ForEach-Object { Write-Output $_ }
+          if ($consumerStatus -ne 0) { exit $consumerStatus }
+          if ($consumerCompletion.Count -ne 1 -or
+              $consumerCompletion[0] -cne 'consumer_acceptance=passed') {
+            throw 'distribution consumer did not report successful completion'
+          }
 
   windows-distribution-artifact-cleanup:
     name: Delete temporary Windows transfer artifact
