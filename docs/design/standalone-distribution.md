@@ -1,8 +1,8 @@
 # Standalone distribution design
 
 Status: original contract approved 2026-08-27; Phases 22 through 28
-implemented; Phase 29 final-but-unpublished implementation and temporary
-staging approved 2026-08-29; publication not authorized
+implemented; Phase 29 final-but-unpublished implementation verified and
+staged 2026-08-29; publication not authorized
 
 Date: 2026-08-27
 
@@ -954,16 +954,15 @@ attalambda-0.2.0-windows-x86_64.zip
 SHA256SUMS
 ```
 
-The one approved staging workflow keeps Linux build and no-Racket consumption
+The one approved staging workflow kept Linux build and no-Racket consumption
 within one job. Only the two macOS archives and one Windows archive, each with
-its one-entry checksum and self-contained consumer, cross jobs. After all
-three consumers pass, those GitHub artifacts may remain only long enough for
-Codex to download and verify the exact tested bytes into local staging. Codex
-then deletes the exact artifact identifiers through the GitHub API and
-verifies zero remain; one-day retention is only the automatic fallback. The
-workflow excludes tag pushes so the later tag cannot repeat this transfer.
-After the one approved staging run, ordinary immediate cleanup is restored on
-public `main` before publication.
+its one-entry checksum and self-contained consumer, crossed jobs. After all
+three consumers passed, Codex downloaded and verified the exact tested bytes
+into local staging, deleted the exact artifact identifiers through the GitHub
+API, and verified zero remained. One-day retention was only the automatic
+fallback. The workflow excludes tag pushes so a later tag cannot repeat the
+transfer, and ordinary `always()` cleanup is restored for every future branch
+or pull-request run.
 
 No Phase 29 implementation or transfer approval authorizes paid GitHub usage,
 a tag, GitHub Release, signing operation, release-asset upload, public-download
@@ -973,10 +972,70 @@ combined manifest, demonstrated platforms, unsigned/signing state, known
 limitations, and public consequences are presented literally and Kyle
 approves that exact proposal.
 
-Before the release-preparation commit, local Racket CS 9.3 verification passed
+Local Racket CS 9.3 verification of the release-preparation commit passed
 4,751 assertions across all 32 test files, the unchanged expanded purity proof
 over 16 `core/` modules, and the complete zero-finding repository boundary and
 source inventory.
+
+## Phase 29 staging record
+
+Final source commit
+`42ff0a7810ebeced445ab23561433a2dc423e433` passed the full source suite,
+every native build, and all four independent clean consumers in [GitHub
+Actions run
+33262922610](https://github.com/kserrec/attalambda/actions/runs/33262922610).
+The source job and local completion gate each passed 4,751 assertions across
+32 test files, the unchanged 16-module expanded purity proof, and the complete
+zero-finding source-boundary inventory. Each consumer reported absent Racket
+and `raco` commands, no source checkout where applicable,
+`guide_workflow=passed`, relocation success, and final acceptance.
+
+The exact final-but-unpublished archive observations are:
+
+| Target | Exact consumer | Compressed bytes | Unpacked regular-file bytes | SHA-256 | Startup before / after relocation |
+| --- | --- | ---: | ---: | --- | ---: |
+| `linux-x86_64` | digest-pinned Ubuntu 24.04 container | `13,728,716` | `59,409,479` | `86f980d696b45b42c251b78e6a66b9cd875f649217bfb09731cf6b47c66b00ac` | 175 ms / 169 ms |
+| `macos-arm64` | macOS 15.7.7 arm64 | `13,743,188` | `62,220,750` | `5791ca3c28717972409d0d3503e135f685bcb7011ec24e6e4f9e70c7e5426b2b` | 236 ms / 141 ms |
+| `macos-x86_64` | macOS 15.7.9 x86-64 | `13,714,720` | `59,523,310` | `72f56f4d95665a3ca802160175c4082ce42b08054a35b963a10b0597b9d91fdc` | 523 ms / 321 ms |
+| `windows-x86_64` | Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 | `15,296,844` | `23,986,848` | `0ffcf7cd7218459efe1de1de87c7ff650328d01b16caa253deb6aa621188015a` | 251 ms / 346 ms |
+
+Those four hashes form one exact 410-byte `SHA256SUMS`; its own SHA-256 is
+`7786bf553caac0087ab22f3636d546a1fe00f89a446611c1516cc58f411f6f7f`,
+and all four entries pass a fresh local checksum verification. The five files
+are staged together outside the repository. They remain publication inputs,
+not public downloads.
+
+Linux stayed inside one workflow job. The CI log preserved its exact digest
+and measurements but not a cross-job copy, so local staging rebuilt it from
+the same source commit and official Racket CS 9.3 installer. Two unchanged
+builds under the existing nonstandard `/tmp` Racket layout were byte-identical
+to each other but differed from CI only in `bin/attalambda`, which was 29 bytes
+larger. An isolated Ubuntu 24.04 build with the CI `/usr` Racket layout then
+reproduced the CI archive byte-for-byte and passed the digest-pinned no-Racket
+consumer again. That exact CI-matching archive is the staged Linux input.
+
+Linux contains 10 regular files and two runtime files, with observed system
+dependencies `ld-linux-x86-64.so.2`, `libc.so.6`, `libdl.so.2`, `libm.so.6`,
+`libpthread.so.0`, `librt.so.1`, and `libz.so.1`. Each macOS archive contains
+nine regular files and one Mach-O runtime file; both observed CoreFoundation,
+`libSystem`, `libiconv`, and `libncurses`. Windows contains nine regular files
+and observes `KERNEL32.dll`, `msvcrt.dll`, and `USER32.dll`.
+
+No identity-backed signing, detached signing, or notarization operation was
+performed. The Windows consumer explicitly reported Authenticode `NotSigned`.
+Direct inspection of the staged Mach-O bytes found the arm64 toolchain's
+automatic ad-hoc linker signature (`CS_ADHOC`, flags `0x00020002`, one
+CodeDirectory, no CMS identity-signature blob) and no `LC_CODE_SIGNATURE` on
+x86-64. No detached cryptographic signature accompanies an archive or the
+combined manifest.
+
+The transferred macOS arm64, macOS x86-64, and Windows workflow artifacts had
+IDs `9717803836`, `9717807355`, and `9717796683`. Their downloaded contents
+matched their one-entry manifests and the hashes above. Codex deleted those
+three exact IDs through the GitHub API; a follow-up query for run 33262922610
+returned `total_count: 0`. The ordinary two `always()` cleanup jobs are now
+restored. No tag, GitHub Release, release asset, signing operation, public
+download, purchase, paid usage, or publication was created or authorized.
 
 ## Approval record
 

@@ -283,10 +283,10 @@ source created after packaging, hostile collection-path precedence,
 stdout/file/loopback HTTP effects, and a move between paths containing spaces.
 The workflow transfer is not a release channel: it uses commit-pinned GitHub
 upload/download actions and one-day fallback retention. For the one explicitly
-approved Phase 29 staging run, each tested artifact remains only until its
-exact bytes are downloaded to local staging; Codex then deletes the exact
-GitHub artifact through the API and verifies its absence. The workflow's
-ordinary immediate-cleanup contract is restored after that staging run.
+approved Phase 29 staging run, each tested artifact remained only until its
+exact bytes were downloaded to local staging; Codex then deleted the exact
+GitHub artifact through the API and verified its absence. The workflow's
+ordinary `always()` immediate-cleanup contract is restored for future runs.
 
 `tooling/build-windows-distribution.ps1` and
 `tooling/test-windows-distribution.ps1` apply the corresponding isolated
@@ -297,16 +297,16 @@ checksum. The no-checkout consumer validates safe extraction and the exact
 payload, runs the direct command grammar and all approved effects, then copies
 the tree from the runner's temporary drive to a path containing spaces on a
 different drive before repeating smoke checks. Its one explicitly approved
-Phase 29 artifact follows the same local-staging download, one-day fallback,
-and immediate API-deletion contract.
+Phase 29 artifact followed the same local-staging download, one-day fallback,
+and immediate API-deletion contract; ordinary cleanup is restored.
 
 The native Phase 24 through 26 measurements in the plan and distribution
 design belong to disposable pre-rename `atl`/`.atl` artifacts. Phase 27
 separately proved the renamed development archives. Phase 28 completed the
 same native isolation contract for the `0.2.0-rc.1` candidate, with the
 approved license/notices and novice guide replacing the transitional
-development payload. Phase 29 changes the delivery state to final `0.2.0`,
-updates the version-specific notice heading and release wording, and stages
+development payload. Phase 29 changed the delivery state to final `0.2.0`,
+updated the version-specific notice heading and release wording, and staged
 the exact native archives before a separate publication decision. All four
 no-Racket consumers execute the printed download, checksum, extraction,
 version, hello, and custom-program workflow. This changes delivery metadata
@@ -825,14 +825,16 @@ The macOS distribution suite applies that contract independently on native
 x86_64 and arm64 runners, then crosses a workflow-job boundary to consumers
 with neither a checkout nor Racket commands. Windows uses the corresponding
 native PowerShell builder and an independent no-checkout, no-Racket consumer
-with different-drive relocation. Candidate commit `91ba3a9` passed all four
-native paths in GitHub Actions run 33258685537 on Ubuntu 24.04, macOS 15.7.9
-x86-64, macOS 15.7.7 arm64, and Windows Server 2025 10.0.26100. Every
-consumer reported `guide_workflow=passed`; the cleanup jobs deleted all three
-temporary transfers, and the artifact API returned zero. Those exact systems
-are demonstrated observations, not minimum-version or public-release claims.
+with different-drive relocation. Final-but-unpublished commit `42ff0a7`
+passed all four native paths in GitHub Actions run 33262922610 on Ubuntu
+24.04, macOS 15.7.9 x86-64, macOS 15.7.7 arm64, and Windows Server 2025
+10.0.26100. Every consumer reported `guide_workflow=passed`; Codex downloaded
+and verified the three approved transfers, deleted their exact artifact IDs,
+and confirmed the run's artifact API returned zero. Ordinary `always()`
+cleanup is restored. Those exact systems are demonstrated observations, not
+minimum-version or public-release claims.
 
-The current completion suite passed 4,745 assertions across 32 test files,
+The current completion suite passed 4,751 assertions across 32 test files,
 retained the unchanged 16-module expanded core proof, and inventoried all 80
 Racket and `.attl` sources with zero boundary findings.
 

@@ -363,12 +363,12 @@
 (check-equal?
  (substring-count
   workflow-source
- "Phase 29 permits one local-staging download before API deletion.")
+ "One day is only an immediate-cleanup failure fallback.")
  2)
 (check-equal?
  (substring-count
   workflow-source
-  "always() && github.event_name == 'pull_request'")
+  "if: ${{ always() }}")
  2)
 (check-true (regexp-match? #rx"actions: write" workflow-source))
 (check-true (regexp-match? #rx"gh api --method DELETE" workflow-source))

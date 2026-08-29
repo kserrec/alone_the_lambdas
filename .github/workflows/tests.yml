@@ -112,7 +112,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
           compression-level: 0
-          # Phase 29 permits one local-staging download before API deletion.
+          # One day is only an immediate-cleanup failure fallback.
           retention-days: 1
 
   macos-distribution-consumer:
@@ -149,11 +149,11 @@ jobs:
           [[ "$(tail -n 1 "$consumer_log")" == "consumer_acceptance=passed" ]]
 
   macos-distribution-artifact-cleanup:
-    name: Delete non-staging macOS transfer artifacts
+    name: Delete temporary macOS transfer artifacts
     needs:
       - macos-distribution-build
       - macos-distribution-consumer
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -225,7 +225,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
           compression-level: 0
-          # Phase 29 permits one local-staging download before API deletion.
+          # One day is only an immediate-cleanup failure fallback.
           retention-days: 1
 
   windows-distribution-consumer:
@@ -258,11 +258,11 @@ jobs:
           }
 
   windows-distribution-artifact-cleanup:
-    name: Delete non-staging Windows transfer artifact
+    name: Delete temporary Windows transfer artifact
     needs:
       - windows-distribution-build
       - windows-distribution-consumer
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

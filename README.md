@@ -48,10 +48,11 @@ variables, unary lambdas, and application.
 > artifact transfer received explicit approval. Candidate commit `91ba3a9`
 > then passed all four native builds and independent no-Racket, guide-driven
 > consumers; the three temporary cross-job artifacts were deleted
-> immediately. Phase 29 now promotes the prepared source and archive contract
-> to final version `0.2.0`; its implementation and one-time native staging
-> transfer are approved, but no tag, GitHub Release, release asset, or public
-> download is authorized yet. Separate
+> immediately. Phase 29 promoted the source and archive contract to final
+> version `0.2.0`; commit `42ff0a7` passed all four native builders and clean
+> consumers, the three approved temporary artifacts were verified into local
+> staging and deleted, and ordinary immediate cleanup was restored. No tag,
+> GitHub Release, release asset, or public download is authorized yet. Separate
 > structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
@@ -288,9 +289,10 @@ precedence over conflicting examples in the base specification.
   this harness; with no Racket command or checkout they prove exact CLI,
   arbitrary-source, stdout, file, loopback HTTP, embedded-reader precedence,
   and relocation behavior. The one explicitly approved Phase 29 staging run
-  retains both temporary transfer artifacts only until their exact tested
-  bytes are downloaded locally, then deletes them through the GitHub API;
-  one-day retention is the failure fallback.
+  retained both temporary transfer artifacts only until their exact tested
+  bytes were downloaded locally, then deleted them through the GitHub API;
+  one-day retention was the failure fallback. Ordinary `always()` cleanup is
+  restored for future runs.
 - `distribution/` contains the platform-expanded novice guide, the exact
   approved bundled-runtime notice text, and the retired development-warning
   input retained as historical implementation evidence. Final release
@@ -368,7 +370,7 @@ inspect and trust a program before running it.
 Phases 24 through 27 proved native development artifacts and the current
 AttaLambda names. Phase 28 promoted the source to `0.2.0-rc.1`, installed the
 approved runtime notices and novice guide, and validated four unpublished
-candidates. Phase 29 prepares the final `0.2.0` archives, but a separate exact
+candidates. Phase 29 staged the final `0.2.0` archives, but a separate exact
 publication approval still controls the tag, GitHub Release, release assets,
 and public download. After the contributor setup above, invoke the
 source-checkout development entry point through Racket.
