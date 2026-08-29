@@ -2,7 +2,10 @@
 
 (require "../macros/macros.rkt"
          (only-in "../core/binary-nat.rkt"
-                  raw-make-nat)
+                  raw-make-nat
+                  raw-nat-less)
+         (only-in "../core/list-nat.rkt"
+                  raw-list-length)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-error-kind-equal
@@ -114,8 +117,41 @@
        (raw-object-value result)))))
    incomplete-http-request-kind))
 
+;; A hostile peer can open one connection and stream bytes that never form a
+;; complete request header (and never close). Without a bound, the read loop
+;; below would buffer without limit and re-parse the whole buffer after every
+;; partial read, so one client could exhaust process memory. This caps the
+;; accumulated request size; 8192 (2^13, one then thirteen zero bits) is far
+;; larger than any request this bodyless GET server needs. The size is checked
+;; before each parse, so no parse ever runs on more than this many bytes and
+;; the peak buffer is this cap plus at most one read. The loop therefore always
+;; terminates and memory is bounded.
+;;
+;; Residual, deliberately not closed here: within the cap the whole buffer is
+;; still re-parsed after every partial read, so a peer that dribbles tiny
+;; chunks pays O(cap^2) interpreter work on its one connection before rejection.
+;; That is bounded work with no new capability beyond this deliberately blocking
+;; single-connection server's already-documented "one client can tie it up"
+;; behavior; fully removing it needs an incremental parser (a redesign of the
+;; read/parse loop), tracked in PLAN.md, not a spot fix.
+(def raw-max-request-bytes-bits =
+  ((raw-cons raw-true) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) ((raw-cons raw-false) NIL)))))))))))))))
+
+(def raw-request-too-large? combined =
+  ((raw-nat-less raw-max-request-bytes-bits)
+   (raw-list-length combined)))
+
+;; An over-limit request is a rejected expected outcome, reported as the same
+;; malformed-request Result the parser already produces; the caller then closes
+;; the connection exactly as it does for any other parse failure.
+(def raw-request-too-large-result =
+  (raw-make-err
+   (raw-make-root-error malformed-http-request-kind)))
+
 ;; TCP reads may split a request anywhere. Accumulation, the incomplete check,
-;; and reparsing all remain String/List/lambda computation.
+;; and reparsing all remain String/List/lambda computation. The buffer is
+;; bounded above so a never-completing request cannot grow without limit or be
+;; parsed at unbounded size.
 (def raw-read-http-request-step recur host connection maximum accumulated =
   (lambda-let read-result =
     (((make-tcp-read host)
@@ -126,24 +162,27 @@
        (lambda-let combined =
          ((raw-string-append accumulated)
           (raw-string-value chunk))
-         (lambda-let parsed =
-           (parse-http-request
-            (raw-make-string combined))
-           (((raw-if
-              (raw-result-is-ok
-               (raw-object-value parsed)))
-             parsed)
+         (((raw-if
+            (raw-request-too-large? combined))
+           raw-request-too-large-result)
+          (lambda-let parsed =
+            (parse-http-request
+             (raw-make-string combined))
             (((raw-if
-               (raw-http-parse-incomplete? parsed))
-              (((raw-if
-                 (raw-string-empty?
-                  (raw-string-value chunk)))
-                parsed)
-               ((((recur host)
-                  connection)
-                 maximum)
-                combined)))
-             parsed))))))))
+               (raw-result-is-ok
+                (raw-object-value parsed)))
+              parsed)
+             (((raw-if
+                (raw-http-parse-incomplete? parsed))
+               (((raw-if
+                  (raw-string-empty?
+                   (raw-string-value chunk)))
+                 parsed)
+                ((((recur host)
+                   connection)
+                  maximum)
+                 combined)))
+              parsed)))))))))
 
 (def raw-read-http-request =
   (raw-fix raw-read-http-request-step))

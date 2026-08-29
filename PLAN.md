@@ -923,6 +923,40 @@ and source-inventory gate. A fresh read-only cold review found no remaining
 test-audit issue. No release artifact, tag, signature, version change, or new
 language/host capability was created.
 
+## Post-Phase 27 security audit — HTTP request bound
+
+Status: complete (2026-08-28)
+
+- [x] Full ship-readiness security audit of the repository (runner, host
+  boundary, codec, lang/macros, effects/HTTP protocol code, tooling and
+  distribution, CI, repo hygiene, and the structural purity/boundary gates).
+  One confirmed finding; everything else examined and cleared.
+- [x] **F1 — unbounded HTTP request buffering (fixed).** `effects/http-server.rkt`
+  accumulated a connection's bytes with no size limit while waiting for a
+  complete request header, so a hostile peer that streams bytes never forming
+  `\r\n\r\n` (and never closing) could exhaust process memory. The read loop now
+  caps the accumulated request at 8192 bytes and checks the size *before* each
+  parse, rejecting an over-limit request as the existing malformed-request
+  Result (kind 10); the connection is then closed on the normal cleanup path.
+  Regression tests in `tests/http-server-test.rkt` prove the loop terminates on
+  a single oversized read, on sub-cap chunks that accumulate past the cap, and
+  through the whole-server loop; removing the guard fails the suite.
+
+Deferred hardening (named reason — redesign, not a spot fix):
+
+- **HTTP re-parse cost within the cap.** Within the 8192-byte bound the whole
+  buffer is still re-parsed after every partial read, so a peer dribbling tiny
+  chunks pays O(cap^2) interpreter work on its one connection before rejection.
+  Memory and termination are now bounded, and this grants no capability beyond
+  the deliberately blocking single-connection server's already-documented "one
+  client can tie it up" property (a peer that simply stalls already blocks the
+  no-timeout `tcp-read`). Fully removing the quadratic cost requires an
+  incremental HTTP parser — scanning only the newly-read region for the
+  terminator instead of re-scanning the buffer — which is a redesign of the
+  read/parse loop with terminator-boundary and trailing-byte correctness risk,
+  beyond an afternoon and beyond this minimal server's contract. Revisit if the
+  HTTP server graduates from a minimal demonstration to a supported surface.
+
 ## Phase 28 — Downloadable release candidate and novice documentation
 
 Status: planned and approval-gated

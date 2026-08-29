@@ -670,3 +670,83 @@
         (typed-value?
          result-type
          (lazy-apply real-close real-listener))))))
+
+;; ---------------------------------------------------------------------------
+;; Resource-exhaustion regression (security audit finding F1)
+;;
+;; A hostile peer can open one connection and stream bytes that never form a
+;; complete request header (and never close). The server must not buffer such a
+;; request without bound. It caps the accumulated request size and rejects an
+;; over-limit request as a malformed-request Result (kind 10) BEFORE parsing
+;; it, so no parse ever runs on an unbounded buffer and the read loop always
+;; terminates. Before the fix this loop grew the buffer without limit and never
+;; returned.
+
+;; accept once, then answer every tcp-read with a fixed nonterminating chunk
+;; (never a header terminator, never EOF). Raises if asked for more than
+;; read-budget reads, so a regressed unbounded loop fails fast instead of
+;; hanging forever.
+(define (make-counting-host chunk-bytes read-budget)
+  (define reads 0)
+  (define traces '())
+  (values
+   (lambda (request)
+     (set! traces (cons request traces))
+     (define op
+       (object-string->bytes (car (object-list->host-list request))))
+     (cond
+       [(bytes=? op #"tcp-accept") (object-ok connection-handle)]
+       [(bytes=? op #"tcp-read")
+        (set! reads (add1 reads))
+        (when (> reads read-budget)
+          (error 'counting-host
+                 "request buffer was not bounded: ~a reads" reads))
+        (object-ok (bytes->object-string chunk-bytes))]
+       [(bytes=? op #"tcp-close") (object-ok NIL)]
+       [else (error 'counting-host "unexpected op ~s" op)]))
+   (lambda () (reverse traces))
+   (lambda () reads)))
+
+;; One oversized read (> the 8192-byte cap) is rejected before any parse.
+(define-values (oversized-host oversized-traces oversized-reads)
+  (make-counting-host (make-bytes 9000 (char->integer #\a)) 4))
+(check-result-err-kind
+ (apply2 (configure-serve-one oversized-host handler)
+         listener-handle
+         maximum)
+ 10)
+(check-equal? (oversized-reads) 1)
+(check-equal?
+ (decoded-traces oversized-traces)
+ (list (list #"tcp-accept" 1)
+       (list #"tcp-read" 2 65536)
+       (list #"tcp-close" 2)))
+
+;; Sub-cap chunks that accumulate past the cap are bounded too: the loop
+;; terminates after a small, fixed number of reads with the same malformed
+;; Result rather than growing the buffer without limit.
+(define-values (dribble-host dribble-traces dribble-reads)
+  (make-counting-host (make-bytes 4500 (char->integer #\a)) 8))
+(check-result-err-kind
+ (apply2 (configure-serve-one dribble-host handler)
+         listener-handle
+         maximum)
+ 10)
+(check-equal? (dribble-reads) 2)
+(check-equal?
+ (decoded-traces dribble-traces)
+ (list (list #"tcp-accept" 1)
+       (list #"tcp-read" 2 65536)
+       (list #"tcp-read" 2 65536)
+       (list #"tcp-close" 2)))
+
+;; The whole-request server loop inherits the same bound: a nonterminating
+;; connection ends with the malformed Result instead of looping forever.
+(define-values (server-dos-host server-dos-traces server-dos-reads)
+  (make-counting-host (make-bytes 9000 (char->integer #\a)) 4))
+(check-result-err-kind
+ (apply2 (configure-server server-dos-host handler)
+         listener-handle
+         maximum)
+ 10)
+(check-equal? (server-dos-reads) 1)
