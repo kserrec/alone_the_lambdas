@@ -13,7 +13,7 @@ $Usage = @'
 Usage:
   tooling/test-windows-distribution.ps1 OUTPUT_DIRECTORY
 
-Test one transferred unpublished Windows x86-64 release-candidate archive on
+Test one transferred final Windows x86-64 release archive on
 a clean Windows consumer with no Racket installation or source checkout,
 including relocation to a different drive and a path containing spaces.
 '@
@@ -581,7 +581,7 @@ try {
     }
     if ([IO.File]::Exists([IO.Path]::Combine($firstRoot, 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt')) -or
         [IO.Directory]::Exists([IO.Path]::Combine($firstRoot, 'UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt'))) {
-        Fail 'release candidate contains the retired development warning'
+        Fail 'release archive contains the retired development warning'
     }
 
     $topLevel = @($artifactEntries | Where-Object { -not $_.RelativePath.Contains('/') } | ForEach-Object { $_.RelativePath } | Sort-Object -CaseSensitive)
@@ -598,9 +598,9 @@ try {
         "Product version: $productVersion",
         "Target identifier: $TargetIdentifier",
         'Racket version: 9.3', 'Racket variant: CS',
-        'Artifact status: unpublished release candidate',
+        'Artifact status: final release artifact',
         'Repository license SHA-256: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30',
-        'Third-party notices SHA-256: 1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd',
+        'Third-party notices SHA-256: 516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad',
         'Archive checksum: external sibling SHA256SUMS'
     )) {
         if (@($manifest.Replace("`r`n", "`n").Split("`n") | Where-Object { $_ -ceq $requiredLine }).Count -ne 1) {
@@ -619,8 +619,8 @@ try {
     if ((Get-Sha256 ([IO.Path]::Combine($firstRoot, 'LICENSE'))) -cne 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30') {
         Fail 'repository license bytes differ from the approved license'
     }
-    if ((Get-Sha256 ([IO.Path]::Combine($firstRoot, 'THIRD_PARTY_NOTICES.md'))) -cne '1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd') {
-        Fail 'third-party notices differ from the exact Phase 28 approval'
+    if ((Get-Sha256 ([IO.Path]::Combine($firstRoot, 'THIRD_PARTY_NOTICES.md'))) -cne '516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad') {
+        Fail 'third-party notices differ from the exact Phase 29 approval'
     }
     $guide = [IO.File]::ReadAllText([IO.Path]::Combine($firstRoot, 'GETTING_STARTED.md'))
     foreach ($guideCommand in @(

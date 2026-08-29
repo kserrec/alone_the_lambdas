@@ -1,7 +1,8 @@
 # Standalone distribution design
 
 Status: original contract approved 2026-08-27; Phases 22 through 28
-implemented; Phase 28 unpublished candidate verification completed 2026-08-29
+implemented; Phase 29 final-but-unpublished implementation and temporary
+staging approved 2026-08-29; publication not authorized
 
 Date: 2026-08-27
 
@@ -403,10 +404,10 @@ support files relative to the relocated archive root.
 
 The repository has an approved Apache License 2.0, and Kyle approved the exact
 Phase 28 bundled-runtime notices after reviewing their complete text. Release-
-candidate archives therefore carry the root `LICENSE` and the exact approved
-`THIRD_PARTY_NOTICES.md`; they do not carry the transitional
-`UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt`. A candidate remains unpublished, and
-these approvals do not authorize its publication.
+candidate and final release archives therefore carry the root `LICENSE` and
+the exact version-specific approved `THIRD_PARTY_NOTICES.md`; they do not
+carry the transitional `UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt`. Building a
+candidate or final archive does not authorize its publication.
 
 `BUILD-MANIFEST.txt` records at least the product version, source commit,
 target identifier, Racket version/variant, artifact file inventory, and
@@ -417,9 +418,9 @@ timestamp.
 
 ## Release authority
 
-Building and testing development or release-candidate archives does not grant
-permission to publish them. Publication remains blocked until all of these are
-true:
+Building and testing development, release-candidate, or final archives does
+not grant permission to publish them. Publication remains blocked until all
+of these are true:
 
 - Kyle has explicitly approved the repository license, and later explicitly
   approves the bundled-runtime notices after seeing their exact terms;
@@ -923,6 +924,60 @@ version output is now `AttaLambda 0.2.0-rc.1`; object-language computation and
 host authority are unchanged. No tag, GitHub Release, signing operation,
 public download, or publication was created or authorized.
 
+## Phase 29 prepublication implementation contract
+
+Phase 29 promotes root `VERSION` from `0.2.0-rc.1` to final `0.2.0` and the
+mechanical Racket package projection from `0.1.901` to `0.2`. Runner source is
+unchanged and embeds the new value from `VERSION`; the intended
+executable-visible result is `AttaLambda 0.2.0`. Current guides, release notes,
+build manifests, native builder and consumer wording, static assertions, CI
+staging labels, and current documentation move from candidate to final-release
+language. Historical Phase 21 through 28 records retain their literal prior
+states.
+
+The Phase 29 notice payload changes only the AttaLambda-specific heading from
+`0.2.0-rc.1` to `0.2.0`. The resulting file is exactly 100,024 bytes with
+SHA-256
+`516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad`.
+Every bundled component entry, preserved notice, and license term below that
+heading is byte-for-byte unchanged. The repository Apache License 2.0 remains
+exactly 11,358 bytes with SHA-256
+`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`.
+
+The final archive names are mechanically fixed as:
+
+```text
+attalambda-0.2.0-linux-x86_64.tar.gz
+attalambda-0.2.0-macos-x86_64.tar.gz
+attalambda-0.2.0-macos-arm64.tar.gz
+attalambda-0.2.0-windows-x86_64.zip
+SHA256SUMS
+```
+
+The one approved staging workflow keeps Linux build and no-Racket consumption
+within one job. Only the two macOS archives and one Windows archive, each with
+its one-entry checksum and self-contained consumer, cross jobs. After all
+three consumers pass, those GitHub artifacts may remain only long enough for
+Codex to download and verify the exact tested bytes into local staging. Codex
+then deletes the exact artifact identifiers through the GitHub API and
+verifies zero remain; one-day retention is only the automatic fallback. The
+workflow excludes tag pushes so the later tag cannot repeat this transfer.
+After the one approved staging run, ordinary immediate cleanup is restored on
+public `main` before publication.
+
+No Phase 29 implementation or transfer approval authorizes paid GitHub usage,
+a tag, GitHub Release, signing operation, release-asset upload, public-download
+claim, or publication. Those external mutations remain blocked until the
+exact tested source commit, four archive checksums and measurements, one
+combined manifest, demonstrated platforms, unsigned/signing state, known
+limitations, and public consequences are presented literally and Kyle
+approves that exact proposal.
+
+Before the release-preparation commit, local Racket CS 9.3 verification passed
+4,751 assertions across all 32 test files, the unchanged expanded purity proof
+over 16 `core/` modules, and the complete zero-finding repository boundary and
+source inventory.
+
 ## Approval record
 
 The original Phase 21 approval accepted the pre-rename `.atl`, `atl run`, and
@@ -1055,3 +1110,25 @@ artifacts in `kserrec/attalambda`. It does not authorize a Git tag, GitHub
 Release, signing operation, public download, or publication. The Linux archive
 remains local to one job, and all three transferred artifacts must be deleted
 immediately after their consumer checks.
+
+For Phase 29, Kyle approved the exact final-version source, documentation,
+notice-heading, tooling, test, CI-staging, and four-target unpublished build
+scope on 2026-08-29 by replying:
+
+```text
+Approve Phase 29 implementation in kserrec/attalambda: change VERSION from 0.2.0-rc.1 to 0.2.0 and info.rkt from 0.1.901 to 0.2; update the current release documentation, tests, build and consumer tooling, and CI staging for final 0.2.0; change THIRD_PARTY_NOTICES.md.in only in its AttaLambda version heading, producing exactly 100,024 bytes with SHA-256 516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad while leaving every bundled legal term unchanged; create and stage the four final but unpublished native archives and one combined SHA256SUMS from one exact commit; and commit and push those source changes to public main. This does not authorize any cross-job GitHub Actions artifact transfer, Git tag, GitHub Release, signing operation, release-asset upload, public download, publication, purchase, or paid GitHub usage.
+```
+
+Kyle separately approved only the required Phase 29 build-to-consumer and
+local-staging transfer boundary by replying:
+
+```text
+Approve the temporary Phase 29 GitHub Actions transfer in the public kserrec/attalambda repository of the two final-but-unpublished macOS 0.2.0 archives and one final-but-unpublished Windows 0.2.0 archive, their one-entry checksums, and their self-contained consumer harnesses. After all three consumer tests pass, keep the artifacts only long enough for Codex to download and verify the exact tested bytes into local staging, then delete them immediately through the GitHub API; one-day retention is only the automatic fallback. Linux must remain within one job. This does not authorize paid GitHub usage, a Git tag, GitHub Release, signing operation, release-asset upload, public download claim, or publication.
+```
+
+These approvals permit commits and pushes to public `main`, exactly one set of
+three temporary cross-job artifacts for the final staging run, local staging
+of the four verified archives and combined checksum manifest, and immediate
+API deletion after download. They grant no authority to create or push a tag,
+create a GitHub Release, sign anything, upload a release asset, call the files
+public downloads, spend money, or publish AttaLambda `0.2.0`.

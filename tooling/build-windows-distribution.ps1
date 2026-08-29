@@ -12,12 +12,12 @@ $ProgramName = 'build-windows-distribution'
 $RequiredRacketBanner = 'Welcome to Racket v9.3 [cs].'
 $RequiredRacketVersion = '9.3'
 $TargetIdentifier = 'windows-x86_64'
-$ApprovedNoticeSha256 = '1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd'
+$ApprovedNoticeSha256 = '516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad'
 $Usage = @'
 Usage:
   tooling/build-windows-distribution.ps1 [-AllowDirty] OUTPUT_DIRECTORY
 
-Build the unpublished native Windows x86-64 release-candidate archive with
+Build the final native Windows x86-64 release archive with
 Racket CS 9.3. The output directory must already exist outside the source
 checkout and must not contain the versioned archive or SHA256SUMS.
 '@
@@ -510,7 +510,7 @@ try {
     $licenseDigest = Get-Sha256 $licensePath
     $noticePath = [IO.Path]::Combine($ProjectRoot, 'distribution', 'THIRD_PARTY_NOTICES.md.in')
     if ((Get-Sha256 $noticePath) -cne $ApprovedNoticeSha256) {
-        Fail 'third-party notices differ from the exact Phase 28 approval'
+        Fail 'third-party notices differ from the exact Phase 29 approval'
     }
     Copy-RegularFile $noticePath ([IO.Path]::Combine($artifactRoot, 'THIRD_PARTY_NOTICES.md')) 'approved third-party notices'
 
@@ -585,7 +585,7 @@ try {
     [void] $manifest.Append("Target identifier: $TargetIdentifier`n")
     [void] $manifest.Append("Racket version: $RequiredRacketVersion`n")
     [void] $manifest.Append("Racket variant: CS`n")
-    [void] $manifest.Append("Artifact status: unpublished release candidate`n")
+    [void] $manifest.Append("Artifact status: final release artifact`n")
     [void] $manifest.Append("Repository license SHA-256: $licenseDigest`n")
     [void] $manifest.Append("Third-party notices SHA-256: $ApprovedNoticeSha256`n")
     [void] $manifest.Append("Archive checksum: external sibling SHA256SUMS`n")

@@ -48,8 +48,10 @@ variables, unary lambdas, and application.
 > artifact transfer received explicit approval. Candidate commit `91ba3a9`
 > then passed all four native builds and independent no-Racket, guide-driven
 > consumers; the three temporary cross-job artifacts were deleted
-> immediately. The project remains at `0.2.0-rc.1`, every candidate archive
-> is unpublished, and Phase 29 alone may authorize a public release. Separate
+> immediately. Phase 29 now promotes the prepared source and archive contract
+> to final version `0.2.0`; its implementation and one-time native staging
+> transfer are approved, but no tag, GitHub Release, release asset, or public
+> download is authorized yet. Separate
 > structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
@@ -57,62 +59,71 @@ variables, unary lambdas, and application.
 
 ## Download, verify, extract, and run
 
-AttaLambda `0.2.0-rc.1` is an unpublished release candidate. There is no
-authorized public download yet. These instructions apply when an archive and
-its sibling `SHA256SUMS` are supplied for testing; end users do not install
-Racket, run `raco`, or register a package.
+AttaLambda `0.2.0` is the first independently runnable release. Its
+authoritative public distribution is a GitHub Release titled
+`AttaLambda 0.2.0` on the
+[AttaLambda Releases page](https://github.com/kserrec/attalambda/releases)
+that supplies all four archives and their sibling `SHA256SUMS`. Until that
+Release exists, no binary download is authorized merely because public
+`main` reports the final version. Archive users do not install Racket, run
+`raco`, or register a package.
 
 Choose the archive matching the computer that will run it:
 
 | Computer | Archive |
 | --- | --- |
-| Linux x86-64 | `attalambda-0.2.0-rc.1-linux-x86_64.tar.gz` |
-| macOS Intel | `attalambda-0.2.0-rc.1-macos-x86_64.tar.gz` |
-| macOS Apple Silicon | `attalambda-0.2.0-rc.1-macos-arm64.tar.gz` |
-| Windows x86-64 | `attalambda-0.2.0-rc.1-windows-x86_64.zip` |
+| Linux x86-64 | `attalambda-0.2.0-linux-x86_64.tar.gz` |
+| macOS Intel | `attalambda-0.2.0-macos-x86_64.tar.gz` |
+| macOS Apple Silicon | `attalambda-0.2.0-macos-arm64.tar.gz` |
+| Windows x86-64 | `attalambda-0.2.0-windows-x86_64.zip` |
 
 Keep the archive and `SHA256SUMS` in the same directory. On Linux x86-64:
 
 ```sh
-awk '$2 == "attalambda-0.2.0-rc.1-linux-x86_64.tar.gz" { print }' SHA256SUMS | sha256sum -c -
-tar -xzf attalambda-0.2.0-rc.1-linux-x86_64.tar.gz
-cd attalambda-0.2.0-rc.1-linux-x86_64
+awk '$2 == "attalambda-0.2.0-linux-x86_64.tar.gz" { print }' SHA256SUMS | sha256sum -c -
+tar -xzf attalambda-0.2.0-linux-x86_64.tar.gz
+cd attalambda-0.2.0-linux-x86_64
+./bin/attalambda --version
 ./bin/attalambda examples/hello.attl
 ```
 
 On macOS Intel:
 
 ```sh
-awk '$2 == "attalambda-0.2.0-rc.1-macos-x86_64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
-tar -xzf attalambda-0.2.0-rc.1-macos-x86_64.tar.gz
-cd attalambda-0.2.0-rc.1-macos-x86_64
+awk '$2 == "attalambda-0.2.0-macos-x86_64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
+tar -xzf attalambda-0.2.0-macos-x86_64.tar.gz
+cd attalambda-0.2.0-macos-x86_64
+./bin/attalambda --version
 ./bin/attalambda examples/hello.attl
 ```
 
 On macOS Apple Silicon:
 
 ```sh
-awk '$2 == "attalambda-0.2.0-rc.1-macos-arm64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
-tar -xzf attalambda-0.2.0-rc.1-macos-arm64.tar.gz
-cd attalambda-0.2.0-rc.1-macos-arm64
+awk '$2 == "attalambda-0.2.0-macos-arm64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
+tar -xzf attalambda-0.2.0-macos-arm64.tar.gz
+cd attalambda-0.2.0-macos-arm64
+./bin/attalambda --version
 ./bin/attalambda examples/hello.attl
 ```
 
 On Windows x86-64 PowerShell:
 
 ```powershell
-$archive = 'attalambda-0.2.0-rc.1-windows-x86_64.zip'
+$archive = 'attalambda-0.2.0-windows-x86_64.zip'
 $line = @(Get-Content .\SHA256SUMS | Where-Object { $_ -like "*$archive" })
 if ($line.Count -ne 1) { throw 'checksum entry mismatch' }
 $expected = ($line[0] -split '\s+')[0]
 $actual = (Get-FileHash ".\$archive" -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actual -cne $expected) { throw 'SHA-256 mismatch' }
 Expand-Archive -LiteralPath ".\$archive" -DestinationPath .
-Set-Location .\attalambda-0.2.0-rc.1-windows-x86_64
+Set-Location .\attalambda-0.2.0-windows-x86_64
+.\bin\attalambda.exe --version
 .\bin\attalambda.exe examples\hello.attl
 ```
 
-Successful execution prints `Hello from AttaLambda.`. The archive's
+Successful execution prints `AttaLambda 0.2.0` and
+`Hello from AttaLambda.`. The archive's
 `GETTING_STARTED.md` then explains `.attl` source syntax, exit statuses,
 runtime authority, release notes, and exact known limitations.
 
@@ -243,8 +254,8 @@ precedence over conflicting examples in the base specification.
   and returns canonical Result/Error values without exposing ports or host
   collections.
 - `VERSION` is the sole product-version source and currently contains
-  `0.2.0-rc.1`; `info.rkt` declares the single `attalambda` collection
-  and carries its mechanically verified Racket-package projection `0.1.901`.
+  `0.2.0`; `info.rkt` declares the single `attalambda` collection and carries
+  its mechanically verified Racket-package projection `0.2`.
 - `lang/reader.rkt` retains Racket's Lisp reader syntax and selects the
   standalone expander without adding a parser or reader-time effect.
 - `lang/expander.rkt` exposes the canonical language surface, mechanically
@@ -276,11 +287,13 @@ precedence over conflicting examples in the base specification.
   harness. Separate native jobs receive only one archive, its checksum, and
   this harness; with no Racket command or checkout they prove exact CLI,
   arbitrary-source, stdout, file, loopback HTTP, embedded-reader precedence,
-  and relocation behavior. The workflow then deletes both temporary transfer
-  artifacts immediately.
+  and relocation behavior. The one explicitly approved Phase 29 staging run
+  retains both temporary transfer artifacts only until their exact tested
+  bytes are downloaded locally, then deletes them through the GitHub API;
+  one-day retention is the failure fallback.
 - `distribution/` contains the platform-expanded novice guide, the exact
   approved bundled-runtime notice text, and the retired development-warning
-  input retained as historical implementation evidence. Phase 28 candidate
+  input retained as historical implementation evidence. Final release
   builders package the repository `LICENSE` and approved notices, never the
   development warning.
 - `examples/hello.attl`, `examples/stdout.attl`,
@@ -354,9 +367,11 @@ inspect and trust a program before running it.
 
 Phases 24 through 27 proved native development artifacts and the current
 AttaLambda names. Phase 28 promoted the source to `0.2.0-rc.1`, installed the
-approved runtime notices and novice guide, and validated the four unpublished
-archives. Phase 29 alone may authorize a public release. After the contributor
-setup above, invoke the source-checkout development entry point through Racket.
+approved runtime notices and novice guide, and validated four unpublished
+candidates. Phase 29 prepares the final `0.2.0` archives, but a separate exact
+publication approval still controls the tag, GitHub Release, release assets,
+and public download. After the contributor setup above, invoke the
+source-checkout development entry point through Racket.
 
 The minimal hello application emits one line:
 
@@ -414,7 +429,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,745 assertions across 32 test files,
+green. The repository currently has 4,751 assertions across 32 test files,
 plus the independent expanded scan of all 16 core modules and the complete
 repository boundary-classification gate. The application acceptance test
 installs a copied package under an isolated Racket user home before running
@@ -433,5 +448,6 @@ Copyright 2026 Kyle Serrecchia.
 AttaLambda is licensed under the [Apache License 2.0](LICENSE). Bundled Racket
 runtime components retain the exact separately approved terms in
 [`distribution/THIRD_PARTY_NOTICES.md.in`](distribution/THIRD_PARTY_NOTICES.md.in).
-Approval and construction of an unpublished release candidate do not authorize
-a public download; publication remains a separate Phase 29 decision.
+Source version `0.2.0` and construction of final archives do not themselves
+authorize a public download. Only the separately approved Git tag, GitHub
+Release, and exact release assets constitute publication.

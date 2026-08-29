@@ -9,14 +9,14 @@ umask 022
 program_name="build-macos-distribution"
 required_racket_banner="Welcome to Racket v9.3 [cs]."
 required_racket_version="9.3"
-approved_notice_sha256="1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+approved_notice_sha256="516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad"
 
 usage() {
   cat <<'USAGE'
 Usage:
   tooling/build-macos-distribution.sh [--allow-dirty] TARGET_IDENTIFIER OUTPUT_DIRECTORY
 
-Build one unpublished native macOS release-candidate archive with Racket CS 9.3.
+Build one final native macOS release archive with Racket CS 9.3.
 TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64. OUTPUT_DIRECTORY must
 already exist outside the source checkout and must not contain the versioned
 archive or SHA256SUMS.
@@ -343,7 +343,7 @@ license_digest="$(sha256_file "$project_root/LICENSE")"
 notice_path="$project_root/distribution/THIRD_PARTY_NOTICES.md.in"
 notice_digest="$(sha256_file "$notice_path")"
 [[ "$notice_digest" == "$approved_notice_sha256" ]] ||
-  die "third-party notices differ from the exact Phase 28 approval"
+  die "third-party notices differ from the exact Phase 29 approval"
 install -m 0644 "$notice_path" "$artifact_root/THIRD_PARTY_NOTICES.md"
 
 while IFS= read -r -d '' linked_path; do
@@ -414,7 +414,7 @@ done < <(
   printf 'Target identifier: %s\n' "$target_identifier"
   printf 'Racket version: %s\n' "$required_racket_version"
   printf 'Racket variant: CS\n'
-  printf 'Artifact status: unpublished release candidate\n'
+  printf 'Artifact status: final release artifact\n'
   printf 'Repository license SHA-256: %s\n' "$license_digest"
   printf 'Third-party notices SHA-256: %s\n' "$notice_digest"
   printf 'Archive checksum: external sibling SHA256SUMS\n'

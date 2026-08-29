@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This document applies to the standalone AttaLambda 0.2.0-rc.1 distributions
+This document applies to the standalone AttaLambda 0.2.0 distributions
 built with Racket CS 9.3. It accompanies, and does not replace, the AttaLambda
 `LICENSE`. Third-party components remain governed by their own terms below.
 

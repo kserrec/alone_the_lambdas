@@ -9,14 +9,14 @@ program_name="build-linux-distribution"
 target_identifier="linux-x86_64"
 required_racket_banner="Welcome to Racket v9.3 [cs]."
 required_racket_version="9.3"
-approved_notice_sha256="1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+approved_notice_sha256="516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad"
 
 usage() {
   cat <<'USAGE'
 Usage:
   tooling/build-linux-distribution.sh [--allow-dirty] OUTPUT_DIRECTORY
 
-Build the unpublished Linux x86-64 release-candidate archive with Racket CS 9.3. The output
+Build the final Linux x86-64 release archive with Racket CS 9.3. The output
 directory must be outside the source checkout and must not already contain the
 versioned archive or SHA256SUMS.
 USAGE
@@ -301,7 +301,7 @@ license_digest="$(sha256sum "$project_root/LICENSE" | awk '{print $1}')"
 notice_path="$project_root/distribution/THIRD_PARTY_NOTICES.md.in"
 notice_digest="$(sha256sum "$notice_path" | awk '{print $1}')"
 [[ "$notice_digest" == "$approved_notice_sha256" ]] ||
-  die "third-party notices differ from the exact Phase 28 approval"
+  die "third-party notices differ from the exact Phase 29 approval"
 install -m 0644 -- "$notice_path" "$artifact_root/THIRD_PARTY_NOTICES.md"
 
 runtime_files=("$artifact_root"/lib/plt/racketcs-*)
@@ -347,7 +347,7 @@ find "$artifact_root" \
   printf 'Target identifier: %s\n' "$target_identifier"
   printf 'Racket version: %s\n' "$required_racket_version"
   printf 'Racket variant: CS\n'
-  printf 'Artifact status: unpublished release candidate\n'
+  printf 'Artifact status: final release artifact\n'
   printf 'Repository license SHA-256: %s\n' "$license_digest"
   printf 'Third-party notices SHA-256: %s\n' "$notice_digest"
   printf 'Archive checksum: external sibling SHA256SUMS\n'

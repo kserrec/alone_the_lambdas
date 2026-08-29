@@ -2,6 +2,8 @@ name: tests
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 permissions:
@@ -50,7 +52,7 @@ jobs:
           version: '9.3'
           variant: CS
 
-      - name: Build unpublished Linux release candidate
+      - name: Build final Linux release archive
         run: ./tooling/build-linux-distribution.sh "$RUNNER_TEMP/attalambda-artifacts"
 
       - name: Test transferred archive without Racket
@@ -89,7 +91,7 @@ jobs:
           version: '9.3'
           variant: CS
 
-      - name: Build unpublished native macOS release candidate
+      - name: Build final native macOS release archive
         run: |
           mkdir -p "$RUNNER_TEMP/attalambda-transfer"
           ./tooling/build-macos-distribution.sh \
@@ -99,7 +101,7 @@ jobs:
             ./tooling/test-macos-distribution.sh \
             "$RUNNER_TEMP/attalambda-transfer/consumer.sh"
 
-      - name: Transfer unpublished release candidate to its consumer job
+      - name: Transfer final-but-unpublished release archive to its consumer job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: attalambda-${{ matrix.target }}-${{ github.sha }}
@@ -110,6 +112,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
           compression-level: 0
+          # Phase 29 permits one local-staging download before API deletion.
           retention-days: 1
 
   macos-distribution-consumer:
@@ -129,7 +132,7 @@ jobs:
             runner: macos-15
 
     steps:
-      - name: Receive only the transferred release candidate
+      - name: Receive only the transferred release archive
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: attalambda-${{ matrix.target }}-${{ github.sha }}
@@ -146,11 +149,11 @@ jobs:
           [[ "$(tail -n 1 "$consumer_log")" == "consumer_acceptance=passed" ]]
 
   macos-distribution-artifact-cleanup:
-    name: Delete temporary macOS transfer artifacts
+    name: Delete non-staging macOS transfer artifacts
     needs:
       - macos-distribution-build
       - macos-distribution-consumer
-    if: ${{ always() }}
+    if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -199,7 +202,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build unpublished native Windows release candidate
+      - name: Build final native Windows release archive
         shell: pwsh
         run: |
           $transfer = Join-Path $env:RUNNER_TEMP 'attalambda-transfer'
@@ -211,7 +214,7 @@ jobs:
             (Join-Path $transfer 'consumer.ps1'),
             $false)
 
-      - name: Transfer unpublished release candidate to its consumer job
+      - name: Transfer final-but-unpublished release archive to its consumer job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: attalambda-windows-x86_64-${{ github.sha }}
@@ -222,6 +225,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
           compression-level: 0
+          # Phase 29 permits one local-staging download before API deletion.
           retention-days: 1
 
   windows-distribution-consumer:
@@ -233,7 +237,7 @@ jobs:
       actions: read
 
     steps:
-      - name: Receive only the transferred release candidate
+      - name: Receive only the transferred release archive
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: attalambda-windows-x86_64-${{ github.sha }}
@@ -254,11 +258,11 @@ jobs:
           }
 
   windows-distribution-artifact-cleanup:
-    name: Delete temporary Windows transfer artifact
+    name: Delete non-staging Windows transfer artifact
     needs:
       - windows-distribution-build
       - windows-distribution-consumer
-    if: ${{ always() }}
+    if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

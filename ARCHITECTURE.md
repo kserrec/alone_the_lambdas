@@ -50,7 +50,7 @@ changing production semantics or host authority. Phase 21 fixes and approves
 the independent-distribution contract and proves Racket 9.3 can embed the
 dynamic language closure. Phase 22 adds one exact development runner, the
 canonical `.attl` application names, and a single version source now promoted
-to `0.2.0-rc.1`;
+to final `0.2.0`;
 the runner delegates to the existing reader/expander and remains outside every
 object-language dependency path. Phase 23 freezes AttaLambda-level launch diagnostics,
 strict UTF-8 preflight, source-position sanitization, and the distinction among
@@ -214,8 +214,8 @@ forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
 single-collection package metadata used by fresh installs and declares the
 repository's approved `Apache-2.0` SPDX license identifier. Root `VERSION` is
-the sole product-version source; the current `0.2.0-rc.1` state projects
-mechanically to Racket package version `0.1.901`.
+the sole product-version source; the current `0.2.0` state projects
+mechanically to Racket package version `0.2`.
 
 `runner/attalambda.rkt` is host launch scaffolding, not an effect primitive. It
 accepts only direct `.attl` execution, `--help`, and `--version`; validates the one supplied path,
@@ -281,11 +281,12 @@ the checksum before extraction, exact layout/manifest/permissions, native
 Mach-O architecture and dependencies, help/version bytes and clean stderr, a
 source created after packaging, hostile collection-path precedence,
 stdout/file/loopback HTTP effects, and a move between paths containing spaces.
-The workflow transfer is
-not a release channel: it uses commit-pinned GitHub upload/download actions,
-one-day fallback retention, and an always-run cleanup job with only
-`actions: write` authority that deletes both artifacts and verifies their
-absence.
+The workflow transfer is not a release channel: it uses commit-pinned GitHub
+upload/download actions and one-day fallback retention. For the one explicitly
+approved Phase 29 staging run, each tested artifact remains only until its
+exact bytes are downloaded to local staging; Codex then deletes the exact
+GitHub artifact through the API and verifies its absence. The workflow's
+ordinary immediate-cleanup contract is restored after that staging run.
 
 `tooling/build-windows-distribution.ps1` and
 `tooling/test-windows-distribution.ps1` apply the corresponding isolated
@@ -295,19 +296,22 @@ Authenticode evidence, and creates a deterministic `.zip` with an external
 checksum. The no-checkout consumer validates safe extraction and the exact
 payload, runs the direct command grammar and all approved effects, then copies
 the tree from the runner's temporary drive to a path containing spaces on a
-different drive before repeating smoke checks. Its workflow artifact has the
-same one-day fallback retention and immediate verified deletion contract.
+different drive before repeating smoke checks. Its one explicitly approved
+Phase 29 artifact follows the same local-staging download, one-day fallback,
+and immediate API-deletion contract.
 
 The native Phase 24 through 26 measurements in the plan and distribution
 design belong to disposable pre-rename `atl`/`.atl` artifacts. Phase 27
 separately proved the renamed development archives. Phase 28 completed the
 same native isolation contract for the `0.2.0-rc.1` candidate, with the
 approved license/notices and novice guide replacing the transitional
-development payload. All four no-Racket consumers execute the printed
-download, checksum, extraction, version, hello, and custom-program workflow;
-the three approved cross-job artifacts are then deleted. This changes
-delivery evidence and intended version output, not object-language
-computation or the host boundary.
+development payload. Phase 29 changes the delivery state to final `0.2.0`,
+updates the version-specific notice heading and release wording, and stages
+the exact native archives before a separate publication decision. All four
+no-Racket consumers execute the printed download, checksum, extraction,
+version, hello, and custom-program workflow. This changes delivery metadata
+and intended version output, not object-language computation or the host
+boundary.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate

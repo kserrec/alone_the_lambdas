@@ -484,7 +484,8 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 28 complete; Phase 29 next and approval-gated)
+Status: in progress (Phase 29 final-but-unpublished implementation approved;
+publication approval pending)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -1014,7 +1015,18 @@ change is the runner's version projection from `0.2.0-dev` to `0.2.0-rc.1`.
 
 ## Phase 29 — First independent release
 
-Status: planned and approval-gated
+Status: in progress (implementation and temporary staging transfer approved
+2026-08-29; publication not authorized)
+
+Kyle separately approved the exact final-version implementation scope and the
+one-time temporary transfer of only the two macOS and one Windows final-but-
+unpublished archives, their one-entry checksums, and their self-contained
+consumer harnesses. The transferred bytes may remain only long enough for
+verified local staging, then must be deleted through the GitHub API; one-day
+retention is the failure fallback. Linux remains within one job. Neither
+approval authorizes paid GitHub usage, a tag, GitHub Release, signing,
+release-asset upload, public-download claim, or publication. The literal
+approval text is recorded in `docs/design/standalone-distribution.md`.
 
 - [ ] Set `0.2.0` as the single release version, make the CLI, package
   metadata, artifact names, documentation, and release notes derive from it,

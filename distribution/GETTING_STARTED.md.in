@@ -1,15 +1,15 @@
 # AttaLambda @VERSION@ — @TARGET_NAME@
 
-This is an unpublished release candidate for testing. It is not a public
-release or a supported compatibility promise. The archive contains the
-`attalambda` command, its private Racket CS 9.3 runtime, and four example
-programs. You do not need to install Racket, run `raco`, or register a package.
+This is the self-contained AttaLambda release archive for the target named
+above. It contains the `attalambda` command, its private Racket CS 9.3 runtime,
+and four example programs. You do not need to install Racket, run `raco`, or
+register a package.
 
 ## Download, verify, and extract
 
-Obtain both `@ARCHIVE_NAME@` and its sibling `SHA256SUMS`, and keep them in the
-same directory. Before extracting the archive, verify that its bytes match the
-supplied checksum:
+Obtain both `@ARCHIVE_NAME@` and its sibling `SHA256SUMS` from the same
+AttaLambda GitHub Release, and keep them in the same directory. Before
+extracting the archive, verify that its bytes match the supplied checksum:
 
 ```@COMMAND_LANGUAGE@
 @VERIFY_COMMAND@
@@ -93,11 +93,11 @@ you are willing to expose.
 
 ## Release notes
 
-AttaLambda `@VERSION@` is the first self-contained release candidate. It
-provides native archives for Linux x86-64, macOS x86-64, macOS arm64, and
-Windows x86-64; the direct `attalambda FILE.attl` command; the canonical
-`.attl` and `#lang attalambda` source contract; and stdout, whole-file, TCP,
-and minimal HTTP examples backed by the single language-visible host boundary.
+AttaLambda `@VERSION@` is the first self-contained release. It provides native
+archives for Linux x86-64, macOS x86-64, macOS arm64, and Windows x86-64; the
+direct `attalambda FILE.attl` command; the canonical `.attl` and
+`#lang attalambda` source contract; and stdout, whole-file, TCP, and minimal
+HTTP examples backed by the single language-visible host boundary.
 
 ## Known limitations
 
@@ -114,8 +114,9 @@ and minimal HTTP examples backed by the single language-visible host boundary.
 - The archive has no AttaLambda cryptographic signature. macOS artifacts are
   not notarized by AttaLambda; the Windows executable's observed Authenticode
   status is recorded in `BUILD-MANIFEST.txt`.
-- This release candidate is unpublished. No public-download or support claim
-  follows from its existence.
+- Only the four named native targets are supplied. No other operating system,
+  processor architecture, compatibility floor, or long-term support schedule
+  is promised.
 
 ## License and build record
 

@@ -80,7 +80,7 @@
    "Usage:\n"
    "  tooling/build-linux-distribution.sh [--allow-dirty] OUTPUT_DIRECTORY\n"
    "\n"
-   "Build the unpublished Linux x86-64 release-candidate archive with Racket CS 9.3. The output\n"
+   "Build the final Linux x86-64 release archive with Racket CS 9.3. The output\n"
    "directory must be outside the source checkout and must not already contain the\n"
    "versioned archive or SHA256SUMS.\n"))
  #"")
@@ -93,9 +93,9 @@
    "Usage:\n"
    "  tooling/test-linux-distribution.sh OUTPUT_DIRECTORY\n"
    "\n"
-   "Transfer the unpublished Linux release-candidate archive and its checksum into\n"
+   "Transfer the final Linux release archive and its checksum into\n"
    "a locked-down Ubuntu 24.04 container with no Racket installation, then run the\n"
-   "Phase 28 guide, consumer, and relocation acceptance checks.\n"))
+   "Phase 29 guide, consumer, and relocation acceptance checks.\n"))
  #"")
 
 (check-exact-result
@@ -106,7 +106,7 @@
    "Usage:\n"
    "  tooling/build-macos-distribution.sh [--allow-dirty] TARGET_IDENTIFIER OUTPUT_DIRECTORY\n"
    "\n"
-   "Build one unpublished native macOS release-candidate archive with Racket CS 9.3.\n"
+   "Build one final native macOS release archive with Racket CS 9.3.\n"
    "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64. OUTPUT_DIRECTORY must\n"
    "already exist outside the source checkout and must not contain the versioned\n"
    "archive or SHA256SUMS.\n"))
@@ -120,7 +120,7 @@
    "Usage:\n"
    "  tooling/test-macos-distribution.sh OUTPUT_DIRECTORY TARGET_IDENTIFIER\n"
    "\n"
-   "Test one transferred unpublished macOS release-candidate archive on clean\n"
+   "Test one transferred final macOS release archive on clean\n"
    "native hardware with no Racket installation or source checkout.\n"
    "TARGET_IDENTIFIER must be macos-x86_64 or macos-arm64.\n"))
  #"")
@@ -159,13 +159,13 @@
 (check-true (regexp-match? #rx"PLTUSERHOME=" build-source))
 (check-true (regexp-match? #rx"gzip -n -9" build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" build-source))
-(check-true (regexp-match? #rx"unpublished release candidate" build-source))
+(check-true (regexp-match? #rx"final release artifact" build-source))
 (check-not-false
  (string-contains? build-source "grep -Eq '@[A-Z_]+@'"))
 (check-true (regexp-match? #rx"project_root/LICENSE" build-source))
 (check-true
  (regexp-match?
-  #rx"1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+  #rx"516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad"
   build-source))
 (check-false (regexp-match? #rx"UNPUBLISHED-DEVELOPMENT-ARTIFACT" build-source))
 
@@ -184,7 +184,7 @@
  (string-contains? consumer-source
                    "printf 'guide_workflow=passed\\n'"))
 (check-true (regexp-match? #rx"guide custom program" consumer-source))
-(check-true (regexp-match? #rx"Artifact status: unpublished release candidate" consumer-source))
+(check-true (regexp-match? #rx"Artifact status: final release artifact" consumer-source))
 
 (define macos-build-source
   (file->string macos-build-script))
@@ -200,13 +200,13 @@
 (check-true (regexp-match? #rx"gtar" macos-build-source))
 (check-true (regexp-match? #rx"gzip -n -9" macos-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" macos-build-source))
-(check-true (regexp-match? #rx"unpublished release candidate" macos-build-source))
+(check-true (regexp-match? #rx"final release artifact" macos-build-source))
 (check-not-false
  (string-contains? macos-build-source "grep -Eq '@[A-Z_]+@'"))
 (check-true (regexp-match? #rx"project_root/LICENSE" macos-build-source))
 (check-true
  (regexp-match?
-  #rx"1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+  #rx"516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad"
   macos-build-source))
 (check-false (regexp-match? #rx"UNPUBLISHED-DEVELOPMENT-ARTIFACT" macos-build-source))
 (check-false (regexp-match? #rx"--launcher" macos-build-source))
@@ -244,14 +244,14 @@
   windows-build-source))
 (check-true (regexp-match? #rx"1980, 1, 1" windows-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" windows-build-source))
-(check-true (regexp-match? #rx"unpublished release candidate" windows-build-source))
+(check-true (regexp-match? #rx"final release artifact" windows-build-source))
 (check-not-false
  (string-contains? windows-build-source "-match '@[A-Z_]+@'"))
 (check-false (string-contains? windows-build-source ".Contains('@')"))
 (check-true (regexp-match? #rx"repository LICENSE" windows-build-source))
 (check-true
  (regexp-match?
-  #rx"1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd"
+  #rx"516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad"
   windows-build-source))
 (check-false (regexp-match? #rx"UNPUBLISHED-DEVELOPMENT-ARTIFACT" windows-build-source))
 (check-true (regexp-match? #rx"PLTUSERHOME" windows-build-source))
@@ -301,7 +301,7 @@
  (string-contains? windows-consumer-source
                    "WriteLine('guide_workflow=passed')"))
 (check-true (regexp-match? #rx"guide custom program" windows-consumer-source))
-(check-true (regexp-match? #rx"Artifact status: unpublished release candidate" windows-consumer-source))
+(check-true (regexp-match? #rx"Artifact status: final release artifact" windows-consumer-source))
 
 (define workflow-source
   (file->string workflow-file))
@@ -313,8 +313,10 @@
    (regexp-match* (regexp (regexp-quote substring)) text)))
 
 (check-true
- (regexp-match? #px"(?m:^on:\n  push:\n  pull_request:\n)"
-                workflow-source))
+ (regexp-match?
+  #px"(?m:^on:\n  push:\n    branches:\n      - main\n  pull_request:\n)"
+  workflow-source))
+(check-false (regexp-match? #rx"tags:" workflow-source))
 (check-not-false
  (string-contains?
   test-runner-source
@@ -357,11 +359,22 @@
  (regexp-match?
   #rx"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
   workflow-source))
-(check-true (regexp-match? #rx"retention-days: 1" workflow-source))
+(check-equal? (substring-count workflow-source "retention-days: 1") 2)
+(check-equal?
+ (substring-count
+  workflow-source
+ "Phase 29 permits one local-staging download before API deletion.")
+ 2)
+(check-equal?
+ (substring-count
+  workflow-source
+  "always() && github.event_name == 'pull_request'")
+ 2)
 (check-true (regexp-match? #rx"actions: write" workflow-source))
 (check-true (regexp-match? #rx"gh api --method DELETE" workflow-source))
 (check-true (regexp-match? #rx"windows-distribution-build" workflow-source))
 (check-true (regexp-match? #rx"windows-distribution-consumer" workflow-source))
+(check-true (regexp-match? #rx"macos-distribution-artifact-cleanup" workflow-source))
 (check-true (regexp-match? #rx"windows-distribution-artifact-cleanup" workflow-source))
 (check-true (regexp-match? #rx"runs-on: windows-2025" workflow-source))
 (check-true (regexp-match? #rx"architecture: x64" workflow-source))
@@ -376,7 +389,8 @@
                   "THIRD_PARTY_NOTICES.md.in"))])
   (define template-content
     (file->string (build-path distribution-directory template-name)))
-  (check-false (regexp-match? #rx"0[.]2[.]0-dev" template-content)))
+  (check-false (regexp-match? #rx"0[.]2[.]0-dev" template-content))
+  (check-false (regexp-match? #rx"0[.]2[.]0-rc[.]1" template-content)))
 
 (define getting-started-template
   (file->string (build-path distribution-directory "GETTING_STARTED.md.in")))
@@ -404,7 +418,7 @@
      (build-path distribution-directory "THIRD_PARTY_NOTICES.md.in")
    (lambda (input)
      (bytes->hex-string (sha256-bytes input))))
- "1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd")
+ "516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad")
 
 (check-false
  (or (file-exists? (build-path distribution-directory "LICENSE"))

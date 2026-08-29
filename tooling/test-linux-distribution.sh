@@ -12,9 +12,9 @@ usage() {
 Usage:
   tooling/test-linux-distribution.sh OUTPUT_DIRECTORY
 
-Transfer the unpublished Linux release-candidate archive and its checksum into
+Transfer the final Linux release archive and its checksum into
 a locked-down Ubuntu 24.04 container with no Racket installation, then run the
-Phase 28 guide, consumer, and relocation acceptance checks.
+Phase 29 guide, consumer, and relocation acceptance checks.
 USAGE
 }
 
@@ -114,7 +114,7 @@ run_inside_consumer() {
   [[ -x "$first_root/bin/attalambda" ]] || die "bin/attalambda is not executable"
   [[ ! -e "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" &&
      ! -L "$first_root/UNPUBLISHED-DEVELOPMENT-ARTIFACT.txt" ]] ||
-    die "release candidate contains the retired development warning"
+    die "release archive contains the retired development warning"
 
   local actual_top_level="$scratch_root/actual-top-level.txt"
   local expected_top_level="$scratch_root/expected-top-level.txt"
@@ -194,18 +194,18 @@ run_inside_consumer() {
     die "build manifest source commit is invalid"
   grep -Fxq 'Archive checksum: external sibling SHA256SUMS' "$first_root/BUILD-MANIFEST.txt" ||
     die "build manifest checksum contract mismatch"
-  grep -Fxq 'Artifact status: unpublished release candidate' "$first_root/BUILD-MANIFEST.txt" ||
-    die "build manifest release-candidate status mismatch"
+  grep -Fxq 'Artifact status: final release artifact' "$first_root/BUILD-MANIFEST.txt" ||
+    die "build manifest release status mismatch"
   grep -Fxq 'Repository license SHA-256: cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30' "$first_root/BUILD-MANIFEST.txt" ||
     die "build manifest repository-license hash mismatch"
-  grep -Fxq 'Third-party notices SHA-256: 1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd' "$first_root/BUILD-MANIFEST.txt" ||
+  grep -Fxq 'Third-party notices SHA-256: 516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad' "$first_root/BUILD-MANIFEST.txt" ||
     die "build manifest notice hash mismatch"
   [[ "$(sha256sum "$first_root/LICENSE" | awk '{print $1}')" == \
       "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30" ]] ||
     die "repository license bytes differ from the approved license"
   [[ "$(sha256sum "$first_root/THIRD_PARTY_NOTICES.md" | awk '{print $1}')" == \
-      "1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd" ]] ||
-    die "third-party notices differ from the exact Phase 28 approval"
+      "516b3a08454709bf111494c92ed260a5c4afb47c91d06efca924b500c89e17ad" ]] ||
+    die "third-party notices differ from the exact Phase 29 approval"
   grep -Fxq "awk '\$2 == \"$archive_name\" { print }' SHA256SUMS | sha256sum -c -" "$first_root/GETTING_STARTED.md" ||
     die "guide checksum command mismatch"
   grep -Fxq "tar -xzf $archive_name" "$first_root/GETTING_STARTED.md" ||
