@@ -300,11 +300,14 @@ same one-day fallback retention and immediate verified deletion contract.
 
 The native Phase 24 through 26 measurements in the plan and distribution
 design belong to disposable pre-rename `atl`/`.atl` artifacts. Phase 27
-separately proved the renamed development archives. Phase 28 uses the same
-native isolation boundary for the `0.2.0-rc.1` candidate, with the approved
-license/notices and novice guide replacing the transitional development
-payload. This changes delivery evidence, not the object-language or host
-boundary.
+separately proved the renamed development archives. Phase 28 completed the
+same native isolation contract for the `0.2.0-rc.1` candidate, with the
+approved license/notices and novice guide replacing the transitional
+development payload. All four no-Racket consumers execute the printed
+download, checksum, extraction, version, hello, and custom-program workflow;
+the three approved cross-job artifacts are then deleted. This changes
+delivery evidence and intended version output, not object-language
+computation or the host boundary.
 
 `core/tags.rkt` defines Church zero through six for Error, Bool, List, Nat,
 Result, Char, and String. The same tiny Church values may serve in separate
@@ -805,28 +808,27 @@ rather than a parser, evaluator, codec, effect bridge, or object-language
 dependency.
 
 The Linux distribution suite separately checks the build and transfer
-boundary. Two isolated builds from the same development source state and
-different temporary paths produced byte-identical archives; later hardening
-rebuilds retained those bytes. The consumer
+boundary. Phase 24 first produced byte-identical development archives from
+two isolated builds under different temporary paths. The current consumer
 harness verifies the external SHA-256 before extraction and runs from only the
 transferred files in a pinned Ubuntu 24.04 image with no Racket command. It
 checks the exact logical layout and manifest inventory, clean stderr and exact
 stdout bytes, a source created after packaging, hostile collection-path
 precedence, isolated file replacement/readback, loopback HTTP with external
-networking disabled, and execution after relocation. This proves a current
-Linux development artifact, not a minimum Linux version or public release.
+networking disabled, and execution after relocation.
 
 The macOS distribution suite applies that contract independently on native
 x86_64 and arm64 runners, then crosses a workflow-job boundary to consumers
-with neither a checkout nor Racket commands. Validation commit `ed0db7d`
-passed exact CLI, generated-source, stdout, file, loopback HTTP, hostile
-collection-path, checksum, dependency, and relocation checks on macOS 15.7.9
-x86_64 and macOS 15.7.7 arm64. Those are the only demonstrated versions, not
-minimum-version claims. The approved temporary uploads were deleted by the
-same successful workflow, whose artifact query returned zero remaining
-artifacts.
+with neither a checkout nor Racket commands. Windows uses the corresponding
+native PowerShell builder and an independent no-checkout, no-Racket consumer
+with different-drive relocation. Candidate commit `91ba3a9` passed all four
+native paths in GitHub Actions run 33258685537 on Ubuntu 24.04, macOS 15.7.9
+x86-64, macOS 15.7.7 arm64, and Windows Server 2025 10.0.26100. Every
+consumer reported `guide_workflow=passed`; the cleanup jobs deleted all three
+temporary transfers, and the artifact API returned zero. Those exact systems
+are demonstrated observations, not minimum-version or public-release claims.
 
-The current completion suite passed 4,541 assertions across 32 test files,
+The current completion suite passed 4,745 assertions across 32 test files,
 retained the unchanged 16-module expanded core proof, and inventoried all 80
 Racket and `.attl` sources with zero boundary findings.
 

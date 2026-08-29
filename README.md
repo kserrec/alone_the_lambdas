@@ -45,10 +45,12 @@ variables, unary lambdas, and application.
 > renamed native archives in independent no-Racket consumers and deleted the
 > three temporary cross-job artifacts immediately. For Phase 28, the complete
 > bundled-runtime notice set, implementation scope, and temporary native
-> artifact transfer have received explicit approval; the source is now the
-> `0.2.0-rc.1` candidate while four-target validation is completed. All
-> artifacts remain unpublished, and Phase 29 alone may authorize a public
-> release. Separate structural gates enforce every boundary class. See
+> artifact transfer received explicit approval. Candidate commit `91ba3a9`
+> then passed all four native builds and independent no-Racket, guide-driven
+> consumers; the three temporary cross-job artifacts were deleted
+> immediately. The project remains at `0.2.0-rc.1`, every candidate archive
+> is unpublished, and Phase 29 alone may authorize a public release. Separate
+> structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
 > [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for criterion-by-criterion evidence.
@@ -351,8 +353,8 @@ filesystem, and network permissions as their launching Racket process, so
 inspect and trust a program before running it.
 
 Phases 24 through 27 proved native development artifacts and the current
-AttaLambda names. Phase 28 promotes the source to `0.2.0-rc.1`, installs the
-approved runtime notices and novice guide, and rebuilds the four unpublished
+AttaLambda names. Phase 28 promoted the source to `0.2.0-rc.1`, installed the
+approved runtime notices and novice guide, and validated the four unpublished
 archives. Phase 29 alone may authorize a public release. After the contributor
 setup above, invoke the source-checkout development entry point through Racket.
 
@@ -412,7 +414,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,617 assertions across 32 test files,
+green. The repository currently has 4,745 assertions across 32 test files,
 plus the independent expanded scan of all 16 core modules and the complete
 repository boundary-classification gate. The application acceptance test
 installs a copied package under an isolated Racket user home before running

@@ -1,7 +1,7 @@
 # Standalone distribution design
 
-Status: original contract approved 2026-08-27; Phases 22 through 27
-implemented; Phase 27 rename and native CI verification completed 2026-08-28
+Status: original contract approved 2026-08-27; Phases 22 through 28
+implemented; Phase 28 unpublished candidate verification completed 2026-08-29
 
 Date: 2026-08-27
 
@@ -857,6 +857,71 @@ public launch contract; the examples intentionally change their declaration,
 branding bytes, and round-trip filename. Product version remains
 `0.2.0-dev`. This work creates no release candidate, binary release, tag,
 GitHub Release, signature, or public download.
+
+## Phase 28 implementation record
+
+Phase 28 promotes the single product version to `0.2.0-rc.1`, with Racket
+package projection `0.1.901`, and restructures the primary documentation for
+an archive user rather than a contributor. Each platform guide starts with
+the archive plus its sibling `SHA256SUMS`; gives exact target-specific
+verification, extraction, version, hello, and custom-program commands; and
+explains exit statuses and the unsandboxed stdout, filesystem, and TCP
+authority. The root README retains a separate contributor setup path.
+
+Every candidate replaces the historical unpublished-development marker with
+the repository `LICENSE` and the exact approved 100,029-byte Racket CS 9.3
+notice payload. The builders fail closed unless the notice SHA-256 is
+`1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd`;
+the packaged Apache License 2.0 bytes have SHA-256
+`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`.
+Build manifests record both digests, the clean source commit, target and
+toolchain, exact payload inventory, dependency assumptions, and the literal
+status `unpublished release candidate`.
+
+Candidate source commit
+`91ba3a9a8d57f0f19f4e8620317a85cb781148df` passed the full suite and every
+native build, independent consumer, and cleanup job in [GitHub Actions run
+33258685537](https://github.com/kserrec/attalambda/actions/runs/33258685537).
+The exact same-run archive observations were:
+
+| Target | Exact consumer | Compressed bytes | Unpacked regular-file bytes | SHA-256 | Startup before / after relocation |
+| --- | --- | ---: | ---: | --- | ---: |
+| `linux-x86_64` | digest-pinned Ubuntu 24.04 container | `13,728,710` | `59,409,490` | `2b1c197cad3cd1995bbc10c3a0c2d57382a9fd38c28161411ff71bd7531f6215` | 175 ms / 174 ms |
+| `macos-arm64` | macOS 15.7.7 arm64 | `13,743,083` | `62,220,755` | `628221124008e49cda963cbda256eaef2abb8de1edf12e283cf9f808672ce521` | 282 ms / 153 ms |
+| `macos-x86_64` | macOS 15.7.9 x86-64 | `13,714,718` | `59,523,315` | `ffd4a097f465dc714163b05753bb7ee9c412ccca0e87bf070d5a7ccd529c490d` | 690 ms / 495 ms |
+| `windows-x86_64` | Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 | `15,296,942` | `23,986,858` | `e1181ae82c7388829a0db81e67b5652da64fb922ed2a68d94ea18cb58247db4f` | 261 ms / 377 ms |
+
+Those four hashes were assembled into one four-entry `SHA256SUMS` staging
+record. Linux contained 10 regular files and two runtime files. Each macOS
+candidate contained nine regular files and one Mach-O runtime file,
+`bin/attalambda`; both observed CoreFoundation, `libSystem`, `libiconv`, and
+`libncurses`. Windows contained nine regular files and one PE/runtime file,
+`bin/attalambda.exe`; it observed `KERNEL32.dll`, `msvcrt.dll`, and
+`USER32.dll`, and its exact Authenticode state was `NotSigned`.
+
+Every consumer reported no `racket` command, no `raco` command, and no source
+checkout. Each independently executed the novice checksum, extraction,
+directory-entry, packaged-version, hello, and custom-program workflow and
+reported `guide_workflow=passed`, then passed effects, embedded-reader, and
+relocation acceptance. Local and CI completion gates passed 4,745 assertions
+across all 32 test files, the unchanged 16-module expanded purity proof, and
+the complete zero-finding source-boundary inventory.
+
+Linux remained inside one job. Only the two macOS candidates and one Windows
+candidate, their one-entry checksums, and self-contained consumer harnesses
+crossed the explicitly approved temporary workflow-artifact boundary. One-day
+retention was only a cleanup-failure fallback: the Windows and macOS cleanup
+jobs passed, and the completed run's artifact API reported `total_count: 0`.
+The four hashes and measurements describe deleted unpublished candidates,
+not public downloads, compatibility floors, performance guarantees, or Phase
+29 release checksums.
+
+Phase 28 changed package/version metadata, distribution tooling and payloads,
+tests, CI labels, and documentation. It changed no core, effect, runtime,
+reader, macro, expander, or runner source. The runner's intended visible
+version output is now `AttaLambda 0.2.0-rc.1`; object-language computation and
+host authority are unchanged. No tag, GitHub Release, signing operation,
+public download, or publication was created or authorized.
 
 ## Approval record
 

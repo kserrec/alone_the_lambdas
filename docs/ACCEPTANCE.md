@@ -95,6 +95,16 @@ including all four renamed native archives and their no-Racket consumers. The
 three approved cross-job transfer artifacts were deleted immediately, and the
 completed run's artifact API returned `total_count: 0`.
 
+Phase 28 was verified locally and remotely on 2026-08-29. The complete suite
+passed 4,745 assertions across all 32 test files, the unchanged clean
+16-module expanded core scan, and the complete 80-source classification.
+Candidate source commit `91ba3a9a8d57f0f19f4e8620317a85cb781148df`
+passed all four native builders and all four no-Racket, guide-driven consumers
+in [GitHub Actions run
+33258685537](https://github.com/kserrec/attalambda/actions/runs/33258685537).
+The three approved cross-job transfer artifacts were deleted immediately, and
+the completed run's artifact API returned `total_count: 0`.
+
 ## Base specification criteria
 
 | Completion criterion | Evidence |
@@ -267,6 +277,18 @@ artifacts had the new names.
 | The approved Phase 27 transfer left no artifact behind. | Linux remained inside one job. Only the two renamed unpublished macOS archives and one renamed unpublished Windows archive, their external checksums, and their self-contained harnesses crossed jobs. Both macOS consumers, the Windows consumer, and both `always()` cleanup jobs passed; the completed run's artifact API returned `total_count: 0`. One-day retention was only a cleanup-failure fallback. |
 | The rename does not alter object-language computation or authority. | No `core/`, `effects/`, `runtime/`, macro, or expander executable changed; the reader's only executable edit is its collection-target spelling. The same 16 core modules pass the expanded purity proof, the boundary inventory retains the sole `host` and one non-exporting loader, and all three real-effect applications pass from a fresh copied package. The intended executable changes are confined to public launch names, source filenames/declarations, reader resolution, and example-visible branding. Product version remains `0.2.0-dev`; no release candidate, tag, signature, release, or public download exists. |
 
+## Phase 28 release-candidate and novice-workflow evidence
+
+| Requirement | Evidence |
+| --- | --- |
+| Exact approved legal payloads replace the transitional marker. | All three builders package root [`LICENSE`](../LICENSE), whose SHA-256 is `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`, plus the reviewed 100,029-byte [`THIRD_PARTY_NOTICES.md.in`](../distribution/THIRD_PARTY_NOTICES.md.in), whose SHA-256 is `1343f218ba484a79fbef498d4e8fb02e202763a19e46c5e610a8bfe900bcbefd`. They pin and verify the notice digest before packaging, record both hashes in the manifest, and exclude the historical development-warning input. Consumers independently hash the extracted bytes and reject the old marker. |
+| End-user setup is independent of contributor setup. | [`GETTING_STARTED.md.in`](../distribution/GETTING_STARTED.md.in) and the primary README path begin with choosing an archive, filtering its entry from `SHA256SUMS`, extracting it, entering the versioned root, and running the packaged executable. They require no Racket installation, `raco`, or package registry. Contributor installation and source-checkout execution remain separate labeled sections. |
+| The novice contract is complete and literal. | The guide documents the lowercase `.attl` extension, exact `#lang attalambda` declaration, native executable path, four supported candidate targets, statuses 0/64/65/66/70, diagnostics, archive verification, release notes, exact current limitations, and the unsandboxed stdout/file/TCP authority. The 197-check [`distribution-test.rkt`](../tests/distribution-test.rkt) pins the required guide sections, license/notice contract, candidate status, builders, consumers, and workflow cleanup selectors. |
+| All four downloaded-artifact workflows execute independently. | Candidate commit `91ba3a9a8d57f0f19f4e8620317a85cb781148df` passed [run 33258685537](https://github.com/kserrec/attalambda/actions/runs/33258685537). The digest-pinned Ubuntu 24.04, macOS 15.7.7 arm64, macOS 15.7.9 x86-64, and Microsoft Windows Server 2025 Datacenter 10.0.26100 x86-64 consumers each reported no Racket, no `raco`, no checkout where applicable, `guide_workflow=passed`, relocation success, and final consumer acceptance. Each executed the printed checksum, extraction, directory-entry, version, hello, and custom-program workflow before the broader effects and embedded-reader checks. |
+| Exact unpublished candidate evidence is preserved without a release claim. | The four names, compressed and unpacked byte counts, SHA-256 values, runtime/dependency inventories, signing state, and startup observations are recorded in the [Phase 28 implementation record](design/standalone-distribution.md#phase-28-implementation-record). The four same-run hashes form one staging `SHA256SUMS` record. They describe disposable validation candidates, not downloads, compatibility floors, performance guarantees, or Phase 29 release hashes. |
+| The approved transfer leaves nothing downloadable. | Linux remained in one job. Only the two macOS archives and one Windows archive, their one-entry checksums, and self-contained consumer harnesses crossed the separately approved temporary boundary. One-day retention was only a cleanup-failure fallback. Both cleanup jobs passed, and the completed run's artifact API returned `total_count: 0`. No tag, GitHub Release, signing operation, public download, or publication exists. |
+| Promotion changes delivery state, not language authority. | Root [`VERSION`](../VERSION) is now exactly `0.2.0-rc.1` and projects to `info.rkt` `0.1.901`; the CLI intentionally reports `AttaLambda 0.2.0-rc.1`. No core, effect, runtime, reader, macro, expander, or runner source changed. The complete suite passed 4,745 assertions across 32 files, the unchanged 16-module purity proof, and the zero-finding 80-source inventory. Object-language computation and the sole host boundary are unchanged. |
+
 ## Explicit one-bridge evidence map
 
 | Boundary fact | Sole allowed production location | Enforced evidence |
@@ -283,12 +305,13 @@ artifacts had the new names.
 
 The completed phases deliberately do not claim sandboxing or per-program
 permission prompts: a real-host program inherits the launching process's
-relevant authority. Phases 24 through 27 now prove unpublished self-contained
-Linux x86-64, macOS x86_64, macOS arm64, and Windows x86-64 development
-archives, but not a public download, a compatibility floor below the exact
-demonstrated consumers, Windows client-edition support, approved final bundled-
-runtime notices, a signed artifact, installer behavior, or release authority. The
-language has no
+relevant authority. Phases 24 through 27 prove unpublished development
+archives, and Phase 28 proves unpublished self-contained `0.2.0-rc.1`
+candidates with the exact approved notices, for Linux x86-64, macOS x86_64,
+macOS arm64, and Windows x86-64. They do not establish a public download, a
+compatibility floor below the exact demonstrated consumers, Windows client-
+edition support, a signed artifact, installer behavior, support policy, or
+release authority. The language has no
 program-argument API, general parser, optimizer, compiler, records, JSON,
 environment or process access, directory operations, atomic file replacement,
 TLS, UDP, timeouts, asynchronous server, production concurrency, or general

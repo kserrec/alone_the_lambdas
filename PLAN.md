@@ -484,7 +484,7 @@ changed no operation, authority, representation, or language semantic.
 
 # Milestone 3 — Independent distribution
 
-Status: in progress (Phase 28 implementation and four-target validation active)
+Status: in progress (Phase 28 complete; Phase 29 next and approval-gated)
 
 This milestone turns the completed Racket-hosted implementation into a product
 that a programmer can download and use without installing, configuring, or
@@ -959,7 +959,7 @@ Deferred hardening (named reason — redesign, not a spot fix):
 
 ## Phase 28 — Downloadable release candidate and novice documentation
 
-Status: in progress; all three explicit approvals satisfied (2026-08-29)
+Status: complete (2026-08-29)
 
 The pinned Racket CS 9.3 inventory produced a 100,029-byte exact notice file
 with SHA-256
@@ -971,28 +971,46 @@ harnesses. The full approval text and boundaries are recorded in
 `docs/design/standalone-distribution.md`. No approval authorizes a tag, GitHub
 Release, signing operation, public download, or publication.
 
-- [ ] Prepare and present the exact bundled Racket runtime notices, obtain
+- [x] Prepare and present the exact bundled Racket runtime notices, obtain
   approval only after Kyle has seen those terms, then include the approved
   notices and the repository license in every release-candidate artifact.
-- [ ] Separate contributor setup from end-user setup. The primary getting-
+- [x] Separate contributor setup from end-user setup. The primary getting-
   started path must begin with downloading the correct platform archive,
   extracting it, and running `attalambda hello.attl`; it must not instruct an
   end user to install Racket, use `raco`, or register a package.
-- [ ] Document `.attl` syntax, the required `#lang attalambda` declaration,
+- [x] Document `.attl` syntax, the required `#lang attalambda` declaration,
   executable location, supported platforms, exit statuses, archive
   verification, and the real host's unsandboxed stdout/filesystem/network
   authority in plain language.
-- [ ] Promote the single version source to `0.2.0-rc.1`, rebuild and stage the
+- [x] Promote the single version source to `0.2.0-rc.1`, rebuild and stage the
   four archives with the approved license, one checksum manifest, source
   commit, dependency/runtime inventory, release notes, and exact known
   limitations as an unpublished release candidate.
-- [ ] Have clean consumer jobs execute every command printed in the end-user
+- [x] Have clean consumer jobs execute every command printed in the end-user
   guide and verify the downloaded-artifact workflow independently of the
   source-tree tests.
 
 Acceptance: a person with no Racket installation or knowledge can follow the
 release-candidate documentation verbatim, verify the archive, and run a real
 `.attl` program; the candidate remains unpublished pending explicit approval.
+
+Completion evidence: candidate source commit
+`91ba3a9a8d57f0f19f4e8620317a85cb781148df` passed 4,745 assertions
+across all 32 test files, the unchanged 16-module purity proof, the complete
+boundary inventory, all four native builders, and all four independent
+no-Racket consumers in [GitHub Actions run
+33258685537](https://github.com/kserrec/attalambda/actions/runs/33258685537).
+Every consumer reported `guide_workflow=passed` and relocation success. The
+two macOS and one Windows transfer artifacts were deleted immediately; the
+completed run's artifact API reported `total_count: 0`.
+
+The four exact disposable CI archive hashes are recorded in
+`docs/design/standalone-distribution.md` and were assembled into one local
+four-entry `SHA256SUMS` staging record. They are unpublished validation
+checksums, not public downloads or Phase 29 release checksums. Phase 28
+created no tag, GitHub Release, signature, or public download. It changed no
+object-language computation or host authority; the intended executable-visible
+change is the runner's version projection from `0.2.0-dev` to `0.2.0-rc.1`.
 
 ## Phase 29 — First independent release
 
