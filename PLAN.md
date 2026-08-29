@@ -959,11 +959,23 @@ Deferred hardening (named reason — redesign, not a spot fix):
 
 ## Phase 28 — Downloadable release candidate and novice documentation
 
-Status: planned and approval-gated
+Status: planned; notice-inventory preparation is unblocked, implementation and
+artifact transfer are approval-gated
 
-- [ ] Complete and obtain approval for the exact bundled Racket runtime
-  notices, then include those notices and the repository license in every
-  release-candidate artifact.
+The current third-party notice template is explicitly provisional, so no exact
+runtime notice set yet exists for Kyle to approve. Before requesting that
+approval, a narrow preparation pass must inspect the pinned Racket CS 9.3
+toolchain, assemble the complete proposed notice text in disposable review
+material, and present the exact terms to Kyle. That preparation pass may not
+modify the repository, change the version, build or stage release-candidate
+archives, transfer an artifact through CI, create a tag or release, upload a
+file, or publish anything. Phase implementation may begin only after Kyle has
+approved the notice text he was shown, the implementation scope, and the
+separate temporary CI artifact transfer.
+
+- [ ] Prepare and present the exact bundled Racket runtime notices, obtain
+  approval only after Kyle has seen those terms, then include the approved
+  notices and the repository license in every release-candidate artifact.
 - [ ] Separate contributor setup from end-user setup. The primary getting-
   started path must begin with downloading the correct platform archive,
   extracting it, and running `attalambda hello.attl`; it must not instruct an

@@ -1,10 +1,10 @@
 # Session handoff
 
-Status recorded: 2026-08-28 after the post-Phase-27 security audit.
+Status recorded: 2026-08-29 after correcting the Phase 28 approval sequence.
 
-This handoff becomes stale when Phase 28 work begins, `PLAN.md` changes the
-next approved phase, or `main` moves beyond the security-audit commit named
-below.
+This handoff becomes stale when the Phase 28 notice-inventory preparation
+begins, `PLAN.md` changes the next approved phase, or executable work moves
+beyond the security-audit commit named below.
 
 ## Exact stop point
 
@@ -42,22 +42,25 @@ below.
 
 ## Next work and pending rulings
 
-Phase 28 ("Downloadable release candidate and novice documentation") is next
-and is **entirely approval-gated**. Nothing else on the roadmap is unblocked
-(Phase 29 is the public release and depends on Phase 28). Do not start Phase 28
-without the two approvals below; existing permission does not authorize a
-version change, release-candidate artifact, Git tag, GitHub Release, signing
-operation, or binary publication.
+Phase 28 ("Downloadable release candidate and novice documentation") is next.
+Its implementation is approval-gated, but the exact runtime notices cannot be
+approved before they exist and Kyle has seen them. The current
+`distribution/THIRD_PARTY_NOTICES.md.in` is explicitly provisional and is not
+the legal text to approve.
 
-Phase 28 needs two decisions only Kyle can make:
+The next unblocked action is a narrow preparation pass: inspect the pinned
+Racket CS 9.3 toolchain, assemble the complete proposed notice text in
+disposable review material, and present the exact terms to Kyle. That pass may
+not modify the repository, change `VERSION`, build or stage a release-candidate
+archive, transfer an artifact through GitHub Actions, create a tag or GitHub
+Release, upload a file, sign anything, or publish anything.
 
-1. **Approve the exact bundled Racket runtime notices** — the final third-party
-   legal notices for the bundled Racket CS 9.3 runtime that ship in every RC
-   archive, replacing the current provisional `THIRD_PARTY_NOTICES`. They are
-   produced from the Racket 9.3 toolchain's own license files in the 9.3
-   CI/build environment (this dev machine has 8.10), so they are finalized as
-   part of executing the phase. Approval reply, once seen:
-   `Approve the exact bundled Racket runtime notices for Phase 28.`
+Only after the exact notice text has been presented does Phase 28 need the
+three decisions only Kyle can make, in this order:
+
+1. **Approve the exact bundled Racket runtime notices shown for review.** Ask
+   only after presenting their complete terms. Approval reply:
+   `Approve the exact bundled Racket CS 9.3 runtime notices presented for Phase 28.`
 
 2. **Approve the Phase 28 implementation scope** — authorizes, in one pass:
    restructuring the getting-started docs so the primary path is
@@ -74,8 +77,14 @@ Phase 28 needs two decisions only Kyle can make:
    boundary and needs its own one-line approval (as in Phases 25–27); the Linux
    archive can be built locally without a transfer. Approval reply:
    `Approve the Phase 28 implementation scope (docs restructure, VERSION → 0.2.0-rc.1, build/stage the four unpublished RC archives). This does not authorize a tag, GitHub Release, upload, or public download.`
-   plus, for CI-built macOS/Windows RC archives:
-   `Approve the temporary Phase 28 GitHub Actions artifact transfer and immediate deletion.`
 
-Alternatively, Kyle may ask for the docs-only slice to be drafted first for
-review before the version bump and artifact build.
+3. **Approve the CI transfer needed to build and independently test the two
+   macOS archives and the Windows archive.** This temporarily uploads those
+   three unpublished archives, their checksums, and the consumer harnesses
+   through the `kserrec/attalambda` GitHub Actions account. Retention is one
+   day only as a cleanup-failure fallback, and the cleanup job deletes them
+   immediately after testing. Approval reply:
+   `Approve the temporary Phase 28 GitHub Actions transfer of the two unpublished macOS RC archives and one unpublished Windows RC archive, their checksums, and their consumer harnesses, with one-day fallback retention and immediate deletion after testing.`
+
+Phase 29 remains blocked on Phase 28. None of these approvals authorizes a Git
+tag, GitHub Release, signature, public download, or publication.
