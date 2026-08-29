@@ -294,7 +294,7 @@ sed \
   -e "s~@DEPENDENCY_KIND@~Linux system-library assumptions~g" \
   "$project_root/distribution/GETTING_STARTED.md.in" \
   > "$artifact_root/GETTING_STARTED.md"
-grep -Fq '@' "$artifact_root/GETTING_STARTED.md" &&
+grep -Eq '@[A-Z_]+@' "$artifact_root/GETTING_STARTED.md" &&
   die "unexpanded getting-started placeholder"
 install -m 0644 -- "$project_root/LICENSE" "$artifact_root/LICENSE"
 license_digest="$(sha256sum "$project_root/LICENSE" | awk '{print $1}')"

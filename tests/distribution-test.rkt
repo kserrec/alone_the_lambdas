@@ -160,6 +160,8 @@
 (check-true (regexp-match? #rx"gzip -n -9" build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" build-source))
 (check-true (regexp-match? #rx"unpublished release candidate" build-source))
+(check-not-false
+ (string-contains? build-source "grep -Eq '@[A-Z_]+@'"))
 (check-true (regexp-match? #rx"project_root/LICENSE" build-source))
 (check-true
  (regexp-match?
@@ -196,6 +198,8 @@
 (check-true (regexp-match? #rx"gzip -n -9" macos-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" macos-build-source))
 (check-true (regexp-match? #rx"unpublished release candidate" macos-build-source))
+(check-not-false
+ (string-contains? macos-build-source "grep -Eq '@[A-Z_]+@'"))
 (check-true (regexp-match? #rx"project_root/LICENSE" macos-build-source))
 (check-true
  (regexp-match?
@@ -235,6 +239,9 @@
 (check-true (regexp-match? #rx"1980, 1, 1" windows-build-source))
 (check-true (regexp-match? #rx"SHA256SUMS" windows-build-source))
 (check-true (regexp-match? #rx"unpublished release candidate" windows-build-source))
+(check-not-false
+ (string-contains? windows-build-source "-match '@[A-Z_]+@'"))
+(check-false (string-contains? windows-build-source ".Contains('@')"))
 (check-true (regexp-match? #rx"repository LICENSE" windows-build-source))
 (check-true
  (regexp-match?

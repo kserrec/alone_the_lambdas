@@ -502,7 +502,7 @@ try {
     $guide = $guide.Replace('@EXECUTABLE@', '.\bin\attalambda.exe')
     $guide = $guide.Replace('@PATH_SEPARATOR@', '\')
     $guide = $guide.Replace('@DEPENDENCY_KIND@', 'Windows system-DLL assumptions')
-    if ($guide.Contains('@')) {
+    if ($guide -match '@[A-Z_]+@') {
         Fail 'unexpanded getting-started placeholder'
     }
     Write-LfUtf8 ([IO.Path]::Combine($artifactRoot, 'GETTING_STARTED.md')) $guide
