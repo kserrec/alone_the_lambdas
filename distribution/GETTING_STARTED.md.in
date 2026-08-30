@@ -93,11 +93,12 @@ you are willing to expose.
 
 ## Release notes
 
-AttaLambda `@VERSION@` is the first self-contained release. It provides native
-archives for Linux x86-64, macOS x86-64, macOS arm64, and Windows x86-64; the
-direct `attalambda FILE.attl` command; the canonical `.attl` and
-`#lang attalambda` source contract; and stdout, whole-file, TCP, and minimal
-HTTP examples backed by the single language-visible host boundary.
+AttaLambda `@VERSION@` is the first self-contained release. Its native public
+distribution supports Linux x86-64; it provides the direct
+`attalambda FILE.attl` command, the canonical `.attl` and `#lang attalambda`
+source contract, and stdout, whole-file, TCP, and minimal HTTP examples backed
+by the single language-visible host boundary. Artifacts produced for other
+targets are internal portability evidence, not supported public downloads.
 
 ## Known limitations
 
@@ -111,12 +112,10 @@ HTTP examples backed by the single language-visible host boundary.
 - The networking surface is blocking TCP plus the documented minimal
   HTTP/1.1 subset. It does not provide TLS, UDP, asynchronous serving, or a
   general HTTP framework.
-- The archive has no AttaLambda cryptographic signature. macOS artifacts are
-  not notarized by AttaLambda; the Windows executable's observed Authenticode
-  status is recorded in `BUILD-MANIFEST.txt`.
-- Only the four named native targets are supplied. No other operating system,
-  processor architecture, compatibility floor, or long-term support schedule
-  is promised.
+- The archive has no AttaLambda cryptographic signature.
+- Linux x86-64 is the only supported public binary target. No other operating
+  system, processor architecture, compatibility floor, or long-term support
+  schedule is promised.
 
 ## License and build record
 

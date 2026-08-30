@@ -2,7 +2,9 @@
 
 Status: original contract approved 2026-08-27; Phases 22 through 28
 implemented; Phase 29 final implementation, native verification, and exact
-public `0.2.0` publication completed 2026-08-29
+public `0.2.0` publication completed 2026-08-29; Phase 30 later withdrew the
+macOS and Windows public assets, leaving Linux x86-64 as the sole supported
+binary target
 
 Date: 2026-08-27
 
@@ -12,6 +14,16 @@ independently runnable language. It is subordinate to the three canonical
 [host boundary](host-boundary.md). Approval authorized the implementation
 work that began in Phase 22. The separate exact public-release approval and
 its execution are recorded below.
+
+## Current public-target override
+
+The original four-target design and Phase 21 through 29 records below remain
+literal historical evidence of what was built, tested, approved, and first
+published. They no longer define the current public platform surface. The
+[Phase 30 withdrawal record](#phase-30-public-platform-withdrawal-record)
+supersedes only public binary availability: Linux x86-64 is the sole supported
+public binary target. The macOS and Windows tooling remains internal
+portability evidence and creates no support or download claim.
 
 ## Verified starting state
 
@@ -1092,6 +1104,74 @@ release and returns HTTP 200. Publication used no identity-backed or detached
 signing, notarization, paid GitHub feature, purchase, or GitHub Actions run.
 No invalid-draft or failed-publication rollback was needed, and the tag was
 not deleted.
+
+## Phase 30 public-platform withdrawal record
+
+After publication, Kyle downloaded and launched an AttaLambda macOS artifact
+on a consumer Mac. Gatekeeper reported that it could not verify the program
+was free of malware and offered only moving it to Trash or dismissing the
+dialog. That is direct evidence that the unsigned, unnotarized public artifact
+failed the normal downloaded-user path. The native Phase 29 consumer had
+proved execution after a GitHub Actions artifact transfer; inspection of
+`tooling/test-macos-distribution.sh` confirms that it neither attached browser
+quarantine metadata nor performed a Gatekeeper assessment. Those two facts
+are compatible: executable behavior passed while public first-run acceptance
+was never tested.
+
+The Windows public path was withdrawn at the same time. Its exact final
+executable was already observed as Authenticode `NotSigned`, and the only
+demonstrated consumer was Windows Server 2025 rather than a client edition.
+Microsoft's current SmartScreen developer guidance states that an unsigned
+download receives the “Windows protected your PC” warning, requires the user
+to choose “Run anyway,” and can be made non-bypassable by enterprise policy:
+<https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation>.
+Microsoft's Windows 11 Smart App Control guidance further states that when its
+cloud service cannot confidently establish safety, an unsigned app is treated
+as untrusted and blocked:
+<https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions>.
+No downloaded-user Windows client test had contradicted those documented
+paths.
+
+Kyle authorized updating the documentation and public Release to remove
+macOS, and to remove Windows if it presented the same issue, by saying:
+
+```text
+let's update our documentation and releases page to not include mac and if we think this will run into the same issue for windows, let's remove that too.
+```
+
+Before deletion, all three exact targets were resolved against the public API
+and byte-identical local recovery copies were reverified against their
+published SHA-256 values. Release ID `379061612` was then revised to present
+Linux x86-64 as its sole supported binary target. These exact assets were
+deleted:
+
+| Withdrawn asset | GitHub asset ID | SHA-256 |
+| --- | ---: | --- |
+| `attalambda-0.2.0-macos-arm64.tar.gz` | `535549609` | `5791ca3c28717972409d0d3503e135f685bcb7011ec24e6e4f9e70c7e5426b2b` |
+| `attalambda-0.2.0-macos-x86_64.tar.gz` | `535549602` | `72f56f4d95665a3ca802160175c4082ce42b08054a35b963a10b0597b9d91fdc` |
+| `attalambda-0.2.0-windows-x86_64.zip` | `535549611` | `0ffcf7cd7218459efe1de1de87c7ff650328d01b16caa253deb6aa621188015a` |
+
+The Release retains exact Linux asset ID `535549598`, unchanged SHA-256
+`86f980d696b45b42c251b78e6a66b9cd875f649217bfb09731cf6b47c66b00ac`,
+and exact original manifest asset ID `535549605`. The manifest remains 410
+bytes with SHA-256
+`7786bf553caac0087ab22f3636d546a1fe00f89a446611c1516cc58f411f6f7f`;
+its withdrawn-platform lines are an immutable record of the original release,
+not current availability. The tag, Release ID/title/latest status, source
+commit, GitHub-generated source archives, Linux binary bytes, internal
+builders/consumers, and legal notices were not replaced. Re-uploading a
+withdrawn asset requires a new explicit decision.
+
+The supported Linux path was then exercised manually from the public URLs in
+a fresh Ubuntu 24.04 Docker userspace on x86-64. The archive checksum reported
+`OK`; Racket was absent; `attalambda --version` printed `AttaLambda 0.2.0`; and
+the bundled hello program printed `Hello from AttaLambda.`. This is direct
+public-download evidence for the one retained target, not a broader Linux
+compatibility floor. No production or executable file changed in Phase 30.
+The focused distribution suite passed 207 assertions; the complete suite
+passed 4,755 assertions across all 32 test files, the unchanged expanded
+purity proof over 16 `core/` modules, and the zero-finding boundary/source
+inventory.
 
 ## Approval record
 

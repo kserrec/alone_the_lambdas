@@ -1083,3 +1083,51 @@ Acceptance: AttaLambda has a verified public `0.2.0` release whose users
 download a platform archive, write `.attl`, and run `attalambda` without
 installing or learning Racket, while the language's lambda purity and single
 explicit host boundary remain unchanged.
+
+## Phase 30 — Withdraw unsupported desktop release assets
+
+Status: complete (2026-08-29)
+
+A real public-download attempt demonstrated that Gatekeeper blocks the
+unsigned, unnotarized macOS artifacts. The Windows artifact is verified
+Authenticode `NotSigned`; Microsoft's current SmartScreen documentation says
+unsigned downloads receive the “Windows protected your PC” warning and may be
+non-bypassable under enterprise policy, while Windows 11 Smart App Control can
+block unsigned apps outright. The previous native consumer jobs proved
+portable execution after internal artifact transfer, not the browser-download
+security path a user actually encounters. Kyle therefore authorized removing
+macOS and, after that Windows evidence was established, Windows from the
+documentation and public Release.
+
+- [x] Resolve the exact three public asset IDs and reverify byte-identical
+  local recovery copies before deletion.
+- [x] Make Linux x86-64 the sole supported public binary target throughout
+  current user documentation while preserving literal Phase 21 through 29
+  history and the internal macOS/Windows portability harnesses.
+- [x] Keep the original 410-byte `SHA256SUMS` unchanged as an immutable
+  publication record; label its removed-platform entries as historical rather
+  than replacing bytes under the same public filename.
+- [x] Delete only macOS asset IDs `535549609` and `535549602` and Windows asset
+  ID `535549611`; retain Linux asset ID `535549598`, manifest asset ID
+  `535549605`, Release ID `379061612`, tag `v0.2.0`, and GitHub's automatic
+  source archives.
+- [x] Rewrite the Release notes for the current Linux-only surface and verify
+  the resulting public API state and withdrawn download URLs.
+- [x] Re-run the focused documentation/distribution tests and complete source
+  suite without changing production behavior.
+
+Completion evidence: immediately before withdrawal, all three public assets
+matched the exact locally staged SHA-256 values recorded in Phase 29. A fresh
+Ubuntu 24.04 Docker userspace on x86-64 downloaded the retained public Linux
+archive and manifest, reported the archive checksum `OK`, confirmed Racket was
+absent, printed `AttaLambda 0.2.0`, and ran the bundled hello program to print
+`Hello from AttaLambda.`. The revised public Release exposes only the retained
+Linux archive and original historical manifest as manual assets. Exact
+deletion and post-edit verification are preserved in
+`docs/design/standalone-distribution.md` and `HANDOFF.md`.
+
+Acceptance: a reasonable visitor sees one supported public binary target,
+Linux x86-64, and receives no instruction to bypass macOS or Windows security
+controls. Historical evidence remains literal. No language, runner, runtime,
+effect, reader, macro, expander, build harness, CI job, legal notice, Linux
+binary, tag, or version behavior changes.

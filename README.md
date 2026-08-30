@@ -54,8 +54,15 @@ variables, unary lambdas, and application.
 > staging and deleted, and ordinary immediate cleanup was restored. The
 > separately approved unsigned annotated tag `v0.2.0` and public latest
 > non-prerelease [AttaLambda 0.2.0 release](https://github.com/kserrec/attalambda/releases/tag/v0.2.0)
-> now publish those exact four archives and `SHA256SUMS`; all five public files
-> were anonymously downloaded and verified byte-for-byte after publication.
+> originally published those exact four archives and `SHA256SUMS`; all five
+> public files were anonymously downloaded and verified byte-for-byte after
+> publication. A subsequent real macOS download demonstrated that Gatekeeper
+> blocks the unsigned, unnotarized binaries. The Windows executable was also
+> withdrawn because its verified `NotSigned` Authenticode state invokes
+> Microsoft's documented SmartScreen warning path and can be blocked outright
+> by Windows 11 Smart App Control. The current public binary surface is only
+> the verified Linux x86-64 archive; the original checksum manifest remains
+> unchanged as a historical integrity record.
 > Separate structural gates enforce every boundary class. See
 > [PLAN.md](PLAN.md) for the completed core build and the
 > effects-and-standalone roadmap, and
@@ -66,21 +73,18 @@ variables, unary lambdas, and application.
 AttaLambda `0.2.0` is the first independently runnable release. Its
 authoritative public distribution is the
 [AttaLambda 0.2.0 GitHub Release](https://github.com/kserrec/attalambda/releases/tag/v0.2.0),
-which supplies all four archives and their sibling `SHA256SUMS`. The five
-manually uploaded files were anonymously downloaded and verified
-byte-for-byte against the tested staging files after publication. Archive
-users do not install Racket, run `raco`, or register a package.
+which currently supplies the Linux x86-64 archive and the original sibling
+`SHA256SUMS`. The Linux archive was anonymously downloaded, matched the tested
+staging bytes, and passed the complete no-Racket Ubuntu 24.04 consumer again.
+Archive users do not install Racket, run `raco`, or register a package.
 
-Choose the archive matching the computer that will run it:
+The only supported public binary target is:
 
 | Computer | Archive |
 | --- | --- |
 | Linux x86-64 | `attalambda-0.2.0-linux-x86_64.tar.gz` |
-| macOS Intel | `attalambda-0.2.0-macos-x86_64.tar.gz` |
-| macOS Apple Silicon | `attalambda-0.2.0-macos-arm64.tar.gz` |
-| Windows x86-64 | `attalambda-0.2.0-windows-x86_64.zip` |
 
-Keep the archive and `SHA256SUMS` in the same directory. On Linux x86-64:
+Keep the archive and `SHA256SUMS` in the same directory:
 
 ```sh
 awk '$2 == "attalambda-0.2.0-linux-x86_64.tar.gz" { print }' SHA256SUMS | sha256sum -c -
@@ -90,45 +94,39 @@ cd attalambda-0.2.0-linux-x86_64
 ./bin/attalambda examples/hello.attl
 ```
 
-On macOS Intel:
-
-```sh
-awk '$2 == "attalambda-0.2.0-macos-x86_64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
-tar -xzf attalambda-0.2.0-macos-x86_64.tar.gz
-cd attalambda-0.2.0-macos-x86_64
-./bin/attalambda --version
-./bin/attalambda examples/hello.attl
-```
-
-On macOS Apple Silicon:
-
-```sh
-awk '$2 == "attalambda-0.2.0-macos-arm64.tar.gz" { print }' SHA256SUMS | shasum -a 256 -c -
-tar -xzf attalambda-0.2.0-macos-arm64.tar.gz
-cd attalambda-0.2.0-macos-arm64
-./bin/attalambda --version
-./bin/attalambda examples/hello.attl
-```
-
-On Windows x86-64 PowerShell:
-
-```powershell
-$archive = 'attalambda-0.2.0-windows-x86_64.zip'
-$line = @(Get-Content .\SHA256SUMS | Where-Object { $_ -like "*$archive" })
-if ($line.Count -ne 1) { throw 'checksum entry mismatch' }
-$expected = ($line[0] -split '\s+')[0]
-$actual = (Get-FileHash ".\$archive" -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actual -cne $expected) { throw 'SHA-256 mismatch' }
-Expand-Archive -LiteralPath ".\$archive" -DestinationPath .
-Set-Location .\attalambda-0.2.0-windows-x86_64
-.\bin\attalambda.exe --version
-.\bin\attalambda.exe examples\hello.attl
-```
-
 Successful execution prints `AttaLambda 0.2.0` and
 `Hello from AttaLambda.`. The archive's
 `GETTING_STARTED.md` then explains `.attl` source syntax, exit statuses,
 runtime authority, release notes, and exact known limitations.
+
+The unchanged 410-byte `SHA256SUMS` is the immutable manifest originally
+published with `0.2.0`. It still contains the exact hashes of the withdrawn
+macOS and Windows artifacts as historical evidence; those entries are not
+current download or support claims.
+
+The retained Linux archive is also byte-for-byte unchanged. Its embedded
+`GETTING_STARTED.md` therefore preserves the original four-target release-note
+paragraph. This README and the current GitHub Release page supersede only that
+historical platform-availability statement; the Linux verification and run
+commands inside the archive remain current.
+
+## Withdrawn binary targets
+
+AttaLambda does not currently distribute macOS or Windows binaries. A real
+download on macOS demonstrated the Gatekeeper malware-verification block
+because the executables have no Apple Developer ID signature or notarization.
+The Windows executable is Authenticode `NotSigned`; Microsoft's
+[SmartScreen developer guidance](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)
+documents that unsigned downloads receive the “Windows protected your PC”
+warning, and its
+[Smart App Control guidance](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions)
+documents that Windows 11 can block unsigned files. Users should not have to
+bypass operating-system security controls to try the language.
+
+The macOS and Windows build harnesses remain in the repository as historical
+implementation and internal portability evidence. They do not establish a
+supported public download, consumer installation path, or compatibility
+floor.
 
 ## Commitments
 
@@ -285,7 +283,8 @@ precedence over conflicting examples in the base specification.
 - `tooling/build-macos-distribution.sh` applies the same isolated Racket CS 9.3
   contract on native Intel and Apple Silicon runners, verifies every Mach-O
   architecture and dynamic dependency, and emits normalized versioned
-  `.tar.gz` archives with external checksums.
+  `.tar.gz` archives with external checksums for internal validation. These
+  unsigned, unnotarized artifacts are not public release assets.
 - `tooling/test-macos-distribution.sh` is the self-contained clean-consumer
   harness. Separate native jobs receive only one archive, its checksum, and
   this harness; with no Racket command or checkout they prove exact CLI,
@@ -294,7 +293,8 @@ precedence over conflicting examples in the base specification.
   retained both temporary transfer artifacts only until their exact tested
   bytes were downloaded locally, then deleted them through the GitHub API;
   one-day retention was the failure fallback. Ordinary `always()` cleanup is
-  restored for future runs.
+  restored for future runs. This proves isolated execution, not Gatekeeper
+  acceptance or current macOS support.
 - `distribution/` contains the platform-expanded novice guide, the exact
   approved bundled-runtime notice text, and the retired development-warning
   input retained as historical implementation evidence. Final release
@@ -374,9 +374,11 @@ AttaLambda names. Phase 28 promoted the source to `0.2.0-rc.1`, installed the
 approved runtime notices and novice guide, and validated four unpublished
 candidates. Phase 29 staged the final `0.2.0` archives, then a separate exact
 approval authorized and produced the unsigned annotated `v0.2.0` tag and
-public Release with only those four archives and `SHA256SUMS`. After the
-contributor setup above, invoke the source-checkout development entry point
-through Racket.
+public Release with those four archives and `SHA256SUMS`. The macOS and
+Windows archives were later withdrawn after the missing consumer security
+validation was surfaced; the current public binary release is Linux x86-64
+only. After the contributor setup above, invoke the source-checkout
+development entry point through Racket.
 
 The minimal hello application emits one line:
 
@@ -434,7 +436,7 @@ racket tooling/check-boundaries.rkt
 ```
 
 Each implementation phase adds focused tests and must leave the complete suite
-green. The repository currently has 4,751 assertions across 32 test files,
+green. The repository currently has 4,755 assertions across 32 test files,
 plus the independent expanded scan of all 16 core modules and the complete
 repository boundary-classification gate. The application acceptance test
 installs a copied package under an isolated Racket user home before running

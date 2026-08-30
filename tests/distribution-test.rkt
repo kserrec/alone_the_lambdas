@@ -410,8 +410,16 @@
           "66` | The source was missing"
           "70` | The launcher encountered"
           "does not sandbox programs"
-          "write-file` can create, truncate, or replace files"))])
+          "write-file` can create, truncate, or replace files"
+          "distribution supports Linux x86-64"
+          "internal portability evidence, not supported public downloads"
+          "Linux x86-64 is the only supported public binary target"))])
   (check-not-false (string-contains? getting-started-template required-text)))
+
+(check-false
+ (string-contains?
+  getting-started-template
+  "archives for Linux x86-64, macOS x86-64, macOS arm64, and Windows x86-64"))
 
 (check-equal?
  (call-with-input-file
