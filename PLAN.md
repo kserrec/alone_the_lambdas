@@ -1639,20 +1639,37 @@ wrong-type mismatches, while every existing public Nat test still passes. The fu
 
 ### Step 35.4 — Prepare Rat-based effect and host fields
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Prepare ports, handles, backlog sizes, read limits, and other ordinary
+- [x] Prepare ports, handles, backlog sizes, read limits, and other ordinary
   numeric fields to use Rat objects representing nonnegative whole numbers.
-- Check whole-number and range requirements in pure object-language code
+- [x] Check whole-number and range requirements in pure object-language code
   before an effect request reaches the host.
-- Convert validated Rat values at the existing deterministic codec boundary.
-- Keep tiny type tags, error kinds, host-operation codes, and argument
+- [x] Convert validated Rat values at the existing deterministic codec boundary.
+- [x] Keep tiny type tags, error kinds, host-operation codes, and argument
   positions as their separately allowed fixed Church numerals.
-- Keep existing public Nat requests active until the single public switch.
+- [x] Keep existing public Nat requests active until the single public switch.
 
 Acceptance: every runtime and effect dependency on public Nat has a tested Rat
 replacement, while host authority and the codec exception remain no broader
 than before.
+
+Completion evidence: `effects/tcp.rkt` gains the six prepared `-rat` request
+constructors and six prepared `-rat` wrapper factories. Ports, backlog
+sizes, read limits, and opaque handles arrive as Rat objects; pure lambda
+computation verifies `IS-NONNEGATIVE-WHOLE` before any request value
+exists, so a negative or fractional field is an INVALID-COUNT Error carrying
+the operation's function name and — proven by fake-host call counting — the
+host is never applied. Valid requests carry tagged Rat numeric fields that
+the Step 35.2 codec conversions decode deterministically at the boundary;
+operation codes, error kinds, and argument positions remain fixed Church
+numerals, and stdout/file wrappers have no numeric fields. The current
+public Nat wrappers, the real host dispatcher, and the sole-bridge authority
+are unchanged until the single switch (the real host's Rat decode/encode
+swap is part of Step 35.5's prepared-path switch). The extended TCP suite
+verifies exact decoded request shapes for all six operations, Ok
+passthrough, force-once dispatch, INVALID-COUNT bubbling with zero host
+calls, and ordinary strict RAT mismatches, passing 266 assertions. The full suite passed 12,161 assertions across all 35 test files with the 19-module purity proof and zero-finding boundary inventory.
 
 ### Step 35.5 — Perform the public switch
 

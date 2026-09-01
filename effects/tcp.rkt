@@ -2,8 +2,14 @@
 
 (require "../macros/macros.rkt"
          (only-in "../core/typed-nat.rkt" raw-make-nat)
-         (only-in "../core/errors.rkt" NIL)
+         (only-in "../core/errors.rkt"
+                  NIL
+                  raw-add-result-frame
+                  invalid-count-error)
          (only-in "../core/lists.rkt" raw-cons)
+         (only-in "../core/logic.rkt" raw-if raw-and)
+         (only-in "../core/objects.rkt" raw-is-type raw-make-object)
+         (only-in "../core/rat.rkt" raw-rat-is-nonnegative-whole)
          "../core/strings.rkt"
          "../core/tags.rkt"
          "../core/typecheck.rkt"
@@ -20,7 +26,19 @@
          make-tcp-accept
          make-tcp-read
          make-tcp-write
-         make-tcp-close)
+         make-tcp-close
+         make-tcp-connect-request-rat
+         make-tcp-listen-request-rat
+         make-tcp-accept-request-rat
+         make-tcp-read-request-rat
+         make-tcp-write-request-rat
+         make-tcp-close-request-rat
+         make-tcp-connect-rat
+         make-tcp-listen-rat
+         make-tcp-accept-rat
+         make-tcp-read-rat
+         make-tcp-write-rat
+         make-tcp-close-rat)
 
 (def string-and-nat-signature =
   ((raw-cons string-type)
@@ -195,4 +213,221 @@
       (raw-call-tcp-close host))
      tcp-close-function-name)
     nat-signature)
+   raw-keep-return))
+
+;; Prepared Rat-based request constructors and wrappers for the Step 35.5
+;; public switch. Ports, backlog sizes, read limits, and handles arrive as
+;; Rat objects; pure lambda computation verifies each is a nonnegative
+;; whole number before any request exists, so an invalid field is an
+;; INVALID-COUNT Error and the host is never applied. Numeric request
+;; fields carry tagged Rat values for the deterministic codec boundary.
+
+(def string-and-rat-signature =
+  ((raw-cons string-type)
+   ((raw-cons rat-type) NIL)))
+
+(def string-and-two-rats-signature =
+  ((raw-cons string-type)
+   ((raw-cons rat-type)
+    ((raw-cons rat-type) NIL))))
+
+(def rat-signature =
+  ((raw-cons rat-type) NIL))
+
+(def two-rats-signature =
+  ((raw-cons rat-type)
+   ((raw-cons rat-type) NIL)))
+
+(def rat-and-string-signature =
+  ((raw-cons rat-type)
+   ((raw-cons string-type) NIL)))
+
+(def raw-rat-field payload =
+  ((raw-make-object rat-type) payload))
+
+(def raw-make-tcp-connect-request-rat remote-payload port-payload =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole port-payload))
+    ((raw-cons tcp-connect-operation)
+     ((raw-cons
+       (raw-make-string remote-payload))
+      ((raw-cons
+        (raw-rat-field port-payload))
+       NIL))))
+   ((raw-add-result-frame invalid-count-error)
+    tcp-connect-function-name)))
+
+(def raw-make-tcp-listen-request-rat local-payload port-payload backlog-payload =
+  (((raw-if
+     ((raw-and
+       (raw-rat-is-nonnegative-whole port-payload))
+      (raw-rat-is-nonnegative-whole backlog-payload)))
+    ((raw-cons tcp-listen-operation)
+     ((raw-cons
+       (raw-make-string local-payload))
+      ((raw-cons
+        (raw-rat-field port-payload))
+       ((raw-cons
+         (raw-rat-field backlog-payload))
+        NIL)))))
+   ((raw-add-result-frame invalid-count-error)
+    tcp-listen-function-name)))
+
+(def raw-make-tcp-accept-request-rat listener-payload =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole listener-payload))
+    ((raw-cons tcp-accept-operation)
+     ((raw-cons
+       (raw-rat-field listener-payload))
+      NIL)))
+   ((raw-add-result-frame invalid-count-error)
+    tcp-accept-function-name)))
+
+(def raw-make-tcp-read-request-rat connection-payload maximum-payload =
+  (((raw-if
+     ((raw-and
+       (raw-rat-is-nonnegative-whole connection-payload))
+      (raw-rat-is-nonnegative-whole maximum-payload)))
+    ((raw-cons tcp-read-operation)
+     ((raw-cons
+       (raw-rat-field connection-payload))
+      ((raw-cons
+        (raw-rat-field maximum-payload))
+       NIL))))
+   ((raw-add-result-frame invalid-count-error)
+    tcp-read-function-name)))
+
+(def raw-make-tcp-write-request-rat connection-payload bytes-payload =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole connection-payload))
+    ((raw-cons tcp-write-operation)
+     ((raw-cons
+       (raw-rat-field connection-payload))
+      ((raw-cons
+        (raw-make-string bytes-payload))
+       NIL))))
+   ((raw-add-result-frame invalid-count-error)
+    tcp-write-function-name)))
+
+(def raw-make-tcp-close-request-rat handle-payload =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole handle-payload))
+    ((raw-cons tcp-close-operation)
+     ((raw-cons
+       (raw-rat-field handle-payload))
+      NIL)))
+   ((raw-add-result-frame invalid-count-error)
+    tcp-close-function-name)))
+
+(def make-tcp-connect-request-rat =
+  ((((make-typed-function raw-make-tcp-connect-request-rat)
+     tcp-connect-function-name)
+    string-and-rat-signature)
+   raw-keep-return))
+
+(def make-tcp-listen-request-rat =
+  ((((make-typed-function raw-make-tcp-listen-request-rat)
+     tcp-listen-function-name)
+    string-and-two-rats-signature)
+   raw-keep-return))
+
+(def make-tcp-accept-request-rat =
+  ((((make-typed-function raw-make-tcp-accept-request-rat)
+     tcp-accept-function-name)
+    rat-signature)
+   raw-keep-return))
+
+(def make-tcp-read-request-rat =
+  ((((make-typed-function raw-make-tcp-read-request-rat)
+     tcp-read-function-name)
+    two-rats-signature)
+   raw-keep-return))
+
+(def make-tcp-write-request-rat =
+  ((((make-typed-function raw-make-tcp-write-request-rat)
+     tcp-write-function-name)
+    rat-and-string-signature)
+   raw-keep-return))
+
+(def make-tcp-close-request-rat =
+  ((((make-typed-function raw-make-tcp-close-request-rat)
+     tcp-close-function-name)
+    rat-signature)
+   raw-keep-return))
+
+(def raw-dispatch-or-bubble host request =
+  (((raw-if
+     ((raw-is-type error-type) request))
+    request)
+   (host request)))
+
+(def raw-call-tcp-connect-rat host remote-payload port-payload =
+  ((raw-dispatch-or-bubble host)
+   ((raw-make-tcp-connect-request-rat remote-payload)
+    port-payload)))
+
+(def raw-call-tcp-listen-rat host local-payload port-payload backlog-payload =
+  ((raw-dispatch-or-bubble host)
+   (((raw-make-tcp-listen-request-rat local-payload)
+     port-payload)
+    backlog-payload)))
+
+(def raw-call-tcp-accept-rat host listener-payload =
+  ((raw-dispatch-or-bubble host)
+   (raw-make-tcp-accept-request-rat listener-payload)))
+
+(def raw-call-tcp-read-rat host connection-payload maximum-payload =
+  ((raw-dispatch-or-bubble host)
+   ((raw-make-tcp-read-request-rat connection-payload)
+    maximum-payload)))
+
+(def raw-call-tcp-write-rat host connection-payload bytes-payload =
+  ((raw-dispatch-or-bubble host)
+   ((raw-make-tcp-write-request-rat connection-payload)
+    bytes-payload)))
+
+(def raw-call-tcp-close-rat host handle-payload =
+  ((raw-dispatch-or-bubble host)
+   (raw-make-tcp-close-request-rat handle-payload)))
+
+(def make-tcp-connect-rat host =
+  ((((make-typed-function
+      (raw-call-tcp-connect-rat host))
+     tcp-connect-function-name)
+    string-and-rat-signature)
+   raw-keep-return))
+
+(def make-tcp-listen-rat host =
+  ((((make-typed-function
+      (raw-call-tcp-listen-rat host))
+     tcp-listen-function-name)
+    string-and-two-rats-signature)
+   raw-keep-return))
+
+(def make-tcp-accept-rat host =
+  ((((make-typed-function
+      (raw-call-tcp-accept-rat host))
+     tcp-accept-function-name)
+    rat-signature)
+   raw-keep-return))
+
+(def make-tcp-read-rat host =
+  ((((make-typed-function
+      (raw-call-tcp-read-rat host))
+     tcp-read-function-name)
+    two-rats-signature)
+   raw-keep-return))
+
+(def make-tcp-write-rat host =
+  ((((make-typed-function
+      (raw-call-tcp-write-rat host))
+     tcp-write-function-name)
+    rat-and-string-signature)
+   raw-keep-return))
+
+(def make-tcp-close-rat host =
+  ((((make-typed-function
+      (raw-call-tcp-close-rat host))
+     tcp-close-function-name)
+    rat-signature)
    raw-keep-return))
