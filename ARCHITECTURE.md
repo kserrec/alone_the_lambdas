@@ -453,8 +453,15 @@ positive `0/1`, so equal rational values have one stored representation and
 the sign lives only in the numerator. A zero denominator is an internal
 invariant failure, never a value: as with raw division, the raw
 constructor's contract requires a nonzero denominator, and every supported
-entry path guards zero before construction. `readers/rat.rkt` observes a
-completed Rat as an exact host rational for tests and humans only.
+entry path guards zero before construction. Addition cross-multiplies
+against the opposite denominator, subtraction adds the negation,
+multiplication multiplies parts, ordering cross-multiplies signed
+numerators, equality compares canonical parts directly, wholeness is a
+denominator-one check, and floor divides magnitude by denominator and
+decrements for negative fractions with a nonzero remainder; every Rat
+result routes back through the canonical constructor. `readers/rat.rkt`
+observes a completed Rat as an exact host rational for tests and humans
+only.
 
 `core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
 `raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved

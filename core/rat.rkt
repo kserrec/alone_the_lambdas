@@ -20,7 +20,21 @@
          raw-rat-numerator
          raw-rat-denominator
          raw-rat-zero
-         raw-rat-one)
+         raw-rat-one
+         raw-rat-negate
+         raw-rat-abs
+         raw-rat-add
+         raw-rat-sub
+         raw-rat-mult
+         raw-rat-equal
+         raw-rat-less
+         raw-rat-less-equal
+         raw-rat-greater
+         raw-rat-greater-equal
+         raw-rat-is-zero
+         raw-rat-is-whole
+         raw-rat-is-nonnegative-whole
+         raw-rat-floor)
 
 (def raw-make-rat numerator denominator =
   (lambda-let normalized-denominator = (raw-normalize-nat denominator)
@@ -44,3 +58,109 @@
 
 (def raw-rat-one =
   ((raw-pair raw-int-one) raw-one-bits))
+
+(def raw-rat-denominator-int rat =
+  ((raw-make-int raw-true)
+   (raw-rat-denominator rat)))
+
+(def raw-rat-negate rat =
+  ((raw-make-rat
+    (raw-int-negate
+     (raw-rat-numerator rat)))
+   (raw-rat-denominator rat)))
+
+(def raw-rat-abs rat =
+  ((raw-make-rat
+    (raw-int-abs
+     (raw-rat-numerator rat)))
+   (raw-rat-denominator rat)))
+
+(def raw-rat-add left right =
+  ((raw-make-rat
+    ((raw-int-add
+      ((raw-int-mult
+        (raw-rat-numerator left))
+       (raw-rat-denominator-int right)))
+     ((raw-int-mult
+       (raw-rat-numerator right))
+      (raw-rat-denominator-int left))))
+   ((raw-nat-mult
+     (raw-rat-denominator left))
+    (raw-rat-denominator right))))
+
+(def raw-rat-sub left right =
+  ((raw-rat-add left)
+   (raw-rat-negate right)))
+
+(def raw-rat-mult left right =
+  ((raw-make-rat
+    ((raw-int-mult
+      (raw-rat-numerator left))
+     (raw-rat-numerator right)))
+   ((raw-nat-mult
+     (raw-rat-denominator left))
+    (raw-rat-denominator right))))
+
+(def raw-rat-equal left right =
+  ((raw-and
+    ((raw-int-equal
+      (raw-rat-numerator left))
+     (raw-rat-numerator right)))
+   ((raw-nat-equal
+     (raw-rat-denominator left))
+    (raw-rat-denominator right))))
+
+(def raw-rat-less left right =
+  ((raw-int-less
+    ((raw-int-mult
+      (raw-rat-numerator left))
+     (raw-rat-denominator-int right)))
+   ((raw-int-mult
+     (raw-rat-numerator right))
+    (raw-rat-denominator-int left))))
+
+(def raw-rat-less-equal left right =
+  (raw-not
+   ((raw-rat-less right) left)))
+
+(def raw-rat-greater left right =
+  ((raw-rat-less right) left))
+
+(def raw-rat-greater-equal left right =
+  (raw-not
+   ((raw-rat-less left) right)))
+
+(def raw-rat-is-zero rat =
+  (raw-int-is-zero
+   (raw-rat-numerator rat)))
+
+(def raw-rat-is-whole rat =
+  ((raw-nat-equal
+    (raw-rat-denominator rat))
+   raw-one-bits))
+
+(def raw-rat-is-nonnegative-whole rat =
+  ((raw-and
+    (raw-rat-is-whole rat))
+   (raw-int-sign
+    (raw-rat-numerator rat))))
+
+(def raw-rat-floor rat =
+  (lambda-let numerator = (raw-rat-numerator rat)
+    (lambda-let division =
+      ((raw-nat-div-rem
+        (raw-int-magnitude numerator))
+       (raw-rat-denominator rat))
+      (lambda-let quotient-int =
+        ((raw-make-int
+          (raw-int-sign numerator))
+         (raw-first division))
+        ((raw-make-rat
+          (((raw-if
+             ((raw-or
+               (raw-int-sign numerator))
+              (raw-nat-is-zero
+               (raw-second division))))
+            quotient-int)
+           (raw-int-pred quotient-int)))
+         raw-one-bits)))))

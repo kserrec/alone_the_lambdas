@@ -1469,21 +1469,33 @@ zeros, non-normalized denominators, the two constants, and unary arity. The full
 
 ### Step 34.2 — Add ordinary rational operations
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add pure negation, absolute value, addition, subtraction, and
+- [x] Add pure negation, absolute value, addition, subtraction, and
   multiplication.
-- Add pure equality and ordering.
-- Add zero, whole-number, and nonnegative-whole-number checks.
-- Add floor with correct behavior for negative fractions and negative whole
+- [x] Add pure equality and ordering.
+- [x] Add zero, whole-number, and nonnegative-whole-number checks.
+- [x] Add floor with correct behavior for negative fractions and negative whole
   values.
-- Route every Rat result through canonical construction.
-- Reuse sound `all_the_lambdas` algorithms and test cases, but retain
+- [x] Route every Rat result through canonical construction.
+- [x] Reuse sound `all_the_lambdas` algorithms and test cases, but retain
   AttaLambda's existing binary arithmetic where it is already clearer or more
   efficient.
 
 Acceptance: ordinary Rat operations are exact, reduced, have only positive
 zero, and contain no Racket computation in their implementation path.
+
+Completion evidence: `core/rat.rkt` adds negate, abs, add (cross-multiplied
+over the product denominator), sub (add of negation), mult, equal (canonical
+part comparison), the four orderings (signed cross-multiplication), is-zero,
+is-whole (denominator one), is-nonnegative-whole, and floor (magnitude
+division with a predecessor step for negative fractions carrying a nonzero
+remainder); every Rat result routes through the canonical constructor. The
+16×16 rational operand matrix in `tests/rat-test.rkt` — spanning negative
+and positive fractions, wholes, zero, and 123456/7 — matches Racket's exact
+rational arithmetic for all eight binary operations through the one-way
+reader, with unary operations, floor denominators, canonical positive-zero
+results, stored-part reduction checks, and unary arity all verified. The full suite passed 10,709 assertions across all 34 test files with the 18-module purity proof and zero-finding boundary inventory.
 
 ### Step 34.3 — Add rational division and powers
 
