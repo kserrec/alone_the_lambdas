@@ -2,6 +2,8 @@
 
 (require "../macros/macros.rkt"
          "../core/binary-nat.rkt"
+         (only-in "../core/typed-nat.rkt"
+                  raw-nat-value)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-error

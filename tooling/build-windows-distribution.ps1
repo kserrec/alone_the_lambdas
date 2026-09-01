@@ -314,6 +314,7 @@ try {
         "0.2.0-dev`n" { $productVersion = '0.2.0-dev'; $expectedPackageVersion = '0.1.900' }
         "0.2.0-rc.1`n" { $productVersion = '0.2.0-rc.1'; $expectedPackageVersion = '0.1.901' }
         "0.2.0`n" { $productVersion = '0.2.0'; $expectedPackageVersion = '0.2' }
+        "0.3.0-dev`n" { $productVersion = '0.3.0-dev'; $expectedPackageVersion = '0.2.900' }
         default { Fail 'VERSION is outside the approved milestone states or lacks one terminal LF' }
     }
     $infoText = [IO.File]::ReadAllText($infoFile)

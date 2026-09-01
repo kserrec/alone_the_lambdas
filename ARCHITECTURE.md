@@ -131,15 +131,16 @@ representation instead of importing `core/lists.rkt`; this lets the ordinary
 typed List operations depend on the checker without a cycle. Typed logic sits
 above raw logic, objects, Lists, and the checker; this keeps its List-encoded
 signatures and strict wrappers out of the raw Boolean layer.
-`core/typed-nat.rkt` similarly sits above binary Nat, Lists, tags, and the
-checker. It owns the public strict Nat surface while leaving every binary
-algorithm in `core/binary-nat.rkt` raw and reusable.
+`core/typed-nat.rkt` similarly sits above binary Nat, Lists, tags, objects,
+and the checker. It owns the public strict Nat surface, tagged Nat
+construction, and the typed constants, while leaving every binary algorithm
+in `core/binary-nat.rkt` raw and reusable.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. Typed Nat
 depends on Result only for safe `DIV`, so Result itself remains independent of
 Nat and available to later data types.
-`core/chars.rkt` sits above raw binary Nat, Errors, Lists, objects, and the
-checker. Its reader depends on Char and Nat observation, while no production
-module depends on that reader. `core/strings.rkt` sits above Char, List, raw
+`core/chars.rkt` sits above raw binary Nat, the tagged Nat layer, Errors,
+Lists, objects, and the checker. Its reader depends on Char and Nat
+observation, while no production module depends on that reader. `core/strings.rkt` sits above Char, List, raw
 List length, Errors, objects, and the checker. It reuses those raw layers
 directly, while `readers/string.rkt` remains outside the production dependency
 graph.
@@ -416,11 +417,17 @@ multiplication scans one operand with binary shift-and-add. Division performs
 MSB-first binary long division, maintaining a remainder and building quotient
 bits without repeated host or Church arithmetic. Its raw contract requires a
 nonzero divisor; the strict layer owns the zero policy. None of these
-algorithms converts through Church numerals or host numbers. `ZERO` through
-`TEN` are canonical typed constants.
+algorithms converts through Church numerals or host numbers. Since Step 32.1
+the module contains only normalized binary-list values and raw operations: it
+requires exactly the macro layer, the fixed-point helper, raw Lists, and raw
+logic, exports only `raw-` bindings, and depends on no tag, object, typed
+function, effect, codec, or host machinery.
 
-`core/typed-nat.rkt` routes every public Nat operation through the generalized
-checker. `SUCC`, `ADD`, `SUB`, and `MULT` return tagged Nat values; `EQ`, `LT`,
+`core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
+`raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved
+here from the raw module as temporary compatibility code until Phase 35
+replaces the public Nat surface with Rat. It routes every public Nat
+operation through the generalized checker. `SUCC`, `ADD`, `SUB`, and `MULT` return tagged Nat values; `EQ`, `LT`,
 `LTE`, `GT`, `GTE`, and `IS-ZERO` return tagged Bool values. `DIV` uses the
 same two-Nat signature but keeps its already-typed Result return. Valid
 division by a nonzero value returns Ok containing a canonical Nat; valid

@@ -8,7 +8,10 @@
          "logic.rkt"
          "objects.rkt"
          "tags.rkt"
-         "typecheck.rkt")
+         "typecheck.rkt"
+         (only-in "typed-nat.rkt"
+                  raw-nat-value
+                  ZERO ONE))
 
 (provide raw-list-length
          raw-list-take

@@ -11,6 +11,7 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../core/typed-nat.rkt"
          "../readers/bool.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"

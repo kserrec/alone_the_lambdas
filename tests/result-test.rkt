@@ -3,8 +3,6 @@
 (require rackunit
          racket/list
          racket/promise
-         (only-in "../core/binary-nat.rkt"
-                  raw-make-nat)
          "../core/errors.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"

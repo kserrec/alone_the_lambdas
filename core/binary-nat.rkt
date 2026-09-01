@@ -3,11 +3,11 @@
 (require "../macros/macros.rkt"
          "fix.rkt"
          "lists.rkt"
-         "logic.rkt"
-         "objects.rkt"
-         "tags.rkt")
+         "logic.rkt")
 
-(provide raw-normalize-nat
+(provide raw-zero-bits
+         raw-one-bits
+         raw-normalize-nat
          raw-nat-is-zero
          raw-nat-succ
          raw-nat-add
@@ -18,20 +18,7 @@
          raw-nat-less
          raw-nat-less-equal
          raw-nat-greater
-         raw-nat-greater-equal
-         raw-make-nat
-         raw-nat-value
-         ZERO
-         ONE
-         TWO
-         THREE
-         FOUR
-         FIVE
-         SIX
-         SEVEN
-         EIGHT
-         NINE
-         TEN)
+         raw-nat-greater-equal)
 
 (def raw-zero-bits =
   ((raw-cons raw-false) NIL))
@@ -323,61 +310,3 @@
      (raw-normalize-nat divisor))
     raw-zero-bits)
    NIL))
-
-(def raw-make-nat bits =
-  ((raw-make-object nat-type)
-   (raw-normalize-nat bits)))
-
-(def raw-nat-value nat =
-  (raw-object-value nat))
-
-(def ZERO =
-  (raw-make-nat raw-zero-bits))
-
-(def ONE =
-  (raw-make-nat raw-one-bits))
-
-(def TWO =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value ONE))))
-
-(def THREE =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value TWO))))
-
-(def FOUR =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value THREE))))
-
-(def FIVE =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value FOUR))))
-
-(def SIX =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value FIVE))))
-
-(def SEVEN =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value SIX))))
-
-(def EIGHT =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value SEVEN))))
-
-(def NINE =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value EIGHT))))
-
-(def TEN =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value NINE))))

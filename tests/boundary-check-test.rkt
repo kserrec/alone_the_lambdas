@@ -1053,19 +1053,20 @@
    (for ([version-pair
           (in-list '((#"0.2.0-dev\n" "0.1.900")
                      (#"0.2.0-rc.1\n" "0.1.901")
-                     (#"0.2.0\n" "0.2")))])
+                     (#"0.2.0\n" "0.2")
+                     (#"0.3.0-dev\n" "0.2.900")))])
      (write-exact-bytes product-version-file (car version-pair))
      (write-datum
       package-info
       (replace-package-version clean-package-info-datum
                                (cadr version-pair)))
      (check-equal? (project-boundary-violations root) '()))
-   (write-exact-bytes product-version-file #"0.2.0\n")
+   (write-exact-bytes product-version-file #"0.3.0-dev\n")
    (write-datum package-info clean-package-info-datum)
 
-   (write-exact-bytes product-version-file #"0.2.0")
+   (write-exact-bytes product-version-file #"0.3.0-dev")
    (check-project-kind 'invalid-product-version)
-   (write-exact-bytes product-version-file #"0.2.0\n")
+   (write-exact-bytes product-version-file #"0.3.0-dev\n")
 
    (define saved-version-file
      (build-path root "VERSION.backup"))
@@ -1073,7 +1074,7 @@
      (make-temporary-file "attalambda-version-target-~a"
                           #f
                           (path-only root)))
-   (write-exact-bytes version-target #"0.2.0\n")
+   (write-exact-bytes version-target #"0.3.0-dev\n")
    (rename-file-or-directory product-version-file saved-version-file)
    (make-file-or-directory-link version-target product-version-file)
    (define-values (version-link-findings version-target-reads)

@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/promise
-         "../core/binary-nat.rkt"
+         "../core/typed-nat.rkt"
          "list.rkt"
          "raw-boolean.rkt")
 

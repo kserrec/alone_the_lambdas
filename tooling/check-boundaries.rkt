@@ -392,7 +392,6 @@
      (for-syntax racket/base)
      (only-in racket/base (void language-discard))
      (only-in "../macros/macros.rkt" def (lambda-let language-let))
-     (only-in "../core/binary-nat.rkt" raw-make-nat)
      (only-in "../core/chars.rkt"
               raw-make-char
               ,@character-public-bindings)
@@ -416,7 +415,7 @@
      (only-in "../core/typed-logic.rkt"
               TRUE FALSE NOT AND OR XOR
               (typed-if language-if))
-     (only-in "../core/typed-nat.rkt" ,@nat-public-bindings)
+     (only-in "../core/typed-nat.rkt" raw-make-nat ,@nat-public-bindings)
      (only-in "../effects/files.rkt"
               (make-read-file language-make-read-file)
               (make-write-file language-make-write-file))
@@ -517,7 +516,8 @@
 (define product-version-projections
   '((#"0.2.0-dev\n" . "0.1.900")
     (#"0.2.0-rc.1\n" . "0.1.901")
-    (#"0.2.0\n" . "0.2")))
+    (#"0.2.0\n" . "0.2")
+    (#"0.3.0-dev\n" . "0.2.900")))
 
 (define runner-forbidden-version-literals
   (append-map

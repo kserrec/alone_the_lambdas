@@ -4,7 +4,7 @@
 ;; operating-system effect and is imported in production only by host.rkt.
 
 (require racket/promise
-         (only-in "../core/binary-nat.rkt"
+         (only-in "../core/typed-nat.rkt"
                   raw-make-nat
                   raw-nat-value)
          (only-in "../core/chars.rkt"

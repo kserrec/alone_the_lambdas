@@ -3,6 +3,10 @@
 (require "../macros/macros.rkt"
          "../core/binary-nat.rkt"
          "../core/chars.rkt"
+         (only-in "../core/typed-nat.rkt"
+                  raw-make-nat
+                  raw-nat-value
+                  TWO FOUR FIVE TEN)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-root-error)

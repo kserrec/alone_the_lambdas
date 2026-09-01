@@ -1,7 +1,7 @@
 #lang s-exp "../macros/lazy-with-macros.rkt"
 
 (require "../macros/macros.rkt"
-         (only-in "../core/binary-nat.rkt" raw-make-nat)
+         (only-in "../core/typed-nat.rkt" raw-make-nat)
          (only-in "../core/errors.rkt" NIL)
          (only-in "../core/lists.rkt" raw-cons)
          "../core/strings.rkt"

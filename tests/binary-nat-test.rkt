@@ -3,11 +3,13 @@
 (require rackunit
          racket/list
          racket/promise
+         racket/runtime-path
          "../core/binary-nat.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../core/typed-nat.rkt"
          "../readers/nat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
@@ -323,3 +325,69 @@
      (lazy-apply function
                  (integer->raw-bits 1))))
    1))
+
+;; Step 32.1 structural proof: the private binary Nat arithmetic module
+;; depends only on the mechanical macro layer, the fixed-point helper, raw
+;; list machinery, and raw Boolean logic. It must never depend on tags,
+;; objects, typed functions, effects, the codec, or the host, and every
+;; binding it exports is raw machinery.
+
+(define-runtime-path binary-nat-source-path "../core/binary-nat.rkt")
+
+(define binary-nat-source-forms
+  (call-with-input-file binary-nat-source-path
+    (lambda (input)
+      (read-line input)
+      (for/list ([form (in-port read input)])
+        form))))
+
+(define binary-nat-source-requires
+  (append-map cdr
+              (filter (lambda (form)
+                        (and (pair? form)
+                             (eq? (car form) 'require)))
+                      binary-nat-source-forms)))
+
+(check-equal? binary-nat-source-requires
+              '("../macros/macros.rkt"
+                "fix.rkt"
+                "lists.rkt"
+                "logic.rkt"))
+
+(define binary-nat-source-provides
+  (append-map cdr
+              (filter (lambda (form)
+                        (and (pair? form)
+                             (eq? (car form) 'provide)))
+                      binary-nat-source-forms)))
+
+(check-true (pair? binary-nat-source-provides))
+(for ([provided (in-list binary-nat-source-provides)])
+  (check-pred symbol? provided)
+  (check-true (regexp-match? #rx"^raw-" (symbol->string provided))
+              (format "non-raw export in binary-nat: ~s" provided)))
+
+(define (flatten-datum-symbols datum)
+  (cond
+    [(symbol? datum) (list datum)]
+    [(pair? datum)
+     (append (flatten-datum-symbols (car datum))
+             (flatten-datum-symbols (cdr datum)))]
+    [else '()]))
+
+(define binary-nat-source-symbols
+  (flatten-datum-symbols binary-nat-source-forms))
+
+(define forbidden-binary-nat-symbols
+  '(raw-make-object raw-object-value raw-is-type
+    make-typed-function raw-wrap-return raw-keep-return
+    raw-make-ok raw-make-err
+    raw-make-nat raw-nat-value
+    ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
+    host))
+
+(for ([name (in-list binary-nat-source-symbols)])
+  (check-false (memq name forbidden-binary-nat-symbols)
+               (format "tagged or privileged symbol in binary-nat: ~s" name))
+  (check-false (regexp-match? #rx"-type$" (symbol->string name))
+               (format "type-tag symbol in binary-nat: ~s" name)))

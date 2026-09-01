@@ -9,6 +9,7 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../core/typed-nat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE
                   FALSE

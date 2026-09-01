@@ -6,11 +6,14 @@
          "function-names.rkt"
          "lists.rkt"
          "logic.rkt"
+         "objects.rkt"
          "result.rkt"
          "tags.rkt"
          "typecheck.rkt")
 
-(provide ZERO
+(provide raw-make-nat
+         raw-nat-value
+         ZERO
          ONE
          TWO
          THREE
@@ -43,6 +46,68 @@
                      [typed-nat-greater GT]
                      [typed-nat-greater-equal GTE]
                      [typed-nat-is-zero IS-ZERO]))
+
+;; Temporary compatibility layer: tagged Nat construction and the public
+;; constants live here until Phase 35 replaces the public Nat surface with
+;; Rat. Raw arithmetic in binary-nat.rkt stays free of tags and objects.
+
+(def raw-make-nat bits =
+  ((raw-make-object nat-type)
+   (raw-normalize-nat bits)))
+
+(def raw-nat-value nat =
+  (raw-object-value nat))
+
+(def ZERO =
+  (raw-make-nat raw-zero-bits))
+
+(def ONE =
+  (raw-make-nat raw-one-bits))
+
+(def TWO =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value ONE))))
+
+(def THREE =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value TWO))))
+
+(def FOUR =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value THREE))))
+
+(def FIVE =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value FOUR))))
+
+(def SIX =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value FIVE))))
+
+(def SEVEN =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value SIX))))
+
+(def EIGHT =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value SEVEN))))
+
+(def NINE =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value EIGHT))))
+
+(def TEN =
+  (raw-make-nat
+   (raw-nat-succ
+    (raw-nat-value NINE))))
 
 (def nat-unary-signature =
   ((raw-cons nat-type) NIL))

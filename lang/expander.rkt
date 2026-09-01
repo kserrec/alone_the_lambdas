@@ -6,8 +6,6 @@
          (only-in "../macros/macros.rkt"
                   def
                   [lambda-let language-let])
-         (only-in "../core/binary-nat.rkt"
-                  raw-make-nat)
          (only-in "../core/chars.rkt"
                   raw-make-char
                   MAKE-CHAR
@@ -71,6 +69,7 @@
                   XOR
                   [typed-if language-if])
          (only-in "../core/typed-nat.rkt"
+                  raw-make-nat
                   ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
                   SUCC ADD SUB MULT DIV EQ LT LTE GT GTE IS-ZERO)
          (only-in "../effects/files.rkt"

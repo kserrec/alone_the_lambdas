@@ -1270,20 +1270,41 @@ changed; the full suite passed unchanged after the edit.
 
 ### Step 32.1 — Separate raw Nat arithmetic from the public Nat object
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Make `core/binary-nat.rkt` contain only normalized binary-list values and
+- [x] Make `core/binary-nat.rkt` contain only normalized binary-list values and
   raw binary Nat operations.
-- Move the current tagged Nat construction and public constants into the
+- [x] Move the current tagged Nat construction and public constants into the
   existing typed Nat layer as temporary compatibility code.
-- Preserve every current public result while this separation is made.
-- Set the single development version to `0.3.0-dev` and keep every projection
+- [x] Preserve every current public result while this separation is made.
+- [x] Set the single development version to `0.3.0-dev` and keep every projection
   of that version synchronized.
-- Add structural tests proving that private binary Nat arithmetic does not
+- [x] Add structural tests proving that private binary Nat arithmetic does not
   depend on tags, objects, typed functions, effects, the codec, or the host.
 
 Acceptance: current programs behave identically, while the raw Nat foundation
 can support Int and Rat without carrying a public Nat object into them.
+
+Completion evidence: `core/binary-nat.rkt` now requires exactly the macro
+layer, `fix.rkt`, `lists.rkt`, and `logic.rkt`, exports only `raw-` bindings
+(including the newly exported `raw-zero-bits` and `raw-one-bits`), and
+contains no tag, object, typed-function, effect, codec, or host reference.
+`raw-make-nat`, `raw-nat-value`, and `ZERO` through `TEN` moved into
+`core/typed-nat.rkt` as explicitly commented temporary compatibility code;
+every production importer (chars, list-nat, the five effect modules, the
+codec, the two Nat-observing readers, and the expander) now takes the tagged
+bindings from the typed layer, and the boundary gate's pinned expander
+require form tracks the move. New structural tests in
+`tests/binary-nat-test.rkt` read the raw module's source and fail on any
+non-raw export, any forbidden require, or any tagged/privileged symbol.
+The single version source is `0.3.0-dev` with the `0.2.900` package
+projection synchronized across `info.rkt`, the runner's approved-state
+regex, the boundary gate and its test, the runner test, and all four native
+build/consumer scripts. The full suite passed 5,978 assertions across all
+32 test files (the growth over Phase 30's 4,755 is dominated by the new
+per-symbol structural scan of the raw module), with the unchanged 16-module
+purity proof and the zero-finding boundary inventory, on 2026-09-01; no
+public operation, representation, or host authority changed.
 
 ### Step 32.2 — Add quotient with remainder, remainder, greatest common divisor, and least common multiple
 

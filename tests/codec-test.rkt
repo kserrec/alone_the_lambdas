@@ -3,7 +3,7 @@
 (require rackunit
          (only-in racket/list range)
          racket/promise
-         (only-in "../core/binary-nat.rkt"
+         (only-in "../core/typed-nat.rkt"
                   raw-nat-value)
          "../core/chars.rkt"
          "../core/errors.rkt"

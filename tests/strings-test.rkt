@@ -11,6 +11,7 @@
          "../core/objects.rkt"
          "../core/strings.rkt"
          "../core/tags.rkt"
+         "../core/typed-nat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE)
          "../readers/bool.rkt"

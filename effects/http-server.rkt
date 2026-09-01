@@ -2,8 +2,9 @@
 
 (require "../macros/macros.rkt"
          (only-in "../core/binary-nat.rkt"
-                  raw-make-nat
                   raw-nat-less)
+         (only-in "../core/typed-nat.rkt"
+                  raw-make-nat)
          (only-in "../core/list-nat.rkt"
                   raw-list-length)
          (only-in "../core/errors.rkt"

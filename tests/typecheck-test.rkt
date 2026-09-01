@@ -11,6 +11,7 @@
          "../core/objects.rkt"
          "../core/tags.rkt"
          "../core/typecheck.rkt"
+         "../core/typed-nat.rkt"
          "../macros/macros.rkt"
          "../readers/list.rkt"
          "../readers/nat.rkt"

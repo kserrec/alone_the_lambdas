@@ -3,6 +3,9 @@
 (require "../macros/macros.rkt"
          "../core/binary-nat.rkt"
          "../core/chars.rkt"
+         (only-in "../core/typed-nat.rkt"
+                  raw-nat-value
+                  FOUR)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-root-error)
