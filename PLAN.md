@@ -1436,21 +1436,36 @@ arity. The full suite passed 8,128 assertions across all 33 test files with the 
 
 ### Step 34.1 — Add Rat construction and reduction
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add a private Rat representation consisting of an Int numerator and a
+- [x] Add a private Rat representation consisting of an Int numerator and a
   positive binary Nat denominator.
-- Reject denominator zero as an invariant failure.
-- Reduce numerator and denominator by their greatest common divisor.
-- Force every zero result to positive `0/1`.
-- Add private selectors, constants, and a Rat reader for tests and human
+- [x] Reject denominator zero as an invariant failure.
+- [x] Reduce numerator and denominator by their greatest common divisor.
+- [x] Force every zero result to positive `0/1`.
+- [x] Add private selectors, constants, and a Rat reader for tests and human
   inspection.
-- Route every supported Rat construction through the same canonical
+- [x] Route every supported Rat construction through the same canonical
   constructor.
 
 Acceptance: equal rational values have one stored representation, denominator
 zero is never a value, and neither positive nor negative noncanonical zero can
 escape construction.
+
+Completion evidence: `core/rat.rkt` stores a raw pair of Int numerator and
+positive normalized denominator; `raw-make-rat` normalizes the denominator,
+divides both parts by their greatest common divisor, and routes the reduced
+numerator through the canonical Int constructor, which automatically forces
+every zero numerator to positive zero over denominator one. A zero
+denominator is documented as an internal invariant failure exactly like a
+zero raw-division divisor: it is never a value, and every supported entry
+path must guard it before construction. `readers/rat.rkt` renders a
+completed Rat as an exact host rational for tests only (reader vocabulary
+extended by `rat->number`, the two selectors, and `/`; reader count now 10;
+purity pins now 18 core modules). `tests/rat-test.rkt` checks the 13×9
+construction grid against Racket's exact rationals with stored-part
+verification, every zero spelling including negative and non-normalized
+zeros, non-normalized denominators, the two constants, and unary arity. The full suite passed 8,507 assertions across all 34 test files with the 18-module purity proof and zero-finding boundary inventory.
 
 ### Step 34.2 — Add ordinary rational operations
 

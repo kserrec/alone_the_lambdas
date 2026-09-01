@@ -201,7 +201,7 @@
 ;; the reader rule into a closed allowlist instead of relying on an inevitably
 ;; incomplete catalog of Racket/base effects.
 (define reader-vocabulary
-  '(#%module-begin * + - <= = actual-type add1 apply argument bit bool
+  '(#%module-begin * + - / <= = actual-type add1 apply argument bit bool
     bool->boolean car case cdr char char-value->integer char-value->string code
     cons define details else error error-frames->oldest-first
     error-kind->string error-value->string for/fold force format frame
@@ -211,8 +211,9 @@
     module nat
     nat->host-bits nat->integer null? or position provide quote racket/base
     racket/list racket/promise racket/string raw-boolean raw-boolean->boolean
-    raw-char-value raw-error-frame-argument-position
+    rat->number raw-char-value raw-error-frame-argument-position
     raw-int-magnitude raw-int-sign
+    raw-rat-denominator raw-rat-numerator
     raw-error-frame-expected-type raw-error-frame-function-name
     raw-error-frames raw-error-root raw-error-root-details raw-error-root-kind
     raw-make-nat raw-nat-value raw-object-value raw-string-value

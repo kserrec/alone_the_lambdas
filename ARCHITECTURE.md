@@ -446,6 +446,16 @@ numerator machinery: it has no type tag, no typed layer, no literal, no
 reader in any production path, and no language export. `readers/int.rkt`
 observes a completed Int as a signed host integer for tests and humans only.
 
+`core/rat.rkt` holds private exact rationals: a raw untagged pair of an Int
+numerator and a positive normalized binary Nat denominator. `raw-make-rat`
+reduces both parts by their greatest common divisor and forces every zero to
+positive `0/1`, so equal rational values have one stored representation and
+the sign lives only in the numerator. A zero denominator is an internal
+invariant failure, never a value: as with raw division, the raw
+constructor's contract requires a nonzero denominator, and every supported
+entry path guards zero before construction. `readers/rat.rkt` observes a
+completed Rat as an exact host rational for tests and humans only.
+
 `core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
 `raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved
 here from the raw module as temporary compatibility code until Phase 35
@@ -614,6 +624,7 @@ core/
   lists.rkt
   binary-nat.rkt
   int.rkt
+  rat.rkt
   result.rkt
   chars.rkt
   typed-nat.rkt
@@ -644,6 +655,7 @@ readers/
   list.rkt
   nat.rkt
   int.rkt
+  rat.rkt
   char.rkt
   string.rkt
   error.rkt
