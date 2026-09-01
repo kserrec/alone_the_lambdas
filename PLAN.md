@@ -1537,24 +1537,40 @@ must never both be presented as public number types.
 
 ### Step 35.1 — Add the tagged Rat layer
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add the Rat type tag without changing the numeric identities of existing
+- [x] Add the Rat type tag without changing the numeric identities of existing
   non-Nat tags.
-- Add strict Rat functions using the existing generalized checker unchanged.
-- Provide Rat implementations for `SUCC`, `ADD`, `SUB`, `MULT`, `DIV`, `EXP`,
+- [x] Add strict Rat functions using the existing generalized checker unchanged.
+- [x] Provide Rat implementations for `SUCC`, `ADD`, `SUB`, `MULT`, `DIV`, `EXP`,
   `EQ`, `LT`, `LTE`, `GT`, `GTE`, and `IS-ZERO`.
-- Add the approved public operations for negation, absolute value, reciprocal,
+- [x] Add the approved public operations for negation, absolute value, reciprocal,
   floor, whole-number checking, and nonnegative-whole-number checking.
-- Make division, reciprocal, and exponentiation return `Result` where their
+- [x] Make division, reciprocal, and exponentiation return `Result` where their
   expected arithmetic failures require it; keep wrong argument types as
   Error.
-- Keep this tagged Rat layer out of the `#lang attalambda` exports until the
+- [x] Keep this tagged Rat layer out of the `#lang attalambda` exports until the
   complete public switch.
 
 Acceptance: the exact-tag checker handles Rat exactly as it handles every
 other tag, with no numeric hierarchy, promotion logic, dispatcher, or new
 checker form.
+
+Completion evidence: `rat-type` is church-seven, leaving tags 0 through 6
+untouched, and `readers/type-tag.rkt` renders it as `RAT`.
+`core/typed-rat.rkt` builds all eighteen strict operations
+(`typed-rat-succ` through `typed-rat-is-nonnegative-whole`) on the
+unchanged generalized checker with the canonical function names `EXP`,
+`RECIP`, `NEG`, `ABS`, `FLOOR`, `IS-WHOLE`, and `IS-NONNEGATIVE-WHOLE`
+added to `core/function-names.rkt`; `DIV`, `EXP`, and `RECIP` keep their
+already-typed Result, re-wrapping a successful raw payload as a tagged Rat.
+`raw-rat-succ` joined the raw layer. Nothing is exported through the
+language facade; the expander's pinned imports and exports are unchanged.
+`tests/typed-rat-test.rkt` passes 690 assertions covering tagged results
+across a 6×6 rational grid, all unary operations and checks, Ok and Err
+Results for division/reciprocal/powers, exact `RAT` error frames on every
+argument position, Error bubbling with appended frames, remaining-arity
+absorption, and unary arity. Purity pins now prove 19 core modules; the full suite passed 12,004 assertions across all 35 test files with the zero-finding boundary inventory.
 
 ### Step 35.2 — Add Rat conversion and literal construction
 

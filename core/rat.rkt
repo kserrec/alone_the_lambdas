@@ -29,6 +29,7 @@
          raw-rat-one
          raw-rat-negate
          raw-rat-abs
+         raw-rat-succ
          raw-rat-add
          raw-rat-sub
          raw-rat-mult
@@ -100,6 +101,9 @@
 (def raw-rat-sub left right =
   ((raw-rat-add left)
    (raw-rat-negate right)))
+
+(def raw-rat-succ rat =
+  ((raw-rat-add rat) raw-rat-one))
 
 (def raw-rat-mult left right =
   ((raw-make-rat

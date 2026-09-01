@@ -471,6 +471,15 @@ into DivideByZero. `readers/rat.rkt`
 observes a completed Rat as an exact host rational for tests and humans
 only.
 
+`core/typed-rat.rkt` is the strict tagged Rat layer (tag 7, church-seven)
+over the private rationals, built entirely on the unchanged generalized
+exact-tag checker: `SUCC`, `ADD`, `SUB`, `MULT`, `NEG`, `ABS`, and `FLOOR`
+wrap Rat returns; the comparisons and the zero/whole/nonnegative-whole
+checks wrap Bool returns; `DIV`, `EXP`, and `RECIP` keep their
+already-typed Result, re-wrapping a successful raw payload as a tagged Rat
+exactly as safe Nat division wraps its quotient. It stays outside the
+`#lang attalambda` exports until the Step 35.5 public switch.
+
 `core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
 `raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved
 here from the raw module as temporary compatibility code until Phase 35
@@ -640,6 +649,7 @@ core/
   binary-nat.rkt
   int.rkt
   rat.rkt
+  typed-rat.rkt
   result.rkt
   chars.rkt
   typed-nat.rkt

@@ -25,6 +25,7 @@
     [(4) "RESULT"]
     [(5) "CHAR"]
     [(6) "STRING"]
+    [(7) "RAT"]
     [else
      (format "TYPE:~a"
              tag-number)]))

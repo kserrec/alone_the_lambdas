@@ -48,7 +48,14 @@
          string-head-function-name
          string-tail-function-name
          string-prefix-function-name
-         string-contains-function-name)
+         string-contains-function-name
+         exp-function-name
+         recip-function-name
+         neg-function-name
+         abs-function-name
+         floor-function-name
+         is-whole-function-name
+         is-nonnegative-whole-function-name)
 
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))
@@ -104,3 +111,11 @@
 (define-function-name string-tail-function-name STRING-TAIL)
 (define-function-name string-prefix-function-name STRING-PREFIX?)
 (define-function-name string-contains-function-name STRING-CONTAINS?)
+
+(define-function-name exp-function-name EXP)
+(define-function-name recip-function-name RECIP)
+(define-function-name neg-function-name NEG)
+(define-function-name abs-function-name ABS)
+(define-function-name floor-function-name FLOOR)
+(define-function-name is-whole-function-name IS-WHOLE)
+(define-function-name is-nonnegative-whole-function-name IS-NONNEGATIVE-WHOLE)
