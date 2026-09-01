@@ -12,9 +12,15 @@
 
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
+         (only-in "errors.rkt"
+                  divide-by-zero-error
+                  non-whole-exponent-error)
          "int.rkt"
          "logic.rkt"
-         "pair.rkt")
+         "pair.rkt"
+         (only-in "result.rkt"
+                  raw-make-ok
+                  raw-make-err))
 
 (provide raw-make-rat
          raw-rat-numerator
@@ -34,7 +40,10 @@
          raw-rat-is-zero
          raw-rat-is-whole
          raw-rat-is-nonnegative-whole
-         raw-rat-floor)
+         raw-rat-floor
+         raw-rat-recip
+         raw-rat-div
+         raw-rat-exp)
 
 (def raw-make-rat numerator denominator =
   (lambda-let normalized-denominator = (raw-normalize-nat denominator)
@@ -164,3 +173,60 @@
             quotient-int)
            (raw-int-pred quotient-int)))
          raw-one-bits)))))
+
+(def raw-rat-flip rat =
+  ((raw-make-rat
+    ((raw-make-int
+      (raw-int-sign
+       (raw-rat-numerator rat)))
+     (raw-rat-denominator rat)))
+   (raw-int-magnitude
+    (raw-rat-numerator rat))))
+
+(def raw-rat-recip rat =
+  (((raw-if
+     (raw-rat-is-zero rat))
+    (raw-make-err divide-by-zero-error))
+   (raw-make-ok
+    (raw-rat-flip rat))))
+
+(def raw-rat-div left right =
+  (((raw-if
+     (raw-rat-is-zero right))
+    (raw-make-err divide-by-zero-error))
+   (raw-make-ok
+    ((raw-rat-mult left)
+     (raw-rat-flip right)))))
+
+(def raw-rat-whole-power rat magnitude =
+  ((raw-make-rat
+    ((raw-make-int
+      ((raw-or
+        (raw-int-sign
+         (raw-rat-numerator rat)))
+       (raw-nat-even magnitude)))
+     ((raw-nat-exp
+       (raw-int-magnitude
+        (raw-rat-numerator rat)))
+      magnitude)))
+   ((raw-nat-exp
+     (raw-rat-denominator rat))
+    magnitude)))
+
+(def raw-rat-exp base exponent =
+  (((raw-if
+     (raw-not
+      (raw-rat-is-whole exponent)))
+    (raw-make-err non-whole-exponent-error))
+   (lambda-let exponent-int = (raw-rat-numerator exponent)
+     (lambda-let magnitude = (raw-int-magnitude exponent-int)
+       (((raw-if
+          (raw-int-sign exponent-int))
+         (raw-make-ok
+          ((raw-rat-whole-power base) magnitude)))
+        (((raw-if
+           (raw-rat-is-zero base))
+          (raw-make-err divide-by-zero-error))
+         (raw-make-ok
+          (raw-rat-flip
+           ((raw-rat-whole-power base) magnitude)))))))))

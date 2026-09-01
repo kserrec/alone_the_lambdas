@@ -459,7 +459,15 @@ multiplication multiplies parts, ordering cross-multiplies signed
 numerators, equality compares canonical parts directly, wholeness is a
 denominator-one check, and floor divides magnitude by denominator and
 decrements for negative fractions with a nonzero remainder; every Rat
-result routes back through the canonical constructor. `readers/rat.rkt`
+result routes back through the canonical constructor. Reciprocal and
+division guard a zero operand and return raw Result values: the expected
+failure is the canonical DivideByZero Error inside Err, never an exception
+or a sentinel. Exponentiation accepts only whole Rat exponents — a
+fractional exponent is the expected NonWholeExponent failure (error kind 7)
+even when that power would happen to be rational — computes magnitudes with
+the private squaring exponentiation, takes reciprocals for negative
+exponents, keeps `0^0 = 1`, and turns zero raised to a negative exponent
+into DivideByZero. `readers/rat.rkt`
 observes a completed Rat as an exact host rational for tests and humans
 only.
 

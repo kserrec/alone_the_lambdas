@@ -1499,22 +1499,36 @@ results, stored-part reduction checks, and unary arity all verified. The full su
 
 ### Step 34.3 — Add rational division and powers
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add reciprocal and exact division with explicit zero checks.
-- Add whole-exponent rational powers using the private binary
+- [x] Add reciprocal and exact division with explicit zero checks.
+- [x] Add whole-exponent rational powers using the private binary
   exponentiation-by-squaring operation.
-- Reject every fractional exponent rather than flooring it or attempting
+- [x] Reject every fractional exponent rather than flooring it or attempting
   special perfect-root detection.
-- Support negative whole exponents through reciprocal.
-- Preserve `0^0 = 1`; reject zero raised to a negative exponent.
-- Test division by zero, reciprocal of zero, positive and negative exponents,
+- [x] Support negative whole exponents through reciprocal.
+- [x] Preserve `0^0 = 1`; reject zero raised to a negative exponent.
+- [x] Test division by zero, reciprocal of zero, positive and negative exponents,
   odd and even powers of negative bases, fractional exponents that would and
   would not happen to yield rationals, and large exponents.
 
 Acceptance: division and exponent failure are explicit, no operation silently
 changes its mathematical question, and every successful answer is a canonical
 Rat produced by pure lambdas.
+
+Completion evidence: `raw-rat-recip` and `raw-rat-div` guard zero and return
+raw Result values whose expected failure is the canonical DivideByZero
+Error; `raw-rat-exp` rejects every non-whole exponent with the new
+NonWholeExponent kind (church-seven, added to tags, errors, and the error
+reader without renumbering), powers magnitudes through the private squaring
+exponentiation, flips for negative whole exponents, keeps `0^0 = 1`, and
+maps zero to a negative exponent to DivideByZero. The 16×16 division grid
+and reciprocal sweep match Racket's exact division with kind-3 failures on
+zero; power cases cover positive/negative/zero/fractional bases, odd and
+even powers of negative bases, negative exponents through reciprocal,
+(4/9)^(1/2) and (8/27)^(1/3) rejected despite having rational answers, and
+exact large results including 2^200 and (3/2)^64. `tests/rat-test.rkt`
+passes 3,184 assertions; the full suite passed 11,313 assertions across all 34 test files with the 18-module purity proof and zero-finding boundary inventory.
 
 ## Phase 35 — Replace the public Nat surface with Rat
 

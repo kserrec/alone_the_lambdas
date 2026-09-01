@@ -11,6 +11,7 @@
          church-four
          church-five
          church-six
+         church-seven
          error-type
          bool-type
          list-type
@@ -43,6 +44,9 @@
 
 (def church-six =
   (church-succ church-five))
+
+(def church-seven =
+  (church-succ church-six))
 
 (def error-type = church-zero)
 (def bool-type = church-one)

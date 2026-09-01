@@ -4,14 +4,18 @@
          racket/list
          racket/promise
          "../core/binary-nat.rkt"
+         "../core/errors.rkt"
          "../core/int.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
+         "../core/objects.rkt"
          "../core/rat.rkt"
+         "../core/result.rkt"
          "../readers/int.rkt"
          "../readers/list.rkt"
          "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
+         "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
 
 (define (apply2 function first-argument second-argument)
@@ -232,3 +236,120 @@
   (check-equal?
    (procedure-arity (lazy-force function))
    1))
+
+;; Step 34.3: reciprocal, exact division, and whole-exponent powers with
+;; explicit expected failures.
+
+(define (result-payload result)
+  (lazy-apply raw-object-value result))
+
+(define (result-ok? result)
+  (raw-boolean->boolean
+   (lazy-apply raw-result-is-ok
+               (result-payload result))))
+
+(define (result-value result)
+  (lazy-apply raw-result-value
+              (result-payload result)))
+
+(define (error-kind-number error-value)
+  (type-tag->integer
+   (lazy-apply raw-error-root-kind
+               (lazy-apply raw-error-root error-value))))
+
+(define (check-ok-rat result expected)
+  (check-true (result-ok? result))
+  (check-equal? (rat->number (result-value result)) expected))
+
+(define (check-err-kind result expected-kind)
+  (check-false (result-ok? result))
+  (check-equal? (error-kind-number (result-value result))
+                expected-kind))
+
+;; Division agrees with Racket for nonzero divisors; zero divisors are
+;; the expected DIVIDE-BY-ZERO failure, kind 3.
+(for* ([left-exact (in-list rational-operands)]
+       [right-exact (in-list rational-operands)])
+  (define result
+    (apply2 raw-rat-div
+            (exact->rat left-exact)
+            (exact->rat right-exact)))
+  (if (zero? right-exact)
+      (check-err-kind result 3)
+      (check-ok-rat result (/ left-exact right-exact))))
+
+;; Reciprocal.
+(for ([exact (in-list rational-operands)])
+  (define result
+    (lazy-apply raw-rat-recip (exact->rat exact)))
+  (if (zero? exact)
+      (check-err-kind result 3)
+      (check-ok-rat result (/ 1 exact))))
+
+;; Whole exponents across positive, negative, zero, fractional, and large
+;; cases, against Racket's exact exponentiation.
+(for ([case (in-list
+             '((0 0 1)
+               (0 5 0)
+               (5 0 1)
+               (-7/3 0 1)
+               (2 10 1024)
+               (-2 10 1024)
+               (-2 11 -2048)
+               (3/2 5 243/32)
+               (-3/2 5 -243/32)
+               (-3/2 4 81/16)
+               (2 -3 1/8)
+               (-2 -3 -1/8)
+               (2/5 -2 25/4)
+               (-2/5 -3 -125/8)
+               (3/2 64 3433683820292512484657849089281/18446744073709551616)
+               (2 200 1606938044258990275541962092341162602522202993782792835301376)
+               (-2 101 -2535301200456458802993406410752)))])
+  (check-ok-rat
+   (apply2 raw-rat-exp
+           (exact->rat (first case))
+           (exact->rat (second case)))
+   (expt (first case) (second case))))
+
+;; Every fractional exponent is the expected NON-WHOLE-EXPONENT failure,
+;; kind 7 — including powers that would happen to be rational.
+(for ([case (in-list '((4/9 1/2) (8/27 1/3) (2 1/2) (-3/2 7/3)
+                       (1 1/2) (0 1/2)))])
+  (check-err-kind
+   (apply2 raw-rat-exp
+           (exact->rat (first case))
+           (exact->rat (second case)))
+   7))
+
+;; Zero raised to a negative whole exponent divides by zero.
+(for ([exponent (in-list '(-1 -2 -5))])
+  (check-err-kind
+   (apply2 raw-rat-exp
+           (exact->rat 0)
+           (exact->rat exponent))
+   3))
+
+;; Powers of zero and negative results stay canonical.
+(let ([result (apply2 raw-rat-exp (exact->rat 0) (exact->rat 5))])
+  (check-true (result-ok? result))
+  (check-equal? (stored-denominator (result-value result)) 1)
+  (check-true
+   (raw-boolean->boolean
+    (lazy-apply raw-int-sign
+                (lazy-apply raw-rat-numerator
+                            (result-value result))))))
+
+;; Division and powers remain chains of unary lambdas.
+(for ([function (in-list (list raw-rat-div raw-rat-exp))])
+  (check-equal?
+   (procedure-arity (lazy-force function))
+   1)
+  (check-equal?
+   (procedure-arity
+    (lazy-force
+     (lazy-apply function (exact->rat 1/2))))
+   1))
+(check-equal?
+ (procedure-arity (lazy-force raw-rat-recip))
+ 1)
