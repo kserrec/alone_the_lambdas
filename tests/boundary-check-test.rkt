@@ -190,6 +190,8 @@
                     bytes->object-string
                     object-nat->integer
                     integer->object-nat
+                    exact->object-rat
+                    object-rat->exact
                     object-ok
                     object-err))))
       (write-datum
@@ -581,6 +583,8 @@
                   bytes->object-string
                   object-nat->integer
                   integer->object-nat
+                  exact->object-rat
+                  object-rat->exact
                   object-ok
                   object-err)
          ,extra)))

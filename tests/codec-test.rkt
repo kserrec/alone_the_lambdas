@@ -241,3 +241,86 @@
 (check-exn exn:fail:contract?
            (lambda ()
              (bytes->object-string "not bytes")))
+
+;; Step 35.2: exact Racket numbers translate to canonical Rat values and
+;; back; inexact and non-real numbers are rejected; forged noncanonical
+;; representations never decode.
+
+(require (only-in "../core/int.rkt" raw-make-int)
+         (only-in "../core/rat.rkt" raw-make-rat)
+         (only-in "../readers/rat.rkt" rat->number))
+
+(define (object-rat-payload value)
+  (lazy-apply raw-object-value value))
+
+(for ([exact (in-list '(0 1 -1 2 -2 1/2 -1/2 7/3 -7/3 123456/7
+                        -123456/7 255 65536 -654321
+                        1606938044258990275541962092341162602522202993782792835301376))])
+  (define value (exact->object-rat exact))
+  (check-true (typed-value? rat-type value))
+  (check-equal? (rat->number (object-rat-payload value)) exact)
+  (check-equal? (object-rat->exact value) exact))
+
+;; Inexact and non-rational numbers are rejected before construction.
+(for ([bad (in-list (list 1.5 -0.0 1e3 +inf.0 +nan.0 2+3i))])
+  (check-exn exn:fail:contract?
+             (lambda ()
+               (exact->object-rat bad))))
+
+;; Wrong tags and forged noncanonical payloads are codec failures.
+(check-pred codec-failure? (object-rat->exact TRUE))
+
+(define (forged-rat numerator-int denominator-bits)
+  (apply2 raw-make-object
+          rat-type
+          (apply2 raw-pair numerator-int denominator-bits)))
+
+(define (host-integer->bits integer)
+  (let loop ([remaining integer]
+             [result NIL])
+    (if (zero? remaining)
+        result
+        (loop (quotient remaining 2)
+              (apply2 raw-cons
+                      (if (odd? remaining) raw-true raw-false)
+                      result)))))
+
+(define (host-integer->int integer)
+  (apply2 raw-make-int
+          (if (negative? integer) raw-false raw-true)
+          (host-integer->bits (abs integer))))
+
+;; Unreduced 2/4.
+(check-pred codec-failure?
+            (object-rat->exact
+             (forged-rat (host-integer->int 2)
+                         (host-integer->bits 4))))
+
+;; Negative zero numerator.
+(check-pred codec-failure?
+            (object-rat->exact
+             (forged-rat (apply2 raw-make-int
+                                 raw-true
+                                 (host-integer->bits 0))
+                         (host-integer->bits 5))))
+
+;; Zero denominator.
+(check-pred codec-failure?
+            (object-rat->exact
+             (forged-rat (host-integer->int 1)
+                         (apply2 raw-cons raw-false NIL))))
+
+;; Non-normalized denominator bits (leading zero).
+(check-pred codec-failure?
+            (object-rat->exact
+             (forged-rat (host-integer->int 1)
+                         (apply2 raw-cons
+                                 raw-false
+                                 (apply2 raw-cons raw-true NIL)))))
+
+;; A genuinely canonical constructed value decodes.
+(check-equal?
+ (object-rat->exact
+  (forged-rat (host-integer->int -3)
+              (host-integer->bits 2)))
+ -3/2)

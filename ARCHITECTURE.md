@@ -171,7 +171,13 @@ sequentially until a Result Err or Error. The listener remains caller-owned so
 ephemeral bound-port discovery and explicit lifetime management stay visible.
 None imports `runtime/`. The trusted `runtime/codec.rkt` converts exact
 List/Char/String/Nat shapes to private immutable bytes and integers and
-constructs canonical response values without effects or mutation.
+constructs canonical response values without effects or mutation. Since
+Step 35.2 it also translates exact Racket rationals to canonical tagged Rat
+values and back: construction relies on Racket's already-reduced
+positive-denominator exact form so no object-language arithmetic runs, and
+decoding rejects wrong tags, unreduced parts, negative or non-1/1 zeros,
+zero denominators, and non-normalized bits. Inexact and non-real numbers
+are rejected before construction rather than approximated.
 `runtime/host.rkt` alone imports that codec and alone defines the privileged
 `host`; it is the direct producer export, and the standalone facade re-exports
 that same binding once. Its Phase 16 dispatcher writes and flushes raw bytes to the current

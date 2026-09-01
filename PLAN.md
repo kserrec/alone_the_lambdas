@@ -1574,23 +1574,38 @@ absorption, and unary arity. Purity pins now prove 19 core modules; the full sui
 
 ### Step 35.2 — Add Rat conversion and literal construction
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Extend `runtime/codec.rkt` to translate exact Racket integers and fractions
+- [x] Extend `runtime/codec.rkt` to translate exact Racket integers and fractions
   into canonical Rat values and translate Rat values back for approved host or
   reader use.
-- Add the production-free Rat reader support needed for human-readable tests
+- [x] Add the production-free Rat reader support needed for human-readable tests
   and errors.
-- Reject inexact numbers rather than converting an approximate binary
+- [x] Reject inexact numbers rather than converting an approximate binary
   floating-point value into a surprising fraction.
-- Keep every arithmetic operation on an existing Rat inside the pure
+- [x] Keep every arithmetic operation on an existing Rat inside the pure
   object-language modules. Racket may only decompose or construct the
   corresponding boundary representation deterministically.
-- Add boundary tests proving that no other production module imports or
+- [x] Add boundary tests proving that no other production module imports or
   recreates these conversions.
 
 Acceptance: exact source and boundary numbers can enter and leave AttaLambda
 deterministically without granting Racket any role in Rat computation.
+
+Completion evidence: `exact->object-rat` accepts only exact Racket rationals
+(raising the standard contract error for `1.5`, `-0.0`, `1e3`, infinities,
+NaN, and complex numbers) and builds the stored representation directly from
+Racket's canonical reduced positive-denominator form, running no
+object-language arithmetic; `object-rat->exact` validates the tag,
+sign, magnitude, and denominator, rejecting forged unreduced parts, negative
+or non-`0/1` zeros, zero denominators, and non-normalized bits as codec
+failures before producing the exact host rational. The boundary gate's
+pinned codec provide form and closed codec vocabulary were extended in the
+same change, so any second production module recreating or importing these
+conversions still fails the sole-importer and vocabulary rules; the
+`readers/rat.rkt` observation support from Step 34.1 needed no production
+change. Codec tests round-trip integers, fractions, negatives, zero, and a
+2^200-magnitude value, and prove every rejection path. The full suite passed 12,061 assertions across all 35 test files with the 19-module purity proof and zero-finding boundary inventory.
 
 ### Step 35.3 — Prepare Rat-based List, String, and Char operations
 

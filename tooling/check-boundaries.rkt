@@ -236,27 +236,36 @@
 ;; Adding even an otherwise unknown identifier to either trusted runtime file
 ;; requires a deliberate update here in the same phase that approves it.
 (define phase16-codec-vocabulary
-  '(#%module-begin * + <= > NIL and apply argument bit bits bits-value
+  '(#%module-begin * + - / <= = > NIL abs and apply argument bit bits
+    bits-value bottom
     boolean? byte->object-char bytes bytes->immutable-bytes
     bytes->object-string bytes? car cdr char char-type chars codec
     codec-failure codec-failure? codec-false codec-true cond cons decoded
-    define else eq? error-value exact-nonnegative-integer? exn:fail? expected
+    define denominator else eq? error-value exact->object-rat exact?
+    exact-nonnegative-integer? exn:fail? expected
     failure false-marker first
-    first-codec-failure for/fold for/list force function
+    first-codec-failure for/fold for/list force function gcd
     host-list->object-list if in-bytes in-list integer integer->object-nat
     integer->raw-bits
-    lambda lazy-apply lazy-apply2 length let list list-type loop
+    lambda lazy-apply lazy-apply2 length let list list-type loop magnitude
     malformed-value-failure map memq
-    module nat-type nil? not null? object-char->byte object-err
+    module nat-type negative? nil? not null? numerator object-char->byte
+    object-err
     object-has-type? object-list->host-list object-nat->integer object-ok
-    object-string->bytes odd? only-in ormap
+    object-rat->exact
+    object-string->bytes odd? only-in or ormap
     out-of-range payload provide quote quotient racket/base racket/promise
-    raise-argument-error raw-bit->boolean raw-bits->byte raw-bits->integer
-    raw-boolean->boolean raw-char-value raw-cons raw-false raw-is-type
+    raise-argument-error rat-type rational? raw-bit->boolean raw-bits->byte
+    raw-bits->integer
+    raw-boolean->boolean raw-char-value raw-cons raw-false raw-int-magnitude
+    raw-int-sign raw-is-type
     raw-list-head raw-list-is-nil raw-list-tail raw-make-char raw-make-err
-    raw-make-nat raw-make-ok raw-make-string raw-nat-value raw-string-value
+    raw-make-int raw-make-nat raw-make-object raw-make-ok raw-make-string
+    raw-nat-value raw-object-value raw-pair raw-rat-denominator
+    raw-rat-numerator raw-string-value
     raw-true reason remaining require result reverse reversed second seen
-    selected string-type struct struct-out tail total true-marker unless value
+    selected sign string-type struct struct-out tail total true-marker unless
+    value
     values with-handlers wrong-type zero?))
 
 (define phase16-host-vocabulary
@@ -346,6 +355,8 @@
             bytes->object-string
             object-nat->integer
             integer->object-nat
+            exact->object-rat
+            object-rat->exact
             object-ok
             object-err))
 

@@ -10,6 +10,10 @@
          (only-in "../core/chars.rkt"
                   raw-char-value
                   raw-make-char)
+         (only-in "../core/int.rkt"
+                  raw-make-int
+                  raw-int-sign
+                  raw-int-magnitude)
          (only-in "../core/lists.rkt"
                   NIL
                   raw-cons
@@ -19,7 +23,14 @@
                   raw-false
                   raw-true)
          (only-in "../core/objects.rkt"
-                  raw-is-type)
+                  raw-is-type
+                  raw-make-object
+                  raw-object-value)
+         (only-in "../core/pair.rkt"
+                  raw-pair)
+         (only-in "../core/rat.rkt"
+                  raw-rat-numerator
+                  raw-rat-denominator)
          (only-in "../core/result.rkt"
                   raw-make-err
                   raw-make-ok)
@@ -30,6 +41,7 @@
                   char-type
                   list-type
                   nat-type
+                  rat-type
                   string-type))
 
 (provide (struct-out codec-failure)
@@ -39,6 +51,8 @@
          bytes->object-string
          object-nat->integer
          integer->object-nat
+         exact->object-rat
+         object-rat->exact
          object-ok
          object-err)
 
@@ -213,6 +227,58 @@
                           integer))
   (lazy-apply raw-make-nat
               (integer->raw-bits integer)))
+
+;; Racket exact rationals are canonical by construction — reduced, with a
+;; positive denominator — so translation builds the stored representation
+;; directly and never runs object-language arithmetic.
+(define (exact->object-rat value)
+  (unless (and (rational? value) (exact? value))
+    (raise-argument-error 'exact->object-rat
+                          "(and/c rational? exact?)"
+                          value))
+  (lazy-apply2
+   raw-make-object
+   rat-type
+   (lazy-apply2
+    raw-pair
+    (lazy-apply2 raw-make-int
+                 (if (negative? value) raw-false raw-true)
+                 (integer->raw-bits (abs (numerator value))))
+    (integer->raw-bits (denominator value)))))
+
+(define (object-rat->exact value)
+  (with-handlers ([exn:fail? malformed-value-failure])
+    (cond
+      [(not (object-has-type? rat-type value))
+       (codec-failure 'wrong-type)]
+      [else
+       (define payload
+         (lazy-apply raw-object-value value))
+       (define sign
+         (raw-bit->boolean
+          (lazy-apply raw-int-sign
+                      (lazy-apply raw-rat-numerator payload))))
+       (define magnitude
+         (raw-bits->integer
+          (lazy-apply raw-int-magnitude
+                      (lazy-apply raw-rat-numerator payload))))
+       (define bottom
+         (raw-bits->integer
+          (lazy-apply raw-rat-denominator payload)))
+       (cond
+         [(codec-failure? sign) sign]
+         [(not (boolean? sign)) (codec-failure 'wrong-type)]
+         [(codec-failure? magnitude) magnitude]
+         [(codec-failure? bottom) bottom]
+         [(zero? bottom) (codec-failure 'out-of-range)]
+         [(and (zero? magnitude)
+               (or (not sign)
+                   (not (= bottom 1))))
+          (codec-failure 'out-of-range)]
+         [(not (= (gcd magnitude bottom) 1))
+          (codec-failure 'out-of-range)]
+         [sign (/ magnitude bottom)]
+         [else (- (/ magnitude bottom))])])))
 
 (define (object-ok payload)
   (lazy-apply raw-make-ok payload))
