@@ -500,3 +500,94 @@
      (lazy-apply function
                  (integer->raw-bits 6))))
    1))
+
+;; Step 32.3: parity, halving, and exponentiation by repeated squaring.
+
+(for ([case (in-list
+             '((0 #f) (1 #t) (2 #f) (3 #t) (4 #f)
+               (255 #t) (256 #f) (65535 #t) (65536 #f)
+               (123456 #f) (654321 #t)))])
+  (define value (integer->raw-bits (first case)))
+  (check-equal?
+   (raw-boolean->boolean (lazy-apply raw-nat-odd value))
+   (second case))
+  (check-equal?
+   (raw-boolean->boolean (lazy-apply raw-nat-even value))
+   (not (second case))))
+
+(check-false
+ (raw-boolean->boolean
+  (lazy-apply raw-nat-odd leading-zero-two)))
+(check-true
+ (raw-boolean->boolean
+  (lazy-apply raw-nat-even all-zeroes)))
+
+(for ([case (in-list
+             '((0 0) (1 0) (2 1) (3 1) (4 2) (5 2)
+               (255 127) (256 128) (65535 32767)
+               (654321 327160)))])
+  (check-canonical
+   (second case)
+   (lazy-apply raw-nat-half
+               (integer->raw-bits (first case)))))
+
+(check-canonical
+ 1
+ (lazy-apply raw-nat-half leading-zero-two))
+
+;; Zero and one exponents, odd and even exponents, base zero and one, and
+;; agreement with host exponentiation on representative values.
+(for ([case (in-list
+             '((0 0 1)
+               (0 1 0)
+               (0 5 0)
+               (1 0 1)
+               (5 0 1)
+               (1 4096 1)
+               (2 1 2)
+               (2 10 1024)
+               (2 16 65536)
+               (3 7 2187)
+               (5 5 3125)
+               (10 6 1000000)
+               (7 13 96889010407)))])
+  (check-canonical
+   (third case)
+   (apply2 raw-nat-exp
+           (integer->raw-bits (first case))
+           (integer->raw-bits (second case)))))
+
+(check-canonical
+ 9
+ (apply2 raw-nat-exp
+         (host-bits->raw '(#f #t #t))
+         leading-zero-two))
+
+;; A 4096-bit result in interpreted lazy evaluation is practical only with
+;; the squaring recursion (twelve squarings), not one multiplication per
+;; exponent decrement (4095 multiplications on growing operands).
+(check-canonical
+ (expt 2 4096)
+ (apply2 raw-nat-exp
+         (integer->raw-bits 2)
+         (integer->raw-bits 4096)))
+
+(for ([function (in-list
+                 (list raw-nat-odd
+                       raw-nat-even
+                       raw-nat-half))])
+  (check-equal?
+   (procedure-arity
+    (lazy-force function))
+   1))
+
+(check-equal?
+ (procedure-arity
+  (lazy-force raw-nat-exp))
+ 1)
+(check-equal?
+ (procedure-arity
+  (lazy-force
+   (lazy-apply raw-nat-exp
+               (integer->raw-bits 3))))
+ 1)

@@ -421,6 +421,9 @@ Euclid's algorithm on that remainder, and the least common multiple divides
 the product by the greatest common divisor behind explicit zero guards, so
 no zero divisor ever reaches the division loop. The raw division contract
 still requires a nonzero divisor; the strict layer owns the zero policy.
+Parity reads the final bit of the normalized value, halving drops it, and
+exponentiation recurses on the halved exponent with one squaring per bit —
+never one multiplication per exponent decrement.
 None of these algorithms converts through Church numerals or host numbers.
 Since Step 32.1 the module contains only normalized binary-list values and
 raw operations: it requires exactly the macro layer, the fixed-point helper,

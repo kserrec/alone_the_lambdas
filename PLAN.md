@@ -1342,17 +1342,29 @@ boundary inventory on 2026-09-01.
 
 ### Step 32.3 — Add the helpers needed for powers
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add pure binary Nat even, odd, halving, and exponentiation-by-squaring
+- [x] Add pure binary Nat even, odd, halving, and exponentiation-by-squaring
   operations.
-- Keep these as private raw operations.
-- Test zero and one exponents, odd and even exponents, zero and negative-case
+- [x] Keep these as private raw operations.
+- [x] Test zero and one exponents, odd and even exponents, zero and negative-case
   prerequisites, and values large enough to prove that the implementation is
   not decrementing the exponent once per multiplication.
 
 Acceptance: private Nat supplies every magnitude operation required by Int and
 Rat powers while remaining pure unary lambda computation.
+
+Completion evidence: `raw-nat-odd` reads the last bit of the normalized
+value, `raw-nat-even` negates it, `raw-nat-half` drops the last bit and
+renormalizes, and `raw-nat-exp` recurses on the halved exponent with one
+squaring per exponent bit, so `raw-nat-exp 2 4096` produces the exact
+4097-bit result in interpreted lazy evaluation — practical only because the
+recursion performs twelve squarings rather than 4,095 multiplications. All
+four remain private raw exports of `core/binary-nat.rkt` under the pinned
+require set. Tests cover parity across boundaries and non-normalized input,
+halving including zero and one, zero/one bases and exponents (`0^0 = 1`
+groundwork), odd and even exponents, host-exponentiation agreement through
+`7^13`, the 2^4096 magnitude proof, and unary arity.
 
 ## Phase 33 — Add private Int
 

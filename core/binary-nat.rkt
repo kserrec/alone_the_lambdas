@@ -19,6 +19,10 @@
          raw-nat-rem
          raw-nat-gcd
          raw-nat-lcm
+         raw-nat-odd
+         raw-nat-even
+         raw-nat-half
+         raw-nat-exp
          raw-nat-equal
          raw-nat-less
          raw-nat-less-equal
@@ -349,3 +353,50 @@
        ((raw-nat-div
          ((raw-nat-mult normalized-left) normalized-right))
         ((raw-nat-gcd normalized-left) normalized-right))))))
+
+(def raw-nat-last-bit-step recur bits =
+  (((raw-if
+     (raw-list-is-nil
+      (raw-list-tail bits)))
+    (raw-list-head bits))
+   (recur (raw-list-tail bits))))
+
+(def raw-nat-odd bits =
+  ((raw-fix raw-nat-last-bit-step)
+   (raw-normalize-nat bits)))
+
+(def raw-nat-even bits =
+  (raw-not (raw-nat-odd bits)))
+
+(def raw-nat-drop-last-bit-step recur bits =
+  (((raw-if
+     (raw-list-is-nil
+      (raw-list-tail bits)))
+    NIL)
+   ((raw-cons
+     (raw-list-head bits))
+    (recur (raw-list-tail bits)))))
+
+(def raw-nat-half bits =
+  (raw-normalize-nat
+   ((raw-fix raw-nat-drop-last-bit-step)
+    (raw-normalize-nat bits))))
+
+(def raw-nat-exp-step recur base exponent =
+  (((raw-if
+     (raw-nat-is-zero exponent))
+    raw-one-bits)
+   (lambda-let half-power =
+     ((recur base)
+      (raw-nat-half exponent))
+     (lambda-let squared =
+       ((raw-nat-mult half-power) half-power)
+       (((raw-if
+          (raw-nat-odd exponent))
+         ((raw-nat-mult squared) base))
+        squared)))))
+
+(def raw-nat-exp base exponent =
+  (((raw-fix raw-nat-exp-step)
+    (raw-normalize-nat base))
+   (raw-normalize-nat exponent)))
