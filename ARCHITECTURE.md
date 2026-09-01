@@ -434,7 +434,14 @@ depends on no tag, object, typed function, effect, codec, or host machinery.
 raw untagged pair of a raw Boolean sign (true means nonnegative) and a
 normalized magnitude. Every supported construction routes through
 `raw-make-int`, which turns any attempted negative zero into positive zero,
-so Int zero has exactly one representation. Int exists solely as Rat's
+so Int zero has exactly one representation. Same-sign addition adds
+magnitudes; mixed-sign addition subtracts the smaller magnitude from the
+larger and keeps the larger operand's sign; subtraction adds the negation;
+multiplication compares signs and multiplies magnitudes; ordering puts any
+negative below any nonnegative and reverses the magnitude comparison between
+two negatives; parity reads the magnitude. Every result routes through the
+canonical constructor, so operations whose mathematical result is zero
+produce positive zero. Int exists solely as Rat's
 numerator machinery: it has no type tag, no typed layer, no literal, no
 reader in any production path, and no language export. `readers/int.rkt`
 observes a completed Int as a signed host integer for tests and humans only.

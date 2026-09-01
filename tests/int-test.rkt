@@ -145,3 +145,112 @@
   (check-equal?
    (procedure-arity (lazy-force function))
    1))
+
+;; Step 33.2: signed arithmetic and comparison. Every combination of
+;; positive, negative, and zero operands, including operations whose
+;; mathematical result is zero, which must come back as positive zero.
+
+(define signed-operands
+  '(-256 -255 -17 -5 -2 -1 0 1 2 5 17 255 256))
+
+(for* ([left-integer (in-list signed-operands)]
+       [right-integer (in-list signed-operands)])
+  (define left (integer->int left-integer))
+  (define right (integer->int right-integer))
+  (define (binary-int function)
+    (apply2 function left right))
+  (define (binary-boolean function)
+    (raw-boolean->boolean (binary-int function)))
+  (check-equal? (int->integer (binary-int raw-int-add))
+                (+ left-integer right-integer))
+  (check-equal? (int->integer (binary-int raw-int-sub))
+                (- left-integer right-integer))
+  (check-equal? (int->integer (binary-int raw-int-mult))
+                (* left-integer right-integer))
+  (check-equal? (binary-boolean raw-int-equal)
+                (= left-integer right-integer))
+  (check-equal? (binary-boolean raw-int-less)
+                (< left-integer right-integer))
+  (check-equal? (binary-boolean raw-int-less-equal)
+                (<= left-integer right-integer))
+  (check-equal? (binary-boolean raw-int-greater)
+                (> left-integer right-integer))
+  (check-equal? (binary-boolean raw-int-greater-equal)
+                (>= left-integer right-integer))
+  (when (zero? (+ left-integer right-integer))
+    (check-true
+     (int-sign-nonnegative? (binary-int raw-int-add))))
+  (when (zero? (- left-integer right-integer))
+    (check-true
+     (int-sign-nonnegative? (binary-int raw-int-sub))))
+  (when (zero? (* left-integer right-integer))
+    (check-true
+     (int-sign-nonnegative? (binary-int raw-int-mult)))))
+
+;; Successor and predecessor cross zero with one representation of zero.
+(for ([integer (in-list '(-3 -2 -1 0 1 2 255 -256))])
+  (define value (integer->int integer))
+  (check-equal? (int->integer (lazy-apply raw-int-succ value))
+                (add1 integer))
+  (check-equal? (int->integer (lazy-apply raw-int-pred value))
+                (sub1 integer)))
+
+(check-true
+ (int-sign-nonnegative?
+  (lazy-apply raw-int-succ (integer->int -1))))
+(check-true
+ (int-sign-nonnegative?
+  (lazy-apply raw-int-pred (integer->int 1))))
+
+;; Parity ignores the sign.
+(for ([case (in-list '((0 #f) (1 #t) (-1 #t) (2 #f) (-2 #f)
+                       (255 #t) (-255 #t) (256 #f) (-256 #f)))])
+  (define value (integer->int (first case)))
+  (check-equal?
+   (raw-boolean->boolean (lazy-apply raw-int-odd value))
+   (second case))
+  (check-equal?
+   (raw-boolean->boolean (lazy-apply raw-int-even value))
+   (not (second case))))
+
+;; Larger magnitudes stay exact and canonical.
+(for ([case (in-list '((123456 -654321) (-123456 -654321)
+                       (999999937 -31607)))])
+  (define left-integer (first case))
+  (define right-integer (second case))
+  (define left (integer->int left-integer))
+  (define right (integer->int right-integer))
+  (check-equal?
+   (int->integer (apply2 raw-int-add left right))
+   (+ left-integer right-integer))
+  (check-equal?
+   (int->integer (apply2 raw-int-mult left right))
+   (* left-integer right-integer)))
+
+;; Arithmetic operations remain chains of unary lambdas.
+(for ([function (in-list
+                 (list raw-int-add
+                       raw-int-sub
+                       raw-int-mult
+                       raw-int-equal
+                       raw-int-less
+                       raw-int-less-equal
+                       raw-int-greater
+                       raw-int-greater-equal))])
+  (check-equal?
+   (procedure-arity (lazy-force function))
+   1)
+  (check-equal?
+   (procedure-arity
+    (lazy-force
+     (lazy-apply function (integer->int 3))))
+   1))
+
+(for ([function (in-list
+                 (list raw-int-succ
+                       raw-int-pred
+                       raw-int-odd
+                       raw-int-even))])
+  (check-equal?
+   (procedure-arity (lazy-force function))
+   1))

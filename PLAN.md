@@ -1403,21 +1403,34 @@ arity.
 
 ### Step 33.2 — Add signed arithmetic and comparison
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Adapt the useful `all_the_lambdas` Int algorithms for successor,
+- [x] Adapt the useful `all_the_lambdas` Int algorithms for successor,
   predecessor, addition, subtraction, multiplication, equality, ordering,
   absolute value, and parity.
-- Route every result through the canonical Int constructor.
-- Test every combination of positive, negative, and zero operands, including
+- [x] Route every result through the canonical Int constructor.
+- [x] Test every combination of positive, negative, and zero operands, including
   operations whose mathematical result is zero.
-- Do not copy `all_the_lambdas`'s separate negative zero, division-by-zero-as-
+- [x] Do not copy `all_the_lambdas`'s separate negative zero, division-by-zero-as-
   zero, or negative-integer-power-as-zero conventions.
-- Add only the private Int operations that Rat actually uses; do not create an
+- [x] Add only the private Int operations that Rat actually uses; do not create an
   unused public or typed Int library.
 
 Acceptance: Rat has a complete signed numerator foundation, and every Int
 answer is produced solely by pure untyped lambdas in one standard form.
+
+Completion evidence: `core/int.rkt` adds succ, pred, add, sub, mult, equal,
+the four orderings, odd, and even as raw curried operations. Same-sign
+addition adds magnitudes; mixed-sign addition subtracts the smaller
+magnitude from the larger under the larger operand's sign; subtraction adds
+the negation; multiplication compares signs; ordering places negatives below
+nonnegatives and reverses magnitude comparison between negatives; parity
+reads the magnitude. Every arithmetic result routes through the canonical
+constructor, and the 13×13 signed operand matrix in `tests/int-test.rkt`
+verifies add/sub/mult/all comparisons against host integers, that every
+zero-valued result carries the positive sign, successor and predecessor
+across zero, sign-independent parity, nine-digit magnitudes, and unary
+arity. The full suite passed 8,128 assertions across all 33 test files with the 17-module purity proof and zero-finding boundary inventory. No public or typed Int surface exists.
 
 ## Phase 34 — Add private canonical Rat arithmetic
 
