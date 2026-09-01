@@ -1137,7 +1137,12 @@ binary, tag, or version behavior changes.
 
 # Milestone 4 — Exact rational numbers and foundational values
 
-Status: approved (2026-09-01); implementation not started
+Status: approved (2026-09-01); Step 31.1 complete (2026-09-01)
+
+Kyle directed (2026-09-01) that the entire Milestone 4 update lands on the
+single branch `milestone-4-rationals`. Every Milestone 4 `$next` unit commits
+and pushes that branch instead of `main`; `main` receives the milestone only
+when it is complete and Kyle merges or approves the merge.
 
 ## Controlling rule — absolute object-language purity
 
@@ -1219,28 +1224,47 @@ three specifications remain the authority over every later Step.
 
 ### Step 31.1 — Amend the specifications
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Update all three specification documents together so they state the final
+- [x] Update all three specification documents together so they state the final
   public type set and exact public operation names.
-- Specify the private Nat and Int representations and the canonical Rat
+- [x] Specify the private Nat and Int representations and the canonical Rat
   representation.
-- Specify rational construction, normalization, arithmetic, comparison,
+- [x] Specify rational construction, normalization, arithmetic, comparison,
   floor, division, reciprocal, and exponent behavior.
-- Specify accepted exact integer and fraction literals and rejection of
+- [x] Specify accepted exact integer and fraction literals and rejection of
   inexact Racket numbers.
-- Specify Unit, Byte, Option, and Map representations and operations.
-- Specify every new contract, invariant, and expected-computation error.
-- Specify the pure equality-function contract used by Map.
-- Preserve the existing host, codec, reader, type-checker, and absolute-purity
+- [x] Specify Unit, Byte, Option, and Map representations and operations.
+- [x] Specify every new contract, invariant, and expected-computation error.
+- [x] Specify the pure equality-function contract used by Map.
+- [x] Preserve the existing host, codec, reader, type-checker, and absolute-purity
   boundaries without expanding their authority.
-- Retire the Nat tag without renumbering existing non-Nat tags.
-- Change no production module, test behavior, or executable behavior in this
+- [x] Retire the Nat tag without renumbering existing non-Nat tags.
+- [x] Change no production module, test behavior, or executable behavior in this
   Step.
 
 Acceptance: all three specifications agree on the new language, their stated
 precedence remains unambiguous, and every later Step has an authoritative
 contract rather than making a language-design decision during implementation.
+
+Completion evidence: each specification received an explicitly dated,
+append-only "Milestone 4 Amendment (2026-09-01)" section that wins over its
+own earlier sections; pre-amendment bytes are unchanged above the amendment
+markers. The main specification's amendment fixes the eleven-type public set,
+private Nat/Int machinery, canonical reduced Rat with sole positive zero and
+nonzero denominator, the exact Rat operation set (`SUCC ADD SUB MULT DIV EXP
+RECIP NEG ABS FLOOR EQ LT LTE GT GTE IS-ZERO IS-WHOLE IS-NONNEGATIVE-WHOLE`),
+exact-literal acceptance and inexact rejection, Unit, Byte with `List Byte`
+sequences, Option, persistent Map with its pure key-equality contract, the
+post-milestone effect signatures, and the new `NON-WHOLE-EXPONENT`,
+`INVALID-COUNT`, and `INVALID-BYTE` kinds. The purity addendum's amendment
+retires tag 3 permanently unassigned, assigns 7 RAT, 8 UNIT, 9 BYTE,
+10 OPTION, 11 MAP, and extends absolute purity verbatim to every new type
+without widening the macro/codec/host/reader seams. The naming addendum's
+amendment fixes retained, new, and retired public spellings. The
+specifications README records the new provenance hashes with the prior hashes
+preserved as history. No production module, test, or executable behavior
+changed; the full suite passed unchanged after the edit.
 
 ## Phase 32 — Turn binary Nat into a clean private arithmetic foundation
 
