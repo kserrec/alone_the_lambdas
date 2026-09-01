@@ -414,14 +414,18 @@ successor, addition, saturating subtraction, multiplication, equality, and all
 four order comparisons directly on MSB-first digit Lists. Addition and
 subtraction reverse their operands for carry and borrow propagation;
 multiplication scans one operand with binary shift-and-add. Division performs
-MSB-first binary long division, maintaining a remainder and building quotient
-bits without repeated host or Church arithmetic. Its raw contract requires a
-nonzero divisor; the strict layer owns the zero policy. None of these
-algorithms converts through Church numerals or host numbers. Since Step 32.1
-the module contains only normalized binary-list values and raw operations: it
-requires exactly the macro layer, the fixed-point helper, raw Lists, and raw
-logic, exports only `raw-` bindings, and depends on no tag, object, typed
-function, effect, codec, or host machinery.
+MSB-first binary long division: one traversal produces a raw pair holding
+both quotient and remainder, `raw-nat-div` selects the quotient, and
+`raw-nat-rem` selects the remainder. The greatest common divisor iterates
+Euclid's algorithm on that remainder, and the least common multiple divides
+the product by the greatest common divisor behind explicit zero guards, so
+no zero divisor ever reaches the division loop. The raw division contract
+still requires a nonzero divisor; the strict layer owns the zero policy.
+None of these algorithms converts through Church numerals or host numbers.
+Since Step 32.1 the module contains only normalized binary-list values and
+raw operations: it requires exactly the macro layer, the fixed-point helper,
+raw Lists, raw logic, and raw pairs, exports only `raw-` bindings, and
+depends on no tag, object, typed function, effect, codec, or host machinery.
 
 `core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
 `raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved

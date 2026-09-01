@@ -8,6 +8,7 @@
          "../core/lists.rkt"
          "../core/logic.rkt"
          "../core/objects.rkt"
+         "../core/pair.rkt"
          "../core/tags.rkt"
          "../core/typed-nat.rkt"
          "../readers/nat.rkt"
@@ -352,7 +353,8 @@
               '("../macros/macros.rkt"
                 "fix.rkt"
                 "lists.rkt"
-                "logic.rkt"))
+                "logic.rkt"
+                "pair.rkt"))
 
 (define binary-nat-source-provides
   (append-map cdr
@@ -391,3 +393,110 @@
                (format "tagged or privileged symbol in binary-nat: ~s" name))
   (check-false (regexp-match? #rx"-type$" (symbol->string name))
                (format "type-tag symbol in binary-nat: ~s" name)))
+
+;; Step 32.2: one binary long-division traversal yields both quotient and
+;; remainder; remainder, greatest common divisor, and least common multiple
+;; build on that result without changing existing division answers.
+
+(define (div-rem-results dividend-bits divisor-bits)
+  (define pair-result
+    (apply2 raw-nat-div-rem dividend-bits divisor-bits))
+  (values (lazy-apply raw-first pair-result)
+          (lazy-apply raw-second pair-result)))
+
+(for ([case (in-list division-cases)])
+  (define dividend (first case))
+  (define divisor (second case))
+  (define-values (quotient-bits remainder-bits)
+    (div-rem-results (integer->raw-bits dividend)
+                     (integer->raw-bits divisor)))
+  (check-canonical (quotient dividend divisor) quotient-bits)
+  (check-canonical (remainder dividend divisor) remainder-bits)
+  (check-canonical (remainder dividend divisor)
+                   (apply2 raw-nat-rem
+                           (integer->raw-bits dividend)
+                           (integer->raw-bits divisor))))
+
+;; Smaller dividend, exact division, nonzero remainder, zero dividend, and
+;; representative larger values.
+(for ([case (in-list
+             '((1 2 0 1)
+               (8 2 4 0)
+               (7 3 2 1)
+               (0 37 0 0)
+               (65535 255 257 0)
+               (654321 1234 530 301)
+               (999999937 31607 31638 17671)))])
+  (define-values (quotient-bits remainder-bits)
+    (div-rem-results (integer->raw-bits (first case))
+                     (integer->raw-bits (second case))))
+  (check-canonical (third case) quotient-bits)
+  (check-canonical (fourth case) remainder-bits))
+
+;; Non-normalized operands still produce canonical answers.
+(let-values ([(quotient-bits remainder-bits)
+              (div-rem-results
+               (host-bits->raw '(#f #f #t #f #t))
+               leading-zero-two)])
+  (check-canonical 2 quotient-bits)
+  (check-canonical 1 remainder-bits))
+
+(for ([case (in-list
+             '((0 0 0)
+               (0 7 7)
+               (7 0 7)
+               (1 1 1)
+               (12 18 6)
+               (18 12 6)
+               (17 5 1)
+               (255 256 1)
+               (1071 462 21)
+               (123456 654321 3)
+               (259533024 46137344 32)))])
+  (check-canonical
+   (third case)
+   (apply2 raw-nat-gcd
+           (integer->raw-bits (first case))
+           (integer->raw-bits (second case)))))
+
+(check-canonical
+ 2
+ (apply2 raw-nat-gcd
+         leading-zero-two
+         (host-bits->raw '(#f #t #f #f))))
+
+;; The zero guards are the only paths that avoid dividing by a zero
+;; greatest common divisor: without them, either LCM operand being zero
+;; would send a zero divisor into the raw division loop.
+(for ([case (in-list
+             '((0 0 0)
+               (0 5 0)
+               (5 0 0)
+               (1 1 1)
+               (4 6 12)
+               (6 4 12)
+               (7 13 91)
+               (21 6 42)
+               (462 1071 23562)
+               (123456 654321 26926617792)))])
+  (check-canonical
+   (third case)
+   (apply2 raw-nat-lcm
+           (integer->raw-bits (first case))
+           (integer->raw-bits (second case)))))
+
+(for ([function (in-list
+                 (list raw-nat-div-rem
+                       raw-nat-rem
+                       raw-nat-gcd
+                       raw-nat-lcm))])
+  (check-equal?
+   (procedure-arity
+    (lazy-force function))
+   1)
+  (check-equal?
+   (procedure-arity
+    (lazy-force
+     (lazy-apply function
+                 (integer->raw-bits 6))))
+   1))

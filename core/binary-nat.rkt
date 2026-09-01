@@ -3,7 +3,8 @@
 (require "../macros/macros.rkt"
          "fix.rkt"
          "lists.rkt"
-         "logic.rkt")
+         "logic.rkt"
+         "pair.rkt")
 
 (provide raw-zero-bits
          raw-one-bits
@@ -13,7 +14,11 @@
          raw-nat-add
          raw-nat-sub
          raw-nat-mult
+         raw-nat-div-rem
          raw-nat-div
+         raw-nat-rem
+         raw-nat-gcd
+         raw-nat-lcm
          raw-nat-equal
          raw-nat-less
          raw-nat-less-equal
@@ -284,11 +289,13 @@
       (raw-nat-succ doubled))
      doubled)))
 
-(def raw-nat-div-step recur remaining divisor remainder quotient-reversed =
+(def raw-nat-div-rem-step recur remaining divisor remainder quotient-reversed =
   (((raw-if
      (raw-list-is-nil remaining))
-    (raw-normalize-nat
-     (raw-reverse quotient-reversed)))
+    ((raw-pair
+      (raw-normalize-nat
+       (raw-reverse quotient-reversed)))
+     (raw-normalize-nat remainder)))
    (lambda-let shifted =
      ((raw-nat-shift-in remainder)
       (raw-list-head remaining))
@@ -304,9 +311,41 @@
         ((raw-cons subtracts)
          quotient-reversed))))))
 
-(def raw-nat-div dividend divisor =
-  (((((raw-fix raw-nat-div-step)
+(def raw-nat-div-rem dividend divisor =
+  (((((raw-fix raw-nat-div-rem-step)
       (raw-normalize-nat dividend))
      (raw-normalize-nat divisor))
     raw-zero-bits)
    NIL))
+
+(def raw-nat-div dividend divisor =
+  (raw-first
+   ((raw-nat-div-rem dividend) divisor)))
+
+(def raw-nat-rem dividend divisor =
+  (raw-second
+   ((raw-nat-div-rem dividend) divisor)))
+
+(def raw-nat-gcd-step recur left right =
+  (((raw-if
+     (raw-nat-is-zero right))
+    left)
+   ((recur right)
+    ((raw-nat-rem left) right))))
+
+(def raw-nat-gcd left right =
+  (((raw-fix raw-nat-gcd-step)
+    (raw-normalize-nat left))
+   (raw-normalize-nat right)))
+
+(def raw-nat-lcm left right =
+  (lambda-let normalized-left = (raw-normalize-nat left)
+    (lambda-let normalized-right = (raw-normalize-nat right)
+      (((raw-if
+         ((raw-or
+           (raw-nat-is-zero normalized-left))
+          (raw-nat-is-zero normalized-right)))
+        raw-zero-bits)
+       ((raw-nat-div
+         ((raw-nat-mult normalized-left) normalized-right))
+        ((raw-nat-gcd normalized-left) normalized-right))))))

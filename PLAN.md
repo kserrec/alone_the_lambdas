@@ -1308,21 +1308,37 @@ public operation, representation, or host authority changed.
 
 ### Step 32.2 — Add quotient with remainder, remainder, greatest common divisor, and least common multiple
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Extend AttaLambda's current binary long-division traversal so one pure
+- [x] Extend AttaLambda's current binary long-division traversal so one pure
   calculation produces both quotient and remainder.
-- Keep the existing raw division operation as selection of the quotient from
+- [x] Keep the existing raw division operation as selection of the quotient from
   that result, preserving its current answers.
-- Build remainder, greatest common divisor, and least common multiple from
+- [x] Build remainder, greatest common divisor, and least common multiple from
   that pure result.
-- Do not replace AttaLambda's current division with the older
+- [x] Do not replace AttaLambda's current division with the older
   `all_the_lambdas` implementation.
-- Test normalization, a smaller dividend, exact division, nonzero remainder,
+- [x] Test normalization, a smaller dividend, exact division, nonzero remainder,
   zero dividend, large binary values, and the internal zero-divisor guard.
 
 Acceptance: Rat reduction and floor have the private division information they
 need, with no host arithmetic and no change to existing Nat division results.
+
+Completion evidence: the existing MSB-first long-division loop now returns a
+raw pair of quotient and remainder (`raw-nat-div-rem`); `raw-nat-div` selects
+the quotient from that pair with unchanged answers, `raw-nat-rem` selects the
+remainder, `raw-nat-gcd` iterates Euclid's algorithm on the remainder with
+its zero test guarding the recursive division, and `raw-nat-lcm` divides the
+product by the greatest common divisor behind an explicit either-operand-zero
+guard, so no zero divisor reaches the division loop (the `lcm 0 0` test fails
+without it). `core/binary-nat.rkt` additionally requires only `pair.rkt`,
+which the structural require pin now reflects. Focused tests cover the
+quotient/remainder pair across all previous division cases, smaller
+dividends, exact division, nonzero remainders, zero dividends,
+non-normalized operands, nine-digit values, gcd/lcm identities and large
+values, and unary arity. The full suite passed 6,296 assertions across all
+32 test files with the unchanged 16-module purity proof and zero-finding
+boundary inventory on 2026-09-01.
 
 ### Step 32.3 — Add the helpers needed for powers
 
