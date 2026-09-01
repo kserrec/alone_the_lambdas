@@ -2,9 +2,12 @@
 
 This plan implements the specification milestones in dependency order. Phases
 0 through 12 complete the pure core. Phases 13 through 20 build the explicitly
-deferred effects and standalone-language milestone. Each phase is one coherent
-`$next` unit: implement every listed step, add focused tests, run the full
-suite, update documentation, then commit and push `main`.
+deferred effects and standalone-language milestone. Completed Phases 0 through
+30 use one Phase as one coherent `$next` unit. Milestone 4 is intentionally
+larger: each explicitly numbered Step is one coherent `$next` unit, and each
+Phase groups related Steps. Every `$next` unit implements all of its listed
+work, adds focused tests, runs the full suite, updates relevant documentation,
+then commits and pushes `main`.
 
 The three files under [docs/specifications](docs/specifications/README.md) are
 the authority. The purity addendum overrides weaker purity examples, and the
@@ -1131,3 +1134,528 @@ Linux x86-64, and receives no instruction to bypass macOS or Windows security
 controls. Historical evidence remains literal. No language, runner, runtime,
 effect, reader, macro, expander, build harness, CI job, legal notice, Linux
 binary, tag, or version behavior changes.
+
+# Milestone 4 — Exact rational numbers and foundational values
+
+Status: approved (2026-09-01); implementation not started
+
+## Controlling rule — absolute object-language purity
+
+Every new object-language value and every computation involving private Nat,
+private Int, public Rat, Unit, Byte, Option, or Map must be implemented
+entirely with variables, unary `lambda`, and application after macro
+expansion. This governs representations, constructors, normalization,
+arithmetic, comparison, powers, conversions between object-language types,
+type and value checks, error decisions, Option selection, and every Map
+operation.
+
+Racket must not calculate or decide an AttaLambda program's result. In
+particular, Rat and Int operations may not use Racket arithmetic, Map may not
+use a Racket hash table or other host collection, and no new type may use
+Racket conditionals, pattern matching, equality, loops, mutation, exceptions,
+or data access for object-language computation.
+
+The existing classified seams remain unchanged in purpose:
+
+- macros may mechanically expand source into pure unary lambda terms;
+- `runtime/codec.rkt` may deterministically translate validated values across
+  the Racket/AttaLambda boundary, but may not perform object-language
+  arithmetic or decide object-language results;
+- `runtime/host.rkt` may perform only the explicitly approved external effects
+  and conversions at its existing narrow boundary; and
+- readers, tests, and tooling may observe or verify values but may not enter a
+  production computation path.
+
+`all_the_lambdas` is an algorithmic ancestor and source of test cases, not an
+authority over AttaLambda's purity rules. Every borrowed idea must be rebuilt
+as pure untyped lambda calculus and rejected or changed if it cannot satisfy
+this rule. If any planned feature appears to require a broader Racket role,
+implementation stops and the conflict is surfaced instead of weakening the
+purity promise.
+
+## Settled design
+
+- Rat becomes the only number type users see.
+- Binary Nat remains private machinery for magnitudes, counting, characters,
+  bytes, ports, and similar whole-number work.
+- Int remains private machinery: a sign plus a binary Nat magnitude.
+- Rat contains an Int numerator and a positive Nat denominator.
+- Int zero has only one representation: positive zero.
+- Rat zero has only one representation: positive `0/1`.
+- Every Rat is reduced to its simplest equivalent fraction.
+- A zero denominator is invalid. It never means zero.
+- `DIV` by zero returns `Result Err`.
+- `EXP` accepts only whole-number exponents. Every fractional exponent is
+  rejected, even when that particular power would happen to have a rational
+  answer.
+- Negative whole exponents use the reciprocal. Zero raised to a negative
+  exponent returns `Result Err`.
+- `0^0` remains `1`, following `all_the_lambdas`.
+- Exponentiation uses repeated squaring rather than decrementing the exponent
+  one by one.
+- Wrong argument types produce Error. Expected arithmetic failures produce
+  `Result Err`.
+- The existing generalized exact-tag checker remains. There is no numeric
+  hierarchy, automatic promotion system, generic arithmetic dispatcher, or
+  arity-specific checker.
+- Unit, Byte, Option, and Map become public types.
+- Byte is data, not a second number type. Rat arithmetic rejects Byte.
+- A byte sequence is `List Byte`; there is no separate Bytes type.
+- Map receives a pure object-language equality function for comparing keys.
+  The central type checker gains no special Map mechanism.
+- Map lookup returns Option.
+- Unit replaces uses of `NIL` that currently mean “the operation succeeded but
+  has no useful answer.”
+- Pair remains. Tuples remain nested Pairs. A Set can later be represented by
+  a Map whose values are Unit.
+- No public Nat, public Int, floating point, approximate decimal arithmetic,
+  logarithms, trigonometry, irrational constants, Tuple type, Bytes type, or
+  Set type is added in this milestone.
+
+## Phase 31 — Make the new language contract authoritative
+
+This Phase changes the specifications before executable work begins. The
+three specifications remain the authority over every later Step.
+
+### Step 31.1 — Amend the specifications
+
+Status: pending
+
+- Update all three specification documents together so they state the final
+  public type set and exact public operation names.
+- Specify the private Nat and Int representations and the canonical Rat
+  representation.
+- Specify rational construction, normalization, arithmetic, comparison,
+  floor, division, reciprocal, and exponent behavior.
+- Specify accepted exact integer and fraction literals and rejection of
+  inexact Racket numbers.
+- Specify Unit, Byte, Option, and Map representations and operations.
+- Specify every new contract, invariant, and expected-computation error.
+- Specify the pure equality-function contract used by Map.
+- Preserve the existing host, codec, reader, type-checker, and absolute-purity
+  boundaries without expanding their authority.
+- Retire the Nat tag without renumbering existing non-Nat tags.
+- Change no production module, test behavior, or executable behavior in this
+  Step.
+
+Acceptance: all three specifications agree on the new language, their stated
+precedence remains unambiguous, and every later Step has an authoritative
+contract rather than making a language-design decision during implementation.
+
+## Phase 32 — Turn binary Nat into a clean private arithmetic foundation
+
+### Step 32.1 — Separate raw Nat arithmetic from the public Nat object
+
+Status: pending
+
+- Make `core/binary-nat.rkt` contain only normalized binary-list values and
+  raw binary Nat operations.
+- Move the current tagged Nat construction and public constants into the
+  existing typed Nat layer as temporary compatibility code.
+- Preserve every current public result while this separation is made.
+- Set the single development version to `0.3.0-dev` and keep every projection
+  of that version synchronized.
+- Add structural tests proving that private binary Nat arithmetic does not
+  depend on tags, objects, typed functions, effects, the codec, or the host.
+
+Acceptance: current programs behave identically, while the raw Nat foundation
+can support Int and Rat without carrying a public Nat object into them.
+
+### Step 32.2 — Add quotient with remainder, remainder, greatest common divisor, and least common multiple
+
+Status: pending
+
+- Extend AttaLambda's current binary long-division traversal so one pure
+  calculation produces both quotient and remainder.
+- Keep the existing raw division operation as selection of the quotient from
+  that result, preserving its current answers.
+- Build remainder, greatest common divisor, and least common multiple from
+  that pure result.
+- Do not replace AttaLambda's current division with the older
+  `all_the_lambdas` implementation.
+- Test normalization, a smaller dividend, exact division, nonzero remainder,
+  zero dividend, large binary values, and the internal zero-divisor guard.
+
+Acceptance: Rat reduction and floor have the private division information they
+need, with no host arithmetic and no change to existing Nat division results.
+
+### Step 32.3 — Add the helpers needed for powers
+
+Status: pending
+
+- Add pure binary Nat even, odd, halving, and exponentiation-by-squaring
+  operations.
+- Keep these as private raw operations.
+- Test zero and one exponents, odd and even exponents, zero and negative-case
+  prerequisites, and values large enough to prove that the implementation is
+  not decrementing the exponent once per multiplication.
+
+Acceptance: private Nat supplies every magnitude operation required by Int and
+Rat powers while remaining pure unary lambda computation.
+
+## Phase 33 — Add private Int
+
+### Step 33.1 — Add the representation and enforce one zero
+
+Status: pending
+
+- Add a private Int representation consisting of a Bool sign and normalized
+  binary Nat magnitude.
+- Route every construction through one pure function that turns any attempted
+  signed zero into positive zero.
+- Add private sign, magnitude, zero, negation, and absolute-value operations.
+- Add an Int reader for tests and human inspection only.
+- Add no Int type tag, public Int constructor, Int literal, typed Int layer, or
+  `#lang attalambda` export.
+
+Acceptance: negative zero cannot be constructed through any supported private
+Int operation, and Int remains pure untagged machinery unavailable to users.
+
+### Step 33.2 — Add signed arithmetic and comparison
+
+Status: pending
+
+- Adapt the useful `all_the_lambdas` Int algorithms for successor,
+  predecessor, addition, subtraction, multiplication, equality, ordering,
+  absolute value, and parity.
+- Route every result through the canonical Int constructor.
+- Test every combination of positive, negative, and zero operands, including
+  operations whose mathematical result is zero.
+- Do not copy `all_the_lambdas`'s separate negative zero, division-by-zero-as-
+  zero, or negative-integer-power-as-zero conventions.
+- Add only the private Int operations that Rat actually uses; do not create an
+  unused public or typed Int library.
+
+Acceptance: Rat has a complete signed numerator foundation, and every Int
+answer is produced solely by pure untyped lambdas in one standard form.
+
+## Phase 34 — Add private canonical Rat arithmetic
+
+### Step 34.1 — Add Rat construction and reduction
+
+Status: pending
+
+- Add a private Rat representation consisting of an Int numerator and a
+  positive binary Nat denominator.
+- Reject denominator zero as an invariant failure.
+- Reduce numerator and denominator by their greatest common divisor.
+- Force every zero result to positive `0/1`.
+- Add private selectors, constants, and a Rat reader for tests and human
+  inspection.
+- Route every supported Rat construction through the same canonical
+  constructor.
+
+Acceptance: equal rational values have one stored representation, denominator
+zero is never a value, and neither positive nor negative noncanonical zero can
+escape construction.
+
+### Step 34.2 — Add ordinary rational operations
+
+Status: pending
+
+- Add pure negation, absolute value, addition, subtraction, and
+  multiplication.
+- Add pure equality and ordering.
+- Add zero, whole-number, and nonnegative-whole-number checks.
+- Add floor with correct behavior for negative fractions and negative whole
+  values.
+- Route every Rat result through canonical construction.
+- Reuse sound `all_the_lambdas` algorithms and test cases, but retain
+  AttaLambda's existing binary arithmetic where it is already clearer or more
+  efficient.
+
+Acceptance: ordinary Rat operations are exact, reduced, have only positive
+zero, and contain no Racket computation in their implementation path.
+
+### Step 34.3 — Add rational division and powers
+
+Status: pending
+
+- Add reciprocal and exact division with explicit zero checks.
+- Add whole-exponent rational powers using the private binary
+  exponentiation-by-squaring operation.
+- Reject every fractional exponent rather than flooring it or attempting
+  special perfect-root detection.
+- Support negative whole exponents through reciprocal.
+- Preserve `0^0 = 1`; reject zero raised to a negative exponent.
+- Test division by zero, reciprocal of zero, positive and negative exponents,
+  odd and even powers of negative bases, fractional exponents that would and
+  would not happen to yield rationals, and large exponents.
+
+Acceptance: division and exponent failure are explicit, no operation silently
+changes its mathematical question, and every successful answer is a canonical
+Rat produced by pure lambdas.
+
+## Phase 35 — Replace the public Nat surface with Rat
+
+Rat may exist privately during the early Steps in this Phase, but Nat and Rat
+must never both be presented as public number types.
+
+### Step 35.1 — Add the tagged Rat layer
+
+Status: pending
+
+- Add the Rat type tag without changing the numeric identities of existing
+  non-Nat tags.
+- Add strict Rat functions using the existing generalized checker unchanged.
+- Provide Rat implementations for `SUCC`, `ADD`, `SUB`, `MULT`, `DIV`, `EXP`,
+  `EQ`, `LT`, `LTE`, `GT`, `GTE`, and `IS-ZERO`.
+- Add the approved public operations for negation, absolute value, reciprocal,
+  floor, whole-number checking, and nonnegative-whole-number checking.
+- Make division, reciprocal, and exponentiation return `Result` where their
+  expected arithmetic failures require it; keep wrong argument types as
+  Error.
+- Keep this tagged Rat layer out of the `#lang attalambda` exports until the
+  complete public switch.
+
+Acceptance: the exact-tag checker handles Rat exactly as it handles every
+other tag, with no numeric hierarchy, promotion logic, dispatcher, or new
+checker form.
+
+### Step 35.2 — Add Rat conversion and literal construction
+
+Status: pending
+
+- Extend `runtime/codec.rkt` to translate exact Racket integers and fractions
+  into canonical Rat values and translate Rat values back for approved host or
+  reader use.
+- Add the production-free Rat reader support needed for human-readable tests
+  and errors.
+- Reject inexact numbers rather than converting an approximate binary
+  floating-point value into a surprising fraction.
+- Keep every arithmetic operation on an existing Rat inside the pure
+  object-language modules. Racket may only decompose or construct the
+  corresponding boundary representation deterministically.
+- Add boundary tests proving that no other production module imports or
+  recreates these conversions.
+
+Acceptance: exact source and boundary numbers can enter and leave AttaLambda
+deterministically without granting Racket any role in Rat computation.
+
+### Step 35.3 — Prepare Rat-based List, String, and Char operations
+
+Status: pending
+
+- Prepare `LEN` and `STRING-LENGTH` to return whole-valued Rat objects.
+- Prepare `TAKE`, `DROP`, and `MAKE-CHAR` to accept Rat and verify that it
+  represents an allowed nonnegative whole number.
+- Keep their actual counting and indexing work on private binary Nat values.
+- Return clear Errors for negative or fractional counts and out-of-range Char
+  values.
+- Keep the existing public Nat behavior active until the single public switch.
+
+Acceptance: every core consumer of the current public Nat surface has a tested
+Rat replacement ready without temporarily exposing two public number types.
+
+### Step 35.4 — Prepare Rat-based effect and host fields
+
+Status: pending
+
+- Prepare ports, handles, backlog sizes, read limits, and other ordinary
+  numeric fields to use Rat objects representing nonnegative whole numbers.
+- Check whole-number and range requirements in pure object-language code
+  before an effect request reaches the host.
+- Convert validated Rat values at the existing deterministic codec boundary.
+- Keep tiny type tags, error kinds, host-operation codes, and argument
+  positions as their separately allowed fixed Church numerals.
+- Keep existing public Nat requests active until the single public switch.
+
+Acceptance: every runtime and effect dependency on public Nat has a tested Rat
+replacement, while host authority and the codec exception remain no broader
+than before.
+
+### Step 35.5 — Perform the public switch
+
+Status: pending
+
+- Change every accepted exact number literal to construct Rat.
+- Export the Rat operations through `#lang attalambda`.
+- Switch the prepared List, String, Char, effect, codec, and host paths to Rat.
+- Remove public Nat constants, typed functions, type tag, reader, language
+  exports, and obsolete tests.
+- Retain and test only the private raw binary Nat machinery.
+- Update all current examples and documentation together without rewriting
+  completed historical records.
+- Add a repository-wide check that fails if a public or production typed Nat
+  surface is reintroduced.
+
+Acceptance: users see exactly one number type, Rat; every existing numeric
+consumer has its defined Rat behavior; and private Nat remains pure internal
+machinery rather than a second public number system.
+
+## Phase 36 — Add Unit
+
+### Step 36.1 — Add Unit and use it where “nothing” is the answer
+
+Status: pending
+
+- Add one Unit type with exactly one value, `UNIT`.
+- Add its reader and public export.
+- Change successful stdout, file-write, TCP-write, TCP-close, and related
+  server operations from `Ok NIL` to `Ok UNIT`.
+- Preserve `NIL` wherever an actual empty List is the answer.
+- Implement Unit construction, checking, propagation, and effect use entirely
+  with pure object-language lambdas; the host may only return its encoded
+  value through the existing codec boundary.
+- Add effect, host, reader, error, laziness, purity, and boundary tests.
+
+Acceptance: Unit carries successful no-value results, NIL means only an empty
+List, and neither the type nor its effect integration broadens host authority.
+
+## Phase 37 — Add Byte and distinguish binary data from text
+
+### Step 37.1 — Add Byte
+
+Status: pending
+
+- Add Byte values from 0 through 255, internally backed by private binary Nat
+  magnitudes.
+- Add construction from a nonnegative whole Rat, conversion back to Rat,
+  equality, and ordering.
+- Reject negative, fractional, and over-255 inputs.
+- Ensure ordinary Rat arithmetic rejects Byte.
+- Add Byte reader, type, invariant, error, purity, and public-language tests.
+
+Acceptance: Byte is a distinct pure data type with exactly 256 valid values,
+not a second numeric type or a host byte hidden inside an object.
+
+### Step 37.2 — Add pure String and byte-sequence conversion
+
+Status: pending
+
+- Represent a byte sequence as `List Byte`; add no Bytes tag or host-backed
+  byte collection.
+- Add pure conversions between String and `List Byte`.
+- Validate every List element rather than assuming that any List is a byte
+  sequence.
+- Implement traversal, validation, and element conversion entirely with
+  object-language lambdas.
+- Test empty, ordinary text, every boundary byte, embedded zero, invalid List
+  elements, laziness, and Error propagation.
+
+Acceptance: AttaLambda can explicitly cross between text and binary data
+without using Racket to walk, validate, or transform an object-language List.
+
+### Step 37.3 — Move file contents to `List Byte`
+
+Status: pending
+
+- Keep filesystem paths as String.
+- Make file reads return `Result Ok(List Byte)`.
+- Make file writes accept `List Byte` and return `Result Ok(Unit)`.
+- Extend only the deterministic codec conversions and existing host operation
+  needed to exchange external bytes.
+- Keep all object-language List and Byte validation in pure lambdas before the
+  host call.
+- Update file examples, fake hosts, real-host tests, failures, purity checks,
+  and boundary checks together.
+
+Acceptance: arbitrary file bytes round-trip exactly, text and binary data are
+no longer conflated, and the host gains no object-language computation.
+
+### Step 37.4 — Move TCP and HTTP boundaries to `List Byte`
+
+Status: pending
+
+- Make TCP read and write use `List Byte` and make successful writes return
+  `Result Ok(Unit)`.
+- Keep pure HTTP parsing and rendering text-oriented by converting explicitly
+  at the TCP boundary.
+- Preserve binary HTTP bodies without treating arbitrary bytes as text.
+- Update the HTTP server, protocol validation, host conversion, fake hosts,
+  real loopback tests, examples, purity checks, and boundary checks together.
+
+Acceptance: network payloads are explicit byte lists, HTTP remains pure, and
+no Racket string, byte sequence, parser, or branch decides an object-language
+HTTP result.
+
+## Phase 38 — Add Option
+
+### Step 38.1 — Add Some and None
+
+Status: pending
+
+- Add `SOME value` and the singleton `NONE` as the two Option forms.
+- Add checks for Some and None and a lazy pure operation that chooses what to
+  do in either case.
+- Let Some contain any non-Error object-language value without adding an
+  `Any` tag or changing the generalized checker.
+- Propagate an early Error rather than hiding it inside Some.
+- Keep Option distinct from Result: None means expected absence, while
+  `Result Err` means a computation failed.
+- Add reader, representation, branch-laziness, Error-propagation, purity, and
+  public-language tests.
+
+Acceptance: expected absence has a small pure representation and cannot be
+confused with failure, false, zero, NIL, or Unit.
+
+## Phase 39 — Add persistent Map
+
+A persistent Map returns a new Map after setting or removing an entry and
+never alters the old Map.
+
+### Step 39.1 — Add Map representation and lookup
+
+Status: pending
+
+- Construct a Map with a user-supplied pure object-language key-equality
+  function.
+- Store entries as a private object-language List of Pairs, never as a Racket
+  list, association list, hash table, dictionary, struct, or mutable value.
+- Add empty, lookup, and reader behavior.
+- Make lookup return `SOME value` or `NONE`.
+- Check that the supplied equality function returns Bool; otherwise return a
+  structured Error.
+- Implement every search and branch with pure unary lambdas.
+
+Acceptance: lookup works for user-defined key equality, expected absence uses
+Option, and no host collection or host equality participates.
+
+### Step 39.2 — Add Map updates and queries
+
+Status: pending
+
+- Add pure set, remove, contains, empty, and size operations.
+- Replace an existing key without creating a duplicate entry.
+- Return size as a whole-valued Rat.
+- Accept arbitrary non-Error keys and values without adding an `Any` tag or
+  changing the generalized checker.
+- Prove that an older Map still returns its older answers after a new Map is
+  produced from it.
+- Test Rat, String, Char, and Byte equality functions, collisions under a
+  custom equality function, missing keys, replacement, removal, size, Error
+  propagation, partial application, and laziness.
+
+Acceptance: Map is useful, immutable, and entirely lambda-built; Unit values
+can represent set membership without adding a Set type.
+
+## Phase 40 — Milestone acceptance
+
+### Step 40.1 — Prove the complete language together
+
+Status: pending
+
+- Add end-to-end standalone examples covering negative fractions, exact
+  division, powers, Unit effect results, binary file and TCP data, Option, and
+  Map.
+- Re-run the complete structural purity proof and boundary inventory so every
+  new production file is classified and checked.
+- Verify mechanically that every production object-language computation
+  expands to variables, unary `lambda`, and application only.
+- Verify that no public Nat or Int type, literal, function, reader, tag, or
+  export remains.
+- Verify that no Racket arithmetic, conditional, collection, mutation, or
+  equality operation decides an Int, Rat, Unit, Byte, Option, or Map result.
+- Run the complete source suite, supported Linux distribution build, and
+  no-Racket Linux consumer test.
+- Update current documentation and examples, distinguish observed behavior
+  from future possibilities, and record honest performance limits.
+- Leave the version at `0.3.0-dev`; release preparation, signing, artifact
+  publication, tagging, and public claims require a later separate plan and
+  explicit approval.
+
+Acceptance: AttaLambda exposes Rat as its sole number type plus Unit, Byte,
+Option, and Map; all underlying definitions and computation remain pure
+untyped lambda calculus; Racket remains confined to the same narrow mechanical
+and external-world seams; and the complete source and supported-distribution
+verification passes.
