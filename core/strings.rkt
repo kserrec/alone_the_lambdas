@@ -10,10 +10,13 @@
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
+         (only-in "rat.rkt"
+                  raw-whole-rat)
          "tags.rkt"
          "typecheck.rkt")
 
 (provide EMPTY-STRING
+         typed-string-length-rat
          raw-make-string
          raw-string-value
          raw-string-empty?
@@ -184,6 +187,18 @@
      string-length-function-name)
     string-unary-signature)
    (raw-wrap-return nat-type)))
+
+;; Prepared Rat-based length for the Step 35.5 public switch; counting
+;; stays on the raw binary List counter.
+(def raw-string-length-rat chars =
+  (raw-whole-rat
+   (raw-string-length chars)))
+
+(def typed-string-length-rat =
+  ((((make-typed-function raw-string-length-rat)
+     string-length-function-name)
+    string-unary-signature)
+   (raw-wrap-return rat-type)))
 
 (def typed-string-equal =
   ((((make-typed-function raw-string-equal)

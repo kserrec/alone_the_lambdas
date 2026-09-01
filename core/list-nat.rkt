@@ -9,6 +9,13 @@
          "objects.rkt"
          "tags.rkt"
          "typecheck.rkt"
+         (only-in "errors.rkt"
+                  raw-add-result-frame
+                  invalid-count-error)
+         (only-in "rat.rkt"
+                  raw-rat-is-nonnegative-whole
+                  raw-rat-magnitude-bits
+                  raw-whole-rat)
          (only-in "typed-nat.rkt"
                   raw-nat-value
                   ZERO ONE))
@@ -19,7 +26,10 @@
          raw-list-object
          typed-len
          typed-take
-         typed-drop)
+         typed-drop
+         typed-len-rat
+         typed-take-rat
+         typed-drop-rat)
 
 (def raw-list-length-step recur list count =
   (((raw-if
@@ -103,4 +113,53 @@
   ((((make-typed-function raw-list-drop-values)
      drop-function-name)
     nat-list-signature)
+   raw-keep-return))
+
+;; Prepared Rat-based counting surface for the Step 35.5 public switch.
+;; Counting and indexing stay on private binary Nat; the Rat layer only
+;; validates and converts at the typed boundary.
+
+(def rat-list-signature =
+  ((raw-cons rat-type)
+   ((raw-cons list-type) NIL)))
+
+(def raw-list-length-rat-value list-value =
+  (raw-whole-rat
+   (raw-list-length
+    (raw-list-object list-value))))
+
+(def raw-list-take-rat-values count list-value =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole count))
+    ((raw-list-take
+      (raw-rat-magnitude-bits count))
+     (raw-list-object list-value)))
+   ((raw-add-result-frame invalid-count-error)
+    take-function-name)))
+
+(def raw-list-drop-rat-values count list-value =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole count))
+    ((raw-list-drop
+      (raw-rat-magnitude-bits count))
+     (raw-list-object list-value)))
+   ((raw-add-result-frame invalid-count-error)
+    drop-function-name)))
+
+(def typed-len-rat =
+  ((((make-typed-function raw-list-length-rat-value)
+     len-function-name)
+    list-unary-signature)
+   (raw-wrap-return rat-type)))
+
+(def typed-take-rat =
+  ((((make-typed-function raw-list-take-rat-values)
+     take-function-name)
+    rat-list-signature)
+   raw-keep-return))
+
+(def typed-drop-rat =
+  ((((make-typed-function raw-list-drop-rat-values)
+     drop-function-name)
+    rat-list-signature)
    raw-keep-return))

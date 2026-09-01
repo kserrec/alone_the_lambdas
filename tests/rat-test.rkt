@@ -353,3 +353,138 @@
 (check-equal?
  (procedure-arity (lazy-force raw-rat-recip))
  1)
+
+;; Step 35.3: prepared Rat-based List, String, and Char operations. The
+;; public Nat surface stays active; these strict variants are verified
+;; ahead of the single public switch.
+
+(require (only-in "../core/list-nat.rkt"
+                  typed-len-rat
+                  typed-take-rat
+                  typed-drop-rat)
+         (only-in "../core/chars.rkt"
+                  typed-make-char-rat
+                  raw-char-value
+                  A)
+         (only-in "../core/strings.rkt"
+                  typed-string-length-rat
+                  MAKE-STRING)
+         (only-in "../core/tags.rkt"
+                  rat-type
+                  list-type
+                  char-type)
+         (only-in "../readers/error.rkt"
+                  error-value->string)
+         (only-in "../readers/type-tag.rkt"
+                  type-tag->integer)
+         (only-in "../readers/list.rkt"
+                  list->host-list))
+
+(define (object-tag value)
+  (type-tag->integer
+   (lazy-apply raw-object-type value)))
+
+(define (typed-whole-rat exact)
+  (apply2 raw-make-object
+          rat-type
+          (apply2 raw-make-rat
+                  (integer->int (numerator exact))
+                  (integer->raw-bits (denominator exact)))))
+
+(define (typed-rat-object->number value)
+  (rat->number (lazy-apply raw-object-value value)))
+
+(define (char-list length-integer)
+  (apply2 raw-make-object
+          list-type
+          (let loop ([count length-integer])
+            (if (zero? count)
+                (lazy-apply raw-object-value (force NIL))
+                (lazy-apply raw-object-value
+                            (apply2 raw-cons
+                                    A
+                                    (apply2 raw-make-object
+                                            list-type
+                                            (loop (sub1 count)))))))))
+
+;; Simpler: build lists with typed cons-like raw-cons directly.
+(define (value-list values)
+  (foldr
+   (lambda (value tail)
+     (apply2 raw-cons value tail))
+   NIL
+   values))
+
+(define five-chars
+  (value-list (list A A A A A)))
+
+;; LEN returns a whole-valued Rat.
+(let ([length-rat (lazy-apply typed-len-rat five-chars)])
+  (check-equal? (object-tag length-rat) 7)
+  (check-equal? (typed-rat-object->number length-rat) 5))
+
+(let ([length-rat (lazy-apply typed-len-rat NIL)])
+  (check-equal? (typed-rat-object->number length-rat) 0))
+
+;; TAKE and DROP accept nonnegative whole Rat counts.
+(define (list-length-of value)
+  (length (list->host-list value (lambda (element) element))))
+
+(for ([case (in-list '((0 0 5) (2 2 3) (5 5 0) (7 5 0)))])
+  (define taken
+    (apply2 typed-take-rat
+            (typed-whole-rat (first case))
+            five-chars))
+  (define dropped
+    (apply2 typed-drop-rat
+            (typed-whole-rat (first case))
+            five-chars))
+  (check-equal? (object-tag taken) 2)
+  (check-equal? (list-length-of taken) (second case))
+  (check-equal? (list-length-of dropped) (third case)))
+
+;; Negative and fractional counts are INVALID-COUNT Errors carrying the
+;; operation's frame.
+(check-equal?
+ (error-value->string
+  (apply2 typed-take-rat (typed-whole-rat -1) five-chars))
+ "INVALID-COUNT\n  -> TAKE(result)")
+
+(check-equal?
+ (error-value->string
+  (apply2 typed-drop-rat (typed-whole-rat 1/2) five-chars))
+ "INVALID-COUNT\n  -> DROP(result)")
+
+;; Wrong argument types remain ordinary type mismatches.
+(check-equal?
+ (error-value->string
+  (apply2 typed-take-rat A five-chars))
+ "TAKE(arg1 expected RAT got CHAR)")
+
+;; STRING-LENGTH returns a whole-valued Rat.
+(let ([hello (lazy-apply MAKE-STRING five-chars)])
+  (define length-rat
+    (lazy-apply typed-string-length-rat hello))
+  (check-equal? (object-tag length-rat) 7)
+  (check-equal? (typed-rat-object->number length-rat) 5))
+
+;; MAKE-CHAR accepts nonnegative whole Rat codes 0..255 only.
+(for ([code (in-list '(0 65 255))])
+  (define char-value
+    (lazy-apply typed-make-char-rat (typed-whole-rat code)))
+  (check-equal? (object-tag char-value) 5))
+
+(check-equal?
+ (error-value->string
+  (lazy-apply typed-make-char-rat (typed-whole-rat 256)))
+ "INVALID-CHAR\n  -> MAKE-CHAR(result)")
+
+(check-equal?
+ (error-value->string
+  (lazy-apply typed-make-char-rat (typed-whole-rat -1)))
+ "INVALID-COUNT\n  -> MAKE-CHAR(result)")
+
+(check-equal?
+ (error-value->string
+  (lazy-apply typed-make-char-rat (typed-whole-rat 3/2)))
+ "INVALID-COUNT\n  -> MAKE-CHAR(result)")

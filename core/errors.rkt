@@ -15,6 +15,7 @@
          invalid-string-kind
          wrong-result-variant-kind
          non-whole-exponent-kind
+         invalid-count-kind
          result-position
          argument-position-one
          argument-position-two
@@ -49,7 +50,8 @@
          invalid-char-error
          invalid-string-error
          wrong-result-variant-error
-         non-whole-exponent-error)
+         non-whole-exponent-error
+         invalid-count-error)
 
 (def type-mismatch-kind = church-zero)
 (def empty-list-kind = church-one)
@@ -59,6 +61,7 @@
 (def invalid-string-kind = church-five)
 (def wrong-result-variant-kind = church-six)
 (def non-whole-exponent-kind = church-seven)
+(def invalid-count-kind = church-eight)
 
 (def result-position = church-zero)
 (def argument-position-one = church-one)
@@ -201,3 +204,6 @@
 
 (def non-whole-exponent-error =
   (raw-make-root-error non-whole-exponent-kind))
+
+(def invalid-count-error =
+  (raw-make-root-error invalid-count-kind))

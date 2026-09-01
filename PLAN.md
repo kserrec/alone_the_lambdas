@@ -1609,18 +1609,33 @@ change. Codec tests round-trip integers, fractions, negatives, zero, and a
 
 ### Step 35.3 — Prepare Rat-based List, String, and Char operations
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Prepare `LEN` and `STRING-LENGTH` to return whole-valued Rat objects.
-- Prepare `TAKE`, `DROP`, and `MAKE-CHAR` to accept Rat and verify that it
+- [x] Prepare `LEN` and `STRING-LENGTH` to return whole-valued Rat objects.
+- [x] Prepare `TAKE`, `DROP`, and `MAKE-CHAR` to accept Rat and verify that it
   represents an allowed nonnegative whole number.
-- Keep their actual counting and indexing work on private binary Nat values.
-- Return clear Errors for negative or fractional counts and out-of-range Char
+- [x] Keep their actual counting and indexing work on private binary Nat values.
+- [x] Return clear Errors for negative or fractional counts and out-of-range Char
   values.
-- Keep the existing public Nat behavior active until the single public switch.
+- [x] Keep the existing public Nat behavior active until the single public switch.
 
 Acceptance: every core consumer of the current public Nat surface has a tested
 Rat replacement ready without temporarily exposing two public number types.
+
+Completion evidence: `typed-len-rat`, `typed-take-rat`, and `typed-drop-rat`
+in `core/list-nat.rkt`, `typed-make-char-rat` in `core/chars.rkt`, and
+`typed-string-length-rat` in `core/strings.rkt` are strict prepared variants
+kept off the language surface. Lengths convert the existing raw binary List
+counter to a whole Rat through the new `raw-whole-rat` helper; counts and
+character codes validate `IS-NONNEGATIVE-WHOLE` in pure lambda computation
+and then reuse the unchanged raw binary take/drop/range machinery through
+`raw-rat-magnitude-bits`. A negative or fractional count is the new
+INVALID-COUNT contract Error (kind church-eight, added to tags, errors, and
+the error reader), rendered as `INVALID-COUNT\n  -> TAKE(result)` style
+frames; an out-of-range code above 255 remains INVALID-CHAR. Focused tests
+cover whole-Rat lengths for Lists and Strings, take/drop across zero,
+partial, full, and beyond-length counts, all rejection paths, and unchanged
+wrong-type mismatches, while every existing public Nat test still passes. The full suite passed 12,087 assertions across all 35 test files with the 19-module purity proof and zero-finding boundary inventory.
 
 ### Step 35.4 — Prepare Rat-based effect and host fields
 

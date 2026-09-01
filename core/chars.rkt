@@ -9,6 +9,9 @@
          "objects.rkt"
          "tags.rkt"
          "typecheck.rkt"
+         (only-in "rat.rkt"
+                  raw-rat-is-nonnegative-whole
+                  raw-rat-magnitude-bits)
          (only-in "typed-nat.rkt"
                   raw-nat-value
                   ONE FOUR EIGHT NINE TEN))
@@ -16,6 +19,7 @@
 (provide raw-make-char
          raw-char-value
          typed-make-char
+         typed-make-char-rat
          typed-char-equal
          typed-char-less
          typed-char-less-equal
@@ -80,6 +84,26 @@
   ((((make-typed-function raw-make-checked-char)
      make-char-function-name)
     char-constructor-signature)
+   raw-keep-return))
+
+;; Prepared Rat-based constructor for the Step 35.5 public switch. The Rat
+;; must be a nonnegative whole number; range checking stays on private
+;; binary Nat bits.
+(def raw-make-checked-char-rat rat =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole rat))
+    (raw-make-checked-char
+     (raw-rat-magnitude-bits rat)))
+   ((raw-add-result-frame invalid-count-error)
+    make-char-function-name)))
+
+(def char-rat-constructor-signature =
+  ((raw-cons rat-type) NIL))
+
+(def typed-make-char-rat =
+  ((((make-typed-function raw-make-checked-char-rat)
+     make-char-function-name)
+    char-rat-constructor-signature)
    raw-keep-return))
 
 (def typed-char-equal =

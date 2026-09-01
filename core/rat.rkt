@@ -44,7 +44,9 @@
          raw-rat-floor
          raw-rat-recip
          raw-rat-div
-         raw-rat-exp)
+         raw-rat-exp
+         raw-rat-magnitude-bits
+         raw-whole-rat)
 
 (def raw-make-rat numerator denominator =
   (lambda-let normalized-denominator = (raw-normalize-nat denominator)
@@ -72,6 +74,15 @@
 (def raw-rat-denominator-int rat =
   ((raw-make-int raw-true)
    (raw-rat-denominator rat)))
+
+(def raw-rat-magnitude-bits rat =
+  (raw-int-magnitude
+   (raw-rat-numerator rat)))
+
+(def raw-whole-rat bits =
+  ((raw-make-rat
+    ((raw-make-int raw-true) bits))
+   raw-one-bits))
 
 (def raw-rat-negate rat =
   ((raw-make-rat
