@@ -430,6 +430,15 @@ raw operations: it requires exactly the macro layer, the fixed-point helper,
 raw Lists, raw logic, and raw pairs, exports only `raw-` bindings, and
 depends on no tag, object, typed function, effect, codec, or host machinery.
 
+`core/int.rkt` is the private signed layer above raw binary Nat: an Int is a
+raw untagged pair of a raw Boolean sign (true means nonnegative) and a
+normalized magnitude. Every supported construction routes through
+`raw-make-int`, which turns any attempted negative zero into positive zero,
+so Int zero has exactly one representation. Int exists solely as Rat's
+numerator machinery: it has no type tag, no typed layer, no literal, no
+reader in any production path, and no language export. `readers/int.rkt`
+observes a completed Int as a signed host integer for tests and humans only.
+
 `core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
 `raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved
 here from the raw module as temporary compatibility code until Phase 35
@@ -597,6 +606,7 @@ core/
   function-names.rkt
   lists.rkt
   binary-nat.rkt
+  int.rkt
   result.rkt
   chars.rkt
   typed-nat.rkt
@@ -626,6 +636,7 @@ readers/
   type-tag.rkt
   list.rkt
   nat.rkt
+  int.rkt
   char.rkt
   string.rkt
   error.rkt

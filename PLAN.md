@@ -1370,19 +1370,36 @@ groundwork), odd and even exponents, host-exponentiation agreement through
 
 ### Step 33.1 — Add the representation and enforce one zero
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add a private Int representation consisting of a Bool sign and normalized
+- [x] Add a private Int representation consisting of a Bool sign and normalized
   binary Nat magnitude.
-- Route every construction through one pure function that turns any attempted
+- [x] Route every construction through one pure function that turns any attempted
   signed zero into positive zero.
-- Add private sign, magnitude, zero, negation, and absolute-value operations.
-- Add an Int reader for tests and human inspection only.
-- Add no Int type tag, public Int constructor, Int literal, typed Int layer, or
+- [x] Add private sign, magnitude, zero, negation, and absolute-value operations.
+- [x] Add an Int reader for tests and human inspection only.
+- [x] Add no Int type tag, public Int constructor, Int literal, typed Int layer, or
   `#lang attalambda` export.
 
 Acceptance: negative zero cannot be constructed through any supported private
 Int operation, and Int remains pure untagged machinery unavailable to users.
+
+Completion evidence: `core/int.rkt` represents an Int as a raw untagged pair
+of raw Boolean sign (true means nonnegative) and normalized binary
+magnitude; `raw-make-int` normalizes the magnitude and forces every zero —
+including non-normalized and empty zero spellings — to positive zero, and
+negation and absolute value route through it. `readers/int.rkt` renders a
+completed Int as a signed host integer for tests only; the boundary gate's
+reader vocabulary gained exactly `int->integer`, `raw-int-sign`,
+`raw-int-magnitude`, and `-`. The purity scan now proves 17 core modules
+(the purity-test and acceptance-test pins updated), and the boundary
+classification counts nine readers. No tag, typed layer, literal, or
+language export was added; the expander's pinned imports and exports are
+unchanged. The full suite passed 6,663 assertions across all 33 test files.
+`tests/int-test.rkt` covers sign/magnitude/reader round trips, all
+negative-zero construction attempts, non-normalized magnitudes, constants,
+zero testing, negation/absolute-value including zero results, and unary
+arity.
 
 ### Step 33.2 — Add signed arithmetic and comparison
 
