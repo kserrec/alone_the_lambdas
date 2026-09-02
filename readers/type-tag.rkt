@@ -27,6 +27,7 @@
     [(7) "RAT"]
     [(8) "UNIT"]
     [(9) "BYTE"]
+    [(10) "OPTION"]
     [else
      (format "TYPE:~a"
              tag-number)]))

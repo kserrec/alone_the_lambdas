@@ -172,6 +172,6 @@
    (production-files-under core-directory)))
 
 (check-equal? (length production-results)
-              20)
+              21)
 (check-equal? (append-map cdr production-results)
               '())

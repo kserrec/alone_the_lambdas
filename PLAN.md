@@ -1893,21 +1893,36 @@ with the 20-module purity proof and zero-finding boundary inventory.
 
 ### Step 38.1 — Add Some and None
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add `SOME value` and the singleton `NONE` as the two Option forms.
-- Add checks for Some and None and a lazy pure operation that chooses what to
+- [x] Add `SOME value` and the singleton `NONE` as the two Option forms.
+- [x] Add checks for Some and None and a lazy pure operation that chooses what to
   do in either case.
-- Let Some contain any non-Error object-language value without adding an
+- [x] Let Some contain any non-Error object-language value without adding an
   `Any` tag or changing the generalized checker.
-- Propagate an early Error rather than hiding it inside Some.
-- Keep Option distinct from Result: None means expected absence, while
+- [x] Propagate an early Error rather than hiding it inside Some.
+- [x] Keep Option distinct from Result: None means expected absence, while
   `Result Err` means a computation failed.
-- Add reader, representation, branch-laziness, Error-propagation, purity, and
+- [x] Add reader, representation, branch-laziness, Error-propagation, purity, and
   public-language tests.
 
 Acceptance: expected absence has a small pure representation and cannot be
 confused with failure, false, zero, NIL, or Unit.
+
+Completion evidence: `core/option.rkt` mirrors the Result shape at tag 10
+(church-ten). `SOME` accepts any non-Error value and bubbles an Error
+argument; `NONE` is the singleton; `IS-SOME`/`IS-NONE` are strict Bool
+checks on the unchanged checker; `OPTION-CASE option some-function
+none-value` is the lazy polymorphic eliminator, strict on its Option with
+`OPTION-CASE(arg1 expected OPTION ...)` frames and no evaluation of the
+unselected branch. All five names are facade exports with pinned forms,
+vocabularies, 21-module purity pins, and the twelve-reader classification
+updated together; `readers/option.rkt` renders SOME/NONE one way. Tests
+cover representation tags for Some over Rat/Bool/NIL/nested-Option values,
+strict checks, distinctness from Bool/List/Rat/Error/Unit, Error
+propagation, both laziness directions, mismatch and bubbling frames, and
+unary arity. The full suite passed 11,911 assertions across all 37 test
+files with the zero-finding boundary inventory.
 
 ## Phase 39 — Add persistent Map
 

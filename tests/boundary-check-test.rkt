@@ -231,7 +231,7 @@
           (eq? (source-classification-class classification)
                'reader))
         project-classifications)
- 11)
+ 12)
 
 (temporary-project
  (lambda (root)

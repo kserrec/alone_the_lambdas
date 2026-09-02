@@ -55,6 +55,12 @@
                   raw-true)
          (only-in "../core/objects.rkt"
                   raw-make-object)
+         (only-in "../core/option.rkt"
+                  NONE
+                  SOME
+                  IS-SOME
+                  IS-NONE
+                  OPTION-CASE)
          (only-in "../core/pair.rkt"
                   raw-pair)
          (only-in "../core/result.rkt"
@@ -151,6 +157,7 @@
          UNIT
          MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
          STRING-TO-BYTES BYTES-TO-STRING
+         SOME NONE IS-SOME IS-NONE OPTION-CASE
          make-ok make-err is-ok is-err unwrap-ok unwrap-err
          MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
          A B C D E F G H I J K L M

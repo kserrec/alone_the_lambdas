@@ -64,7 +64,11 @@
          byte-gt-function-name
          byte-gte-function-name
          string-to-bytes-function-name
-         bytes-to-string-function-name)
+         bytes-to-string-function-name
+         some-function-name
+         is-some-function-name
+         is-none-function-name
+         option-case-function-name)
 
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))
@@ -138,3 +142,8 @@
 (define-function-name byte-gte-function-name BYTE-GTE)
 (define-function-name string-to-bytes-function-name STRING-TO-BYTES)
 (define-function-name bytes-to-string-function-name BYTES-TO-STRING)
+
+(define-function-name some-function-name SOME)
+(define-function-name is-some-function-name IS-SOME)
+(define-function-name is-none-function-name IS-NONE)
+(define-function-name option-case-function-name OPTION-CASE)
