@@ -10,6 +10,7 @@
          "../core/result.rkt"
          "../core/strings.rkt"
          "../core/tags.rkt"
+         "../core/unit.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE)
          "../effects/http-response.rkt"
@@ -70,13 +71,15 @@
     (lazy-apply raw-error-frame-expected-type frame))
    expected-type))
 
-(define (check-ok-nil value)
+(define (check-ok-unit value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (check-true (bool->boolean
-               (lazy-apply typed-is-nil
-                           (lazy-apply unwrap-ok value)))))
+  (check-equal?
+   (type-tag->integer
+    (lazy-apply raw-object-type
+                (lazy-apply unwrap-ok value)))
+   8))
 
 (define (check-result-err-kind value expected-kind)
   (check-true (typed-value? result-type value))
@@ -104,11 +107,11 @@
 (define fallback-body
   (bytes->object-string #"missing"))
 (define listener-handle
-  (integer->object-nat 1))
+  (exact->object-rat 1))
 (define connection-handle
-  (integer->object-nat 2))
+  (exact->object-rat 2))
 (define maximum
-  (integer->object-nat 65536))
+  (exact->object-rat 65536))
 
 (define (make-path-handler matched-status fallback-status)
   (apply-arguments
@@ -138,7 +141,7 @@
 ;; the renderer's expected Result Err instead of introducing a host failure.
 (define lazy-branch-handler
   (make-path-handler HTTP-STATUS-OK
-                     (integer->object-nat 201)))
+                     (exact->object-rat 201)))
 (check-response-bytes
  (lazy-apply lazy-branch-handler route-target)
  #"HTTP/1.1 200 OK\r\nContent-Length: 17\r\nConnection: close\r\n\r\nlambda says hello")
@@ -209,18 +212,18 @@
   (cond
     [(bytes=? operation #"tcp-accept")
      (list operation
-           (object-nat->integer (cadr parts)))]
+           (object-rat->exact (cadr parts)))]
     [(bytes=? operation #"tcp-read")
      (list operation
-           (object-nat->integer (cadr parts))
-           (object-nat->integer (caddr parts)))]
+           (object-rat->exact (cadr parts))
+           (object-rat->exact (caddr parts)))]
     [(bytes=? operation #"tcp-write")
      (list operation
-           (object-nat->integer (cadr parts))
-           (object-string->bytes (caddr parts)))]
+           (object-rat->exact (cadr parts))
+           (object-byte-list->bytes (caddr parts)))]
     [(bytes=? operation #"tcp-close")
      (list operation
-           (object-nat->integer (cadr parts)))]
+           (object-rat->exact (cadr parts)))]
     [else
      (error 'decode-tcp-request
             "unexpected operation: ~s"
@@ -253,10 +256,10 @@
 (define-values (success-host success-traces success-calls success-remaining)
   (make-scripted-host
    (list (object-ok connection-handle)
-         (object-ok (bytes->object-string valid-request-one))
-         (object-ok (bytes->object-string valid-request-two))
-         (object-ok NIL)
-         (object-ok NIL))))
+         (object-ok (bytes->object-byte-list valid-request-one))
+         (object-ok (bytes->object-byte-list valid-request-two))
+         (object-ok UNIT)
+         (object-ok UNIT))))
 (define success-serve-one
   (configure-serve-one success-host handler))
 (check-equal? (procedure-arity
@@ -267,9 +270,9 @@
           listener-handle
           maximum))
 (check-equal? (success-calls) 0)
-(check-ok-nil pending-success)
+(check-ok-unit pending-success)
 (check-equal? (success-calls) 5)
-(check-ok-nil pending-success)
+(check-ok-unit pending-success)
 (check-equal? (success-calls) 5)
 (check-equal? (success-remaining) '())
 (check-equal?
@@ -287,9 +290,9 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok
-          (bytes->object-string
+          (bytes->object-byte-list
            #"GET / HTTP/1.1\nHost: x\r\n\r\n"))
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define malformed-result
   (apply2 (configure-serve-one malformed-host handler)
           listener-handle
@@ -307,10 +310,10 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok
-          (bytes->object-string
+          (bytes->object-byte-list
            #"GET /lambda HTTP/1.1\r\nHost: x\r\n"))
-         (object-ok EMPTY-STRING)
-         (object-ok NIL))))
+         (object-ok (bytes->object-byte-list #""))
+         (object-ok UNIT))))
 (define eof-result
   (apply2 (configure-serve-one eof-host handler)
           listener-handle
@@ -332,7 +335,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-err invalid-nat-error)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (check-result-err-kind
  (apply2 (configure-serve-one read-failure-host handler)
          listener-handle
@@ -367,7 +370,7 @@
 (check-equal? (double-failure-remaining) '())
 
 (define complete-request
-  (bytes->object-string
+  (bytes->object-byte-list
    #"GET /lambda HTTP/1.1\r\nHost: localhost\r\n\r\n"))
 (define-values (write-failure-host write-failure-traces write-failure-calls
                                    write-failure-remaining)
@@ -375,7 +378,7 @@
    (list (object-ok connection-handle)
          (object-ok complete-request)
          (object-err invalid-nat-error)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (check-result-err-kind
  (apply2 (configure-serve-one write-failure-host handler)
          listener-handle
@@ -395,7 +398,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL)
+         (object-ok UNIT)
          (object-err invalid-nat-error))))
 (check-result-err-kind
  (apply2 (configure-serve-one close-failure-host handler)
@@ -414,14 +417,14 @@
 ;; Handler Results and contract Errors never reach tcp-write. A wrong tagged
 ;; handler return becomes the dedicated invariant Error after close.
 (define unsupported-handler
-  (make-path-handler (integer->object-nat 201)
+  (make-path-handler (exact->object-rat 201)
                      HTTP-STATUS-NOT-FOUND))
 (define-values (handler-err-host handler-err-traces handler-err-calls
                                  handler-err-remaining)
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (check-result-err-kind
  (apply2 (configure-serve-one handler-err-host unsupported-handler)
          listener-handle
@@ -440,7 +443,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define handler-error-result
   (apply2
    (configure-serve-one
@@ -464,7 +467,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define invalid-handler-result
   (apply2
    (configure-serve-one
@@ -515,12 +518,12 @@
  (lazy-apply wrong-listener-partial maximum)
  #"http-serve-one"
  1
- 3)
+ 7)
 (check-contract-error
  (apply2 contract-serve-one listener-handle TRUE)
  #"http-serve-one"
  2
- 3)
+ 7)
 (define incoming-server-error
   (apply2 contract-serve-one invalid-nat-error maximum))
 (check-true (typed-value? error-type incoming-server-error))
@@ -533,20 +536,20 @@
 ;; permits two successes, then ends the otherwise nonterminating loop with an
 ;; expected accept Err. Each new accept follows the prior connection close.
 (define second-connection-handle
-  (integer->object-nat 3))
+  (exact->object-rat 3))
 (define second-request
-  (bytes->object-string
+  (bytes->object-byte-list
    #"GET /missing HTTP/1.1\r\nHost: localhost\r\n\r\n"))
 (define-values (loop-host loop-traces loop-calls loop-remaining)
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL)
-         (object-ok NIL)
+         (object-ok UNIT)
+         (object-ok UNIT)
          (object-ok second-connection-handle)
          (object-ok second-request)
-         (object-ok NIL)
-         (object-ok NIL)
+         (object-ok UNIT)
+         (object-ok UNIT)
          (object-err invalid-nat-error))))
 (define configured-loop
   (configure-server loop-host handler))
@@ -582,8 +585,8 @@
 (define listener-result
   (apply3 real-listen
           (bytes->object-string #"127.0.0.1")
-          (integer->object-nat 0)
-          (integer->object-nat 4)))
+          (exact->object-rat 0)
+          (exact->object-rat 4)))
 (check-true (bool->boolean
              (lazy-apply is-ok listener-result)))
 (define listener-parts
@@ -592,7 +595,7 @@
 (define real-listener
   (car listener-parts))
 (define bound-port
-  (object-nat->integer (cadr listener-parts)))
+  (object-rat->exact (cadr listener-parts)))
 (check-true (and (exact-positive-integer? bound-port)
                  (<= bound-port 65535)))
 
@@ -656,9 +659,9 @@
      (member #"Connection: close" (cadr response)))
     (check-equal? (caddr response)
                   #"lambda says hello")
-    (check-ok-nil
+    (check-ok-unit
      (finish-worker server-worker server-result))
-    (check-ok-nil
+    (check-ok-unit
      (lazy-apply real-close real-listener))
     (set! listener-closed? #t))
   (lambda ()
@@ -701,8 +704,8 @@
         (when (> reads read-budget)
           (error 'counting-host
                  "request buffer was not bounded: ~a reads" reads))
-        (object-ok (bytes->object-string chunk-bytes))]
-       [(bytes=? op #"tcp-close") (object-ok NIL)]
+        (object-ok (bytes->object-byte-list chunk-bytes))]
+       [(bytes=? op #"tcp-close") (object-ok UNIT)]
        [else (error 'counting-host "unexpected op ~s" op)]))
    (lambda () (reverse traces))
    (lambda () reads)))

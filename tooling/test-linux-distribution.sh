@@ -103,6 +103,7 @@ run_inside_consumer() {
     examples/stdout.attl \
     examples/file-round-trip.attl \
     examples/http-server.attl \
+    examples/foundations.attl \
     GETTING_STARTED.md \
     BUILD-MANIFEST.txt \
     LICENSE \
@@ -147,7 +148,7 @@ run_inside_consumer() {
     \( "${dotenv_name_expression[@]}" \) -prune -o \
     -printf '%f\n' |
     sort > "$actual_examples"
-  printf '%s\n' file-round-trip.attl hello.attl http-server.attl stdout.attl \
+  printf '%s\n' file-round-trip.attl foundations.attl hello.attl http-server.attl stdout.attl \
     > "$scratch_root/expected-examples.txt"
   cmp -s "$actual_examples" "$scratch_root/expected-examples.txt" ||
     die "artifact examples/ inventory differs from the contract"

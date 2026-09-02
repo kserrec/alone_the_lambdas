@@ -314,6 +314,7 @@ try {
         "0.2.0-dev`n" { $productVersion = '0.2.0-dev'; $expectedPackageVersion = '0.1.900' }
         "0.2.0-rc.1`n" { $productVersion = '0.2.0-rc.1'; $expectedPackageVersion = '0.1.901' }
         "0.2.0`n" { $productVersion = '0.2.0'; $expectedPackageVersion = '0.2' }
+        "0.3.0-dev`n" { $productVersion = '0.3.0-dev'; $expectedPackageVersion = '0.2.900' }
         default { Fail 'VERSION is outside the approved milestone states or lacks one terminal LF' }
     }
     $infoText = [IO.File]::ReadAllText($infoFile)
@@ -481,7 +482,7 @@ try {
     [IO.Directory]::CreateDirectory($artifactExamples) | Out-Null
     [IO.File]::Move($rawExecutables[0].FullPath, [IO.Path]::Combine($artifactBin, 'attalambda.exe'))
 
-    foreach ($exampleName in @('hello.attl', 'stdout.attl', 'file-round-trip.attl', 'http-server.attl')) {
+    foreach ($exampleName in @('hello.attl', 'stdout.attl', 'file-round-trip.attl', 'http-server.attl', 'foundations.attl')) {
         Copy-RegularFile ([IO.Path]::Combine($ProjectRoot, 'examples', $exampleName)) ([IO.Path]::Combine($artifactExamples, $exampleName)) "canonical example $exampleName"
     }
     foreach ($assetName in @('GETTING_STARTED.md.in', 'THIRD_PARTY_NOTICES.md.in')) {

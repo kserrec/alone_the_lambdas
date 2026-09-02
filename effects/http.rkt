@@ -214,7 +214,7 @@
 (def raw-high-byte-start-bits =
   ((raw-nat-mult
     (raw-char-value SPACE))
-   (raw-nat-value FOUR)))
+   raw-four-bits))
 
 ;; --------------------------------------------------------------------------
 ;; Request parsing

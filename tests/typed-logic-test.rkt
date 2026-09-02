@@ -9,6 +9,7 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../core/rat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE
                   FALSE
@@ -24,24 +25,20 @@
                   [if public-if])
          "../readers/bool.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  apply3
+                  typed-value?
+                  whole-rat-object
+                  rat-object->number))
 
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (apply3 function first second third)
-  (lazy-apply
-   (apply2 function first second)
-   third))
-
-(define (typed-value? type value)
-  (raw-boolean->boolean
-   (apply2 raw-is-type type value)))
+(define ZERO (whole-rat-object 0))
+(define ONE (whole-rat-object 1))
+(define TWO (whole-rat-object 2))
 
 (define (error-kind=? error kind)
   (raw-boolean->boolean
@@ -102,7 +99,7 @@
     (lazy-apply
      raw-type-mismatch-actual-type
      details))
-   3)
+   7)
   (check-equal? (error-frames->host error)
                 (list
                  (list position 1))))
@@ -255,11 +252,11 @@
 (check-bool #f nonempty-result)
 
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3 typed-if TRUE ONE TWO))
  1)
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3 typed-if FALSE ONE TWO))
  2)
 (check-true
@@ -267,12 +264,12 @@
   list-type
   (apply3 typed-if TRUE NIL ONE)))
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3 public-if FALSE ONE TWO))
  2)
 
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3
    typed-if
    TRUE
@@ -283,7 +280,7 @@
  1)
 
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3
    typed-if
    FALSE

@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rackunit
+         (only-in racket/tcp tcp-connect)
          racket/promise
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -62,13 +63,15 @@
   (check-equal? (error-detail-strings error)
                 (list operation code)))
 
-(define (check-ok-nil value)
+(define (check-ok-unit value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (check-true (bool->boolean
-               (lazy-apply typed-is-nil
-                           (lazy-apply unwrap-ok value)))))
+  (check-equal?
+   (type-tag->integer
+    (lazy-apply raw-object-type
+                (lazy-apply unwrap-ok value)))
+   8))
 
 (define (ok-nat value)
   (check-true (typed-value? result-type value))
@@ -76,8 +79,8 @@
                (lazy-apply is-ok value)))
   (define payload
     (lazy-apply unwrap-ok value))
-  (check-true (typed-value? nat-type payload))
-  (object-nat->integer payload))
+  (check-true (typed-value? rat-type payload))
+  (object-rat->exact payload))
 
 (define (ok-list value)
   (check-true (typed-value? result-type value))
@@ -88,11 +91,12 @@
   (check-true (typed-value? list-type payload))
   (object-list->host-list payload))
 
+;; Read results carry a List of Byte since the Step 37.4 switch.
 (define (ok-bytes value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (object-string->bytes
+  (object-byte-list->bytes
    (lazy-apply unwrap-ok value)))
 
 (define (object-request parts)
@@ -122,31 +126,31 @@
 (define (connect remote port)
   (apply2 tcp-connect-with-host
           remote
-          (integer->object-nat port)))
+          (exact->object-rat port)))
 
 (define (listen local port backlog)
   (apply3 tcp-listen-with-host
           local
-          (integer->object-nat port)
-          (integer->object-nat backlog)))
+          (exact->object-rat port)
+          (exact->object-rat backlog)))
 
 (define (accept listener)
   (lazy-apply tcp-accept-with-host
-              (integer->object-nat listener)))
+              (exact->object-rat listener)))
 
 (define (read-some connection maximum)
   (apply2 tcp-read-with-host
-          (integer->object-nat connection)
-          (integer->object-nat maximum)))
+          (exact->object-rat connection)
+          (exact->object-rat maximum)))
 
 (define (write-all connection payload)
   (apply2 tcp-write-with-host
-          (integer->object-nat connection)
-          (bytes->object-string payload)))
+          (exact->object-rat connection)
+          (bytes->object-byte-list payload)))
 
 (define (close-handle connection)
   (lazy-apply tcp-close-with-host
-              (integer->object-nat connection)))
+              (exact->object-rat connection)))
 
 (define (network-errno-guard errno)
   (make-security-guard
@@ -214,13 +218,13 @@
 (check-invalid-request
  (host-call
   (object-request
-   (list tcp-connect-operation TRUE (integer->object-nat 80))))
+   (list tcp-connect-operation TRUE (exact->object-rat 80))))
  #"tcp-connect"
  #"wrong-type")
 (check-invalid-request
  (apply2 tcp-connect-with-host
          empty-string
-         (integer->object-nat 80))
+         (exact->object-rat 80))
  #"tcp-connect"
  #"out-of-range")
 (check-invalid-request
@@ -259,29 +263,34 @@
  (host-call
   (object-request
    (list tcp-close-operation
-         (integer->object-nat 1)
+         (exact->object-rat 1)
          TRUE)))
  #"tcp-close"
  #"wrong-arity")
 
-;; A proper but nonnormalized Nat reaches the defensive codec and is rejected
-;; there. Malformed Nat/String containers are rejected earlier by the pure
-;; representation predicate. Neither path can dispatch an operating-system
-;; call.
-(define leading-zero-nat
+;; Forged noncanonical Rat fields are rejected by the pure representation
+;; predicate before any operating-system call can dispatch.
+(define (forged-rat-field numerator-bits denominator-bits)
   (apply2 raw-make-object
-          nat-type
-          (host-list->object-list
-           (list raw-false raw-true))))
+          rat-type
+          (apply2 raw-pair
+                  (apply2 raw-pair
+                          raw-true
+                          (host-list->object-list numerator-bits))
+                  (host-list->object-list denominator-bits))))
+
+(define leading-zero-nat
+  (forged-rat-field (list raw-false raw-true)
+                    (list raw-true)))
 (check-invalid-request
  (host-call
   (object-request
    (list tcp-connect-operation loopback leading-zero-nat)))
  #"tcp-connect"
- #"out-of-range")
+ #"wrong-type")
 
 (define malformed-nat
-  (apply2 raw-make-object nat-type TRUE))
+  (apply2 raw-make-object rat-type TRUE))
 (check-invalid-request
  (host-call
   (object-request
@@ -290,9 +299,8 @@
  #"wrong-type")
 
 (define malformed-bit-nat
-  (apply2 raw-make-object
-          nat-type
-          (host-list->object-list (list TRUE))))
+  (forged-rat-field (list TRUE)
+                    (list raw-true)))
 (check-invalid-request
  (host-call
   (object-request
@@ -307,7 +315,7 @@
   (object-request
    (list tcp-connect-operation
          malformed-string
-         (integer->object-nat 80))))
+         (exact->object-rat 80))))
  #"tcp-connect"
  #"wrong-type")
 (check-invalid-request
@@ -315,7 +323,7 @@
   (object-request
    (list malformed-string
          loopback
-         (integer->object-nat 80))))
+         (exact->object-rat 80))))
  #""
  #"wrong-type")
 
@@ -341,7 +349,7 @@
   (set! open-handles (remove handle open-handles)))
 
 (define (close-tracked! handle)
-  (check-ok-nil (close-handle handle))
+  (check-ok-unit (close-handle handle))
   (untrack! handle))
 
 (define (start-worker thunk)
@@ -386,9 +394,9 @@
       (ok-list (listen loopback 0 8)))
     (check-equal? (length listener-result) 2)
     (define listener
-      (track! (object-nat->integer (car listener-result))))
+      (track! (object-rat->exact (car listener-result))))
     (define bound-port
-      (object-nat->integer (cadr listener-result)))
+      (object-rat->exact (cadr listener-result)))
     (check-equal? listener 1)
     (check-true (and (exact-positive-integer? bound-port)
                      (<= bound-port 65535)))
@@ -422,58 +430,73 @@
      #"tcp-accept"
      #"wrong-handle-kind")
 
-    ;; A read remains blocked until a byte is written.
-    (define-values (blocking-worker blocking-result)
-      (start-worker
-       (lambda ()
-         (ok-bytes (read-some server 8)))))
-    (check-false (sync/timeout 0.05 blocking-worker))
-    (check-ok-nil (write-all client #"ab"))
-    (check-equal? (finish-worker blocking-worker blocking-result)
-                  #"ab")
+    ;; Only this thread ever forces lambda values: Lazy Racket promises are
+    ;; not thread-safe, so test-side concurrency uses a raw Racket loopback
+    ;; peer socket, mirroring the test-side external clients used by the
+    ;; HTTP suites. The worker below performs plain port writes only.
+    (define-values (peer-in peer-out)
+      (tcp-connect "127.0.0.1" bound-port))
+    (define raw-served
+      (track! (ok-nat (accept listener))))
+    (check-equal? raw-served 4)
 
-    ;; The maximum is a hard per-call bound. Multiple writes and reads preserve
-    ;; exact ordering without assuming TCP packet boundaries.
-    (check-ok-nil (write-all client #"cde"))
-    (check-ok-nil (write-all client #"fgh"))
-    (check-equal? (read-exactly server 6 2)
+    ;; A read remains blocked until a byte is written: the raw peer writes
+    ;; only after a delay, and the blocking wrapper read returns exactly
+    ;; those bytes no earlier than the write.
+    (define write-instant (box #f))
+    (define delayed-writer
+      (thread
+       (lambda ()
+         (sleep 0.2)
+         (set-box! write-instant (current-inexact-milliseconds))
+         (write-bytes #"ab" peer-out)
+         (flush-output peer-out))))
+    (set! active-threads (cons delayed-writer active-threads))
+    (check-equal? (ok-bytes (read-some raw-served 8)) #"ab")
+    (define read-instant (current-inexact-milliseconds))
+    (check-not-false (sync/timeout 5 delayed-writer))
+    (set! active-threads (remove delayed-writer active-threads))
+    (check-true (>= read-instant (unbox write-instant)))
+
+    ;; The maximum is a hard per-call bound. Multiple writes and reads
+    ;; preserve exact ordering without assuming TCP packet boundaries.
+    (write-bytes #"cdefgh" peer-out)
+    (flush-output peer-out)
+    (check-equal? (read-exactly raw-served 6 2)
                   #"cdefgh")
 
     ;; A valid empty write emits no byte and does not unblock the peer.
-    (define-values (empty-worker empty-result)
-      (start-worker
-       (lambda ()
-         (ok-bytes (read-some server 1)))))
-    (check-false (sync/timeout 0.05 empty-worker))
-    (check-ok-nil (write-all client #""))
-    (check-false (sync/timeout 0.05 empty-worker))
-    (check-ok-nil (write-all client #"Z"))
-    (check-equal? (finish-worker empty-worker empty-result)
-                  #"Z")
+    (check-ok-unit (write-all raw-served #""))
+    (check-false (sync/timeout 0.05 peer-in))
+    (check-ok-unit (write-all raw-served #"Z"))
+    (check-equal? (read-bytes 1 peer-in) #"Z")
 
-    ;; Complete-write acknowledgement means a concurrent reader can recover
-    ;; every byte, including zero and values above ASCII, across many reads.
+    ;; Complete-write acknowledgement means the peer can recover every
+    ;; byte, including zero and values above ASCII, across many reads.
     (define complete-payload
       (apply bytes
              (for/list ([index (in-range 512)])
                (modulo (* index 73) 256))))
-    (define-values (complete-worker complete-result)
-      (start-worker
-       (lambda ()
-         (read-exactly server
-                       (bytes-length complete-payload)
-                       37))))
-    (check-ok-nil (write-all client complete-payload))
-    (check-equal? (finish-worker complete-worker complete-result)
+    (check-ok-unit (write-all raw-served complete-payload))
+    (check-equal? (read-bytes (bytes-length complete-payload) peer-in)
                   complete-payload)
 
-    ;; Connections are full duplex and payloads are byte-exact.
+    ;; Host-handle pairs remain full duplex and byte-exact; loopback
+    ;; buffering lets each direction complete sequentially on this thread.
+    (check-ok-unit (write-all client #"ping\0\377"))
+    (check-equal? (read-exactly server 6 3) #"ping\0\377")
     (define reverse-payload #"\0\377\200reply")
-    (check-ok-nil (write-all server reverse-payload))
+    (check-ok-unit (write-all server reverse-payload))
     (check-equal? (read-exactly client
                                 (bytes-length reverse-payload)
                                 3)
                   reverse-payload)
+
+    ;; Orderly shutdown of the raw peer produces EOF for its host handle.
+    (close-output-port peer-out)
+    (check-equal? (ok-bytes (read-some raw-served 16)) #"")
+    (close-input-port peer-in)
+    (close-tracked! raw-served)
 
     ;; Closing one endpoint produces orderly EOF at its peer. Explicit close
     ;; removes a handle first, so every second close is deterministically stale.
@@ -498,9 +521,9 @@
     (define second-listener-result
       (ok-list (listen loopback 0 1)))
     (define second-listener
-      (track! (object-nat->integer
+      (track! (object-rat->exact
                (car second-listener-result))))
-    (check-equal? second-listener 4)
+    (check-equal? second-listener 5)
     (close-tracked! second-listener)
 
     ;; Racket custodians close their owned TCP resources at shutdown. A later
@@ -511,9 +534,9 @@
       (parameterize ([current-custodian socket-custodian])
         (ok-list (listen loopback 0 1))))
     (define custodian-listener
-      (track! (object-nat->integer
+      (track! (object-rat->exact
                (car custodian-listener-result))))
-    (check-equal? custodian-listener 5)
+    (check-equal? custodian-listener 6)
     (custodian-shutdown-all socket-custodian)
     (check-host-failure
      (close-handle custodian-listener)

@@ -1,9 +1,9 @@
 #lang racket/base
 
 (require racket/promise
-         "../core/binary-nat.rkt"
          "../core/chars.rkt"
-         "nat.rkt")
+         "list.rkt"
+         "raw-boolean.rkt")
 
 (provide char-value->integer
          char-value->string)
@@ -12,10 +12,13 @@
   ((force function) argument))
 
 (define (char-value->integer value)
-  (nat->integer
-   (lazy-apply
-    raw-make-nat
-    (lazy-apply raw-char-value value))))
+  (for/fold ([total 0])
+            ([bit (in-list
+                   (list->host-list
+                    (lazy-apply raw-char-value value)
+                    raw-boolean->boolean))])
+    (+ (* total 2)
+       (if bit 1 0))))
 
 (define (supported-ascii-code? code)
   (or (memv code '(9 10 13))

@@ -8,7 +8,9 @@
 ;; fully-expanded shapes:
 ;;
 ;;   - a module in the trusted Lazy Racket shell;
-;;   - project-only, phase-0 imports and plain or renamed exports;
+;;   - project-only, phase-0 imports (same-directory modules, or a module
+;;     one sibling directory away that still resolves inside the project
+;;     root) and plain or renamed exports;
 ;;   - `define-values` of exactly one identifier;
 ;;   - Lazy Racket's expansion of a unary `lambda`;
 ;;   - Lazy Racket's expansion of a unary application;
@@ -38,7 +40,8 @@
 (require racket/list
          racket/path
          racket/promise
-         racket/runtime-path)
+         racket/runtime-path
+         racket/string)
 
 (provide (struct-out violation)
          file-violations
@@ -173,6 +176,39 @@
   (and (string? spec)
        (regexp-match? #px"^[^/\\\\]+\\.rkt$" spec)
        (not (dotenv-name? (string->path spec)))))
+
+;; "../<directory>/<module>.rkt": one step up, one named directory down.
+;; The import checker additionally requires the resolved file to sit inside
+;; the project root, so this form cannot escape the repository.
+(define (sibling-directory-module-name? spec)
+  (and (string? spec)
+       (regexp-match? #px"^\\.\\./[^/\\\\]+/[^/\\\\]+\\.rkt$" spec)
+       (for/and ([part (in-list (cdr (string-split spec "/")))])
+         (not (dotenv-name? (string->path part))))))
+
+;; The macros directory holds the trusted, unscanned expansion pair, so a
+;; sibling spelling into it never counts as an ordinary project module:
+;; macros.rkt is admitted only through the exact trusted-import clause, and
+;; no runtime binding may chain through the macros directory at all.
+(define (macros-directory-module-name? spec)
+  (and (string? spec)
+       (regexp-match? #px"^\\.\\./macros/" spec)))
+
+(define (project-module-name? spec)
+  (or (same-directory-module-name? spec)
+      (and (sibling-directory-module-name? spec)
+           (not (macros-directory-module-name? spec)))))
+
+(define-runtime-path project-root-directory "..")
+
+(define project-root-path
+  (settled-path project-root-directory))
+
+(define (within-project-root? path)
+  (define parts (explode-path (normalize-path path)))
+  (define root (explode-path project-root-path))
+  (and (>= (length parts) (length root))
+       (equal? (take parts (length root)) root)))
 
 (define (production-files-under path)
   (cond
@@ -378,7 +414,7 @@
 (define (project-chain? chain)
   (and (pair? chain)
        (eq? (last chain) 'self)
-       (andmap same-directory-module-name?
+       (andmap project-module-name?
                (drop-right chain 1))))
 
 (define (reference-violations identifier)
@@ -540,6 +576,13 @@
           (safe-production-path?
            (resolve-import source-path module-path)))
      '()]
+    [(and (sibling-directory-module-name? module-path)
+          (not (macros-directory-module-name? module-path))
+          (let ([resolved (resolve-import source-path module-path)])
+            (and (safe-production-path? resolved)
+                 (file-exists? resolved)
+                 (within-project-root? resolved))))
+     '()]
     [else
      (list (violation 'disallowed-production-import
                       (render spec)))]))
@@ -620,7 +663,10 @@
   (remove-duplicates
    (filter-map
     (lambda (module-path)
-      (and (same-directory-module-name? module-path)
+      (and (project-module-name? module-path)
+           (not (trusted-relative-path? source-path
+                                        module-path
+                                        trusted-macro-import-path))
            (let ([resolved (resolve-import source-path module-path)])
              (and (safe-production-path? resolved)
                   (file-exists? resolved)
@@ -829,12 +875,16 @@
 (define-runtime-path default-production-directory
   "../core")
 
+(define-runtime-path default-effects-directory
+  "../effects")
+
 (module+ main
   (define arguments
     (vector->list (current-command-line-arguments)))
   (define targets
     (if (null? arguments)
-        (list default-production-directory)
+        (list default-production-directory
+              default-effects-directory)
         (map string->path arguments)))
   (define files
     (append-map production-files-under targets))

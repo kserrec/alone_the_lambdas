@@ -12,6 +12,7 @@
                   raw-append
                   raw-list-head
                   raw-list-is-nil
+                  raw-list-object
                   raw-list-tail)
          "../core/logic.rkt"
          "../core/objects.rkt"
@@ -62,7 +63,8 @@
          io-failure-code
          make-invalid-host-request
          make-host-failure
-         make-host-bridge)
+         make-host-bridge
+         raw-dispatch-or-bubble)
 
 ;; Error kinds 0 through 6 are owned by the completed core. Host protocol
 ;; failures extend only the approved tiny metadata namespace; they do not add
@@ -136,9 +138,6 @@
     operation)
    code))
 
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
-
 (def host-list-signature =
   ((raw-cons list-type) NIL))
 
@@ -188,36 +187,36 @@
    (raw-list-is-nil
     (raw-string-value value))))
 
-(def raw-nonzero-nat-argument value =
+(def raw-nonzero-count-argument value =
   (raw-not
    (raw-nat-is-zero
-    (raw-nat-value value))))
+    (raw-rat-field-magnitude value))))
 
 (def raw-port-argument value =
   ((raw-and
-    (raw-nonzero-nat-argument value))
+    (raw-nonzero-count-argument value))
    ((raw-nat-less-equal
-     (raw-nat-value value))
+     (raw-rat-field-magnitude value))
     raw-port-maximum-bits)))
 
 (def raw-listen-port-argument value =
   ((raw-nat-less-equal
-    (raw-nat-value value))
+    (raw-rat-field-magnitude value))
    raw-port-maximum-bits))
 
 (def raw-read-maximum-argument value =
   ((raw-and
-    (raw-nonzero-nat-argument value))
+    (raw-nonzero-count-argument value))
    ((raw-nat-less-equal
-     (raw-nat-value value))
+     (raw-rat-field-magnitude value))
     raw-read-maximum-bits)))
 
 (def raw-bit-representation-valid bit =
   (lambda-let selected =
-    ((bit list-type) nat-type)
+    ((bit list-type) char-type)
     ((raw-or
       ((raw-tag-equal list-type) selected))
-     ((raw-tag-equal nat-type) selected))))
+     ((raw-tag-equal char-type) selected))))
 
 (def raw-proper-bit-list-step recur value =
   (((raw-if
@@ -285,9 +284,62 @@
     raw-char-representation-valid)
    (raw-string-value value)))
 
-(def raw-nat-representation-valid value =
-  (raw-proper-bit-list
-   (raw-nat-value value)))
+(def raw-byte-representation-valid value =
+  (((raw-if
+     ((raw-is-type byte-type) value))
+    (lambda-let bits =
+      (raw-object-value value)
+      (((raw-if
+         (raw-proper-bit-list bits))
+        (((raw-if
+           (raw-normalized-bit-list bits))
+          ((raw-nat-less-equal bits)
+           raw-eight-true-bits))
+         raw-false))
+       raw-false)))
+   raw-false))
+
+(def raw-byte-list-representation-valid value =
+  ((raw-proper-list-satisfying
+    raw-byte-representation-valid)
+   value))
+
+(def raw-rat-field-magnitude value =
+  (raw-second
+   (raw-first
+    (raw-object-value value))))
+
+(def raw-rat-field-denominator value =
+  (raw-second
+   (raw-object-value value)))
+
+;; A numeric request field is a canonical nonnegative whole Rat: positive
+;; sign bit, proper normalized magnitude bits, and denominator exactly one.
+(def raw-whole-rat-representation-valid value =
+  (lambda-let sign =
+    (raw-first
+     (raw-first
+      (raw-object-value value)))
+    (((raw-if
+       (raw-bit-representation-valid sign))
+      (((raw-if sign)
+        ((raw-and
+          ((raw-and
+            (raw-proper-bit-list
+             (raw-rat-field-magnitude value)))
+           (raw-normalized-bit-list
+            (raw-rat-field-magnitude value))))
+         ((raw-and
+           ((raw-and
+             (raw-proper-bit-list
+              (raw-rat-field-denominator value)))
+            (raw-list-is-nil
+             (raw-list-tail
+              (raw-rat-field-denominator value)))))
+          (raw-list-head
+           (raw-rat-field-denominator value)))))
+       raw-false))
+     raw-false)))
 
 (def raw-make-argument-rule expected-type representation-valid constraint =
   ((raw-pair expected-type)
@@ -304,31 +356,36 @@
    raw-nonempty-string-argument))
 
 (def raw-handle-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
-   raw-nonzero-nat-argument))
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
+   raw-nonzero-count-argument))
 
 (def raw-port-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
    raw-port-argument))
 
 (def raw-listen-port-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
    raw-listen-port-argument))
 
 (def raw-read-maximum-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
    raw-read-maximum-argument))
 
 (def raw-one-string-schema =
   ((raw-cons raw-string-rule) NIL))
 
-(def raw-two-strings-schema =
+(def raw-byte-list-rule =
+  (((raw-make-argument-rule list-type)
+    raw-byte-list-representation-valid)
+   raw-unconstrained-argument))
+
+(def raw-string-and-byte-list-schema =
   ((raw-cons raw-string-rule)
-   ((raw-cons raw-string-rule) NIL)))
+   ((raw-cons raw-byte-list-rule) NIL)))
 
 (def raw-tcp-connect-schema =
   ((raw-cons raw-nonempty-string-rule)
@@ -348,7 +405,7 @@
 
 (def raw-tcp-write-schema =
   ((raw-cons raw-handle-rule)
-   ((raw-cons raw-string-rule) NIL)))
+   ((raw-cons raw-byte-list-rule) NIL)))
 
 (def raw-validate-request-arguments-step recur dispatcher request operation arguments rules =
   (((raw-if
@@ -412,7 +469,7 @@
       raw-one-string-schema))
     ((raw-cons
       ((raw-make-operation-entry write-file-operation)
-       raw-two-strings-schema))
+       raw-string-and-byte-list-schema))
      ((raw-cons
        ((raw-make-operation-entry tcp-connect-operation)
         raw-tcp-connect-schema))
@@ -493,6 +550,12 @@
 (def raw-host-function dispatcher request-payload =
   ((raw-validate-host-request dispatcher)
    (raw-list-object request-payload)))
+
+(def raw-dispatch-or-bubble host request =
+  (((raw-if
+     ((raw-is-type error-type) request))
+    request)
+   (host request)))
 
 ;; The resulting value is the sole unary object-language boundary. Validation
 ;; above is ordinary lambda computation; only a schema-valid request reaches

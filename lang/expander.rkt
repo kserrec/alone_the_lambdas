@@ -6,8 +6,16 @@
          (only-in "../macros/macros.rkt"
                   def
                   [lambda-let language-let])
-         (only-in "../core/binary-nat.rkt"
-                  raw-make-nat)
+         (only-in "../core/byte.rkt"
+                  MAKE-BYTE
+                  BYTE-VALUE
+                  BYTE-EQ
+                  BYTE-LT
+                  BYTE-LTE
+                  BYTE-GT
+                  BYTE-GTE
+                  STRING-TO-BYTES
+                  BYTES-TO-STRING)
          (only-in "../core/chars.rkt"
                   raw-make-char
                   MAKE-CHAR
@@ -29,10 +37,12 @@
                   LEFT-PAREN RIGHT-PAREN
                   LEFT-BRACKET RIGHT-BRACKET
                   LEFT-BRACE RIGHT-BRACE)
+         (only-in "../core/int.rkt"
+                  raw-make-int)
          (only-in "../core/list-nat.rkt"
-                  [typed-len LEN]
-                  [typed-take TAKE]
-                  [typed-drop DROP])
+                  [typed-len-rat LEN]
+                  [typed-take-rat TAKE]
+                  [typed-drop-rat DROP])
          (only-in "../core/lists.rkt"
                   NIL
                   raw-cons
@@ -43,6 +53,24 @@
          (only-in "../core/logic.rkt"
                   raw-false
                   raw-true)
+         (only-in "../core/objects.rkt"
+                  raw-make-object)
+         (only-in "../core/map.rkt"
+                  MAKE-MAP
+                  MAP-EMPTY?
+                  MAP-SIZE
+                  MAP-LOOKUP
+                  MAP-CONTAINS?
+                  MAP-SET
+                  MAP-REMOVE)
+         (only-in "../core/option.rkt"
+                  NONE
+                  SOME
+                  IS-SOME
+                  IS-NONE
+                  OPTION-CASE)
+         (only-in "../core/pair.rkt"
+                  raw-pair)
          (only-in "../core/result.rkt"
                   make-ok
                   make-err
@@ -70,9 +98,29 @@
                   OR
                   XOR
                   [typed-if language-if])
-         (only-in "../core/typed-nat.rkt"
-                  ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
-                  SUCC ADD SUB MULT DIV EQ LT LTE GT GTE IS-ZERO)
+         (only-in "../core/tags.rkt"
+                  rat-type)
+         (only-in "../core/unit.rkt"
+                  UNIT)
+         (only-in "../core/typed-rat.rkt"
+                  [typed-rat-succ SUCC]
+                  [typed-rat-add ADD]
+                  [typed-rat-sub SUB]
+                  [typed-rat-mult MULT]
+                  [typed-rat-div DIV]
+                  [typed-rat-exp EXP]
+                  [typed-rat-recip RECIP]
+                  [typed-rat-negate NEG]
+                  [typed-rat-abs ABS]
+                  [typed-rat-floor FLOOR]
+                  [typed-rat-equal EQ]
+                  [typed-rat-less LT]
+                  [typed-rat-less-equal LTE]
+                  [typed-rat-greater GT]
+                  [typed-rat-greater-equal GTE]
+                  [typed-rat-is-zero IS-ZERO]
+                  [typed-rat-is-whole IS-WHOLE]
+                  [typed-rat-is-nonnegative-whole IS-NONNEGATIVE-WHOLE])
          (only-in "../effects/files.rkt"
                   [make-read-file language-make-read-file]
                   [make-write-file language-make-write-file])
@@ -112,8 +160,14 @@
                      [language-host host])
          TRUE FALSE NOT AND OR XOR
          NIL HEAD TAIL IS-NIL LEN TAKE DROP
-         ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
-         SUCC ADD SUB MULT DIV EQ LT LTE GT GTE IS-ZERO
+         SUCC ADD SUB MULT DIV EXP RECIP NEG ABS FLOOR
+         EQ LT LTE GT GTE IS-ZERO IS-WHOLE IS-NONNEGATIVE-WHOLE
+         UNIT
+         MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
+         STRING-TO-BYTES BYTES-TO-STRING
+         SOME NONE IS-SOME IS-NONE OPTION-CASE
+         MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP
+         MAP-CONTAINS? MAP-SET MAP-REMOVE
          make-ok make-err is-ok is-err unwrap-ok unwrap-err
          MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
          A B C D E F G H I J K L M
@@ -208,10 +262,21 @@
        (string->list
         (number->string value 2))))
 
-(define-for-syntax (language-nat-expression value)
-  #`(raw-make-nat
-     #,(language-list-expression
-        (language-bit-expressions value))))
+(define-for-syntax (language-magnitude-expression value)
+  (language-list-expression
+   (language-bit-expressions value)))
+
+;; An exact literal is already reduced with a positive denominator, so the
+;; emitted term is the canonical stored representation: a tagged pair of a
+;; signed magnitude and denominator bits.
+(define-for-syntax (language-rat-expression value)
+  #`((raw-make-object rat-type)
+     ((raw-pair
+       ((raw-make-int #,(if (negative? value)
+                            #'raw-false
+                            #'raw-true))
+        #,(language-magnitude-expression (abs (numerator value)))))
+      #,(language-magnitude-expression (denominator value)))))
 
 (define-for-syntax (language-char-expression byte)
   #`(raw-make-char
@@ -233,14 +298,14 @@
     [(_ . value)
      (let ([datum (syntax-e #'value)])
        (cond
-         [(exact-nonnegative-integer? datum)
-          (language-nat-expression datum)]
+         [(and (rational? datum) (exact? datum))
+          (language-rat-expression datum)]
          [(string? datum)
           (language-string-expression datum)]
          [else
           (raise-syntax-error
            #f
-           "only nonnegative Nat and String literals are supported"
+           "only exact Rat and String literals are supported"
            stx)]))]))
 
 ;; The facade performs only one-time dependency injection. These bindings are

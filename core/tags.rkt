@@ -11,13 +11,22 @@
          church-four
          church-five
          church-six
+         church-seven
+         church-eight
+         church-nine
+         church-ten
+         church-eleven
          error-type
          bool-type
          list-type
-         nat-type
          result-type
          char-type
          string-type
+         rat-type
+         unit-type
+         byte-type
+         option-type
+         map-type
          raw-tag-equal)
 
 (def church-zero step seed =
@@ -44,13 +53,32 @@
 (def church-six =
   (church-succ church-five))
 
+(def church-seven =
+  (church-succ church-six))
+
+(def church-eight =
+  (church-succ church-seven))
+
+(def church-nine =
+  (church-succ church-eight))
+
+(def church-ten =
+  (church-succ church-nine))
+
+(def church-eleven =
+  (church-succ church-ten))
+
 (def error-type = church-zero)
 (def bool-type = church-one)
 (def list-type = church-two)
-(def nat-type = church-three)
 (def result-type = church-four)
 (def char-type = church-five)
 (def string-type = church-six)
+(def rat-type = church-seven)
+(def unit-type = church-eight)
+(def byte-type = church-nine)
+(def option-type = church-ten)
+(def map-type = church-eleven)
 
 (def raw-church-is-zero numeral =
   ((numeral

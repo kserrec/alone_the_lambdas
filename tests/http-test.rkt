@@ -204,10 +204,10 @@
 ;; The renderer owns both status text and framing headers, so caller-provided
 ;; data cannot inject a status line or header. String length counts protocol
 ;; bytes because each String element is one byte-valued Char.
-(check-equal? (object-nat->integer HTTP-STATUS-OK) 200)
-(check-equal? (object-nat->integer HTTP-STATUS-BAD-REQUEST) 400)
-(check-equal? (object-nat->integer HTTP-STATUS-NOT-FOUND) 404)
-(check-equal? (object-nat->integer
+(check-equal? (object-rat->exact HTTP-STATUS-OK) 200)
+(check-equal? (object-rat->exact HTTP-STATUS-BAD-REQUEST) 400)
+(check-equal? (object-rat->exact HTTP-STATUS-NOT-FOUND) 404)
+(check-equal? (object-rat->exact
                HTTP-STATUS-INTERNAL-SERVER-ERROR)
               500)
 
@@ -252,13 +252,29 @@
  (rendered-bytes HTTP-STATUS-NOT-FOUND #"same"))
 
 (define unsupported-status-result
-  (render (integer->object-nat 201) #"created"))
+  (render (exact->object-rat 201) #"created"))
 (check-true (bool->boolean
              (lazy-apply is-err unsupported-status-result)))
 (check-equal?
  (error-kind-integer
   (lazy-apply unwrap-err unsupported-status-result))
  12)
+
+;; A negative or fractional status Rat is the unsupported-status Err, never
+;; its magnitude's supported rendering: the status guard's
+;; nonnegative-whole conjunct is load-bearing because
+;; raw-rat-magnitude-bits drops the sign and denominator.
+(for ([status (in-list '(-200 -404 401/2 200/3 -1/2))])
+  (define negative-status-result
+    (render (exact->object-rat status) #"body"))
+  (check-true (bool->boolean
+               (lazy-apply is-err negative-status-result))
+              (format "status ~s" status))
+  (check-equal?
+   (error-kind-integer
+    (lazy-apply unwrap-err negative-status-result))
+   12
+   (format "status ~s" status)))
 
 ;; Wrong runtime types remain contract Errors, including the exact remaining
 ;; unary absorber after a bad first renderer argument.
@@ -281,7 +297,7 @@
            "forced body after first renderer mismatch")))
  #"render-http-response"
  1
- 3)
+ 7)
 
 (check-contract-error
  (apply2 render-http-response

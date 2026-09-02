@@ -436,3 +436,64 @@ Use this rule whenever naming questions arise:
 Racket is the host.
 
 It does not own the vocabulary of AttaLambda.
+
+---
+
+# Milestone 4 Amendment (2026-09-01) — Public names for rational and foundational types
+
+Where this amendment conflicts with Sections A through N above, this
+amendment wins. It accompanies the Milestone 4 amendments to the main
+specification and the purity addendum.
+
+## O. Retained public spellings with new Rat contracts
+
+These existing public arithmetic and comparison names are kept, and after
+the public switch they denote the Rat operations:
+
+```text
+SUCC  ADD  SUB  MULT  DIV  EQ  LT  LTE  GT  GTE  IS-ZERO
+```
+
+Same spelling, new contract. No `RAT-ADD` style prefix is introduced for the
+sole public number type.
+
+## P. New public names
+
+The exact new public spellings are:
+
+```text
+Rat     EXP  RECIP  NEG  ABS  FLOOR  IS-WHOLE  IS-NONNEGATIVE-WHOLE
+Unit    UNIT
+Byte    MAKE-BYTE  BYTE-VALUE  BYTE-EQ  BYTE-LT  BYTE-LTE  BYTE-GT  BYTE-GTE
+Bytes   STRING-TO-BYTES  BYTES-TO-STRING
+Option  SOME  NONE  IS-SOME  IS-NONE  OPTION-CASE
+Map     MAKE-MAP  MAP-EMPTY?  MAP-SIZE  MAP-LOOKUP  MAP-CONTAINS?
+        MAP-SET  MAP-REMOVE
+```
+
+The `Bytes` row names List-of-Byte conversion operations, not a type.
+`MAP-EMPTY?` and `MAP-CONTAINS?` follow the existing `STRING-EMPTY?` /
+`STRING-CONTAINS?` question-mark convention for uppercase predicates. The
+lowercase Result operations (`make-ok`, `is-ok`, …) and effect wrapper names
+(`stdout`, `read-file`, …) are unchanged.
+
+## Q. Retired public names
+
+At the public switch these public spellings are removed and must fail rather
+than silently aliasing:
+
+```text
+ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
+```
+
+together with every other public Nat surface. Exact integer and fraction
+literals replace the retired numeric constants. After the switch, no public
+name contains `NAT` or `INT`, and no public or hidden alias exposes Nat or
+Int as a language type.
+
+## R. Internal layer naming
+
+Internal machinery keeps describing its layer, per Sections B and K:
+private binary Nat and private Int operations use internal semantic names
+(for example `raw-nat-*`, `raw-int-*`, `raw-rat-*` where ambiguity would
+otherwise exist) and are never exported by the language surface.

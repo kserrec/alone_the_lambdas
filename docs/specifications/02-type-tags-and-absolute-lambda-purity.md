@@ -490,3 +490,79 @@ Do not loosen any other purity rule when `host` is added.
 `host` is not permission to begin implementing ordinary language functionality in Racket.
 
 It is solely the explicit effect boundary.
+
+---
+
+# Milestone 4 Amendment (2026-09-01) — Tags and purity for rational and foundational types
+
+Where this amendment conflicts with Sections A through P above, this
+amendment wins. It accompanies the Milestone 4 amendments to the main
+specification and the naming addendum.
+
+## Q. Canonical tag table after Milestone 4
+
+Type tags remain Church numerals. The canonical table becomes:
+
+```text
+0  ERROR
+1  BOOL
+2  LIST
+3  (retired — formerly NAT; permanently unassigned)
+4  RESULT
+5  CHAR
+6  STRING
+7  RAT
+8  UNIT
+9  BYTE
+10 OPTION
+11 MAP
+```
+
+The Nat tag is retired without renumbering any existing non-Nat tag.
+Church-three is never reassigned to another type. Future types continue
+upward from the highest assigned tag.
+
+Small Church discriminants remain correct for error kinds, host-operation
+codes, argument positions, and similar tiny fixed metadata. Every ordinary
+numeric value is a Rat backed by private binary digit lists.
+
+## R. Absolute purity extends verbatim to the new types
+
+Every new object-language value and every computation involving private Nat,
+private Int, public Rat, Unit, Byte, Option, or Map must consist, after macro
+expansion, only of variables, one-argument lambda abstraction, and function
+application. This governs representations, constructors, normalization,
+arithmetic, comparison, powers, conversions between object-language types,
+type and value checks, error decisions, Option selection, and every Map
+operation.
+
+Racket must not calculate or decide an AttaLambda program's result. In
+particular:
+
+- Rat and Int operations may not use Racket arithmetic.
+- Map may not use a Racket hash table, association list, dictionary, or any
+  other host collection, and may not use Racket equality.
+- No new type may use Racket conditionals, pattern matching, equality,
+  loops, mutation, exceptions, or data access for object-language
+  computation.
+
+## S. Existing seams keep their exact purpose
+
+The classified seams do not widen:
+
+- macros may mechanically expand source — including exact integer and
+  fraction literals — into pure unary lambda terms;
+- the deterministic codec may translate validated values across the
+  Racket/AttaLambda boundary (extended only by the exact conversions the
+  approved boundary work requires, such as exact numbers and external
+  bytes), but may not perform object-language arithmetic or decide
+  object-language results;
+- the single host bridge performs only its explicitly approved external
+  effects and conversions at its existing narrow boundary;
+- readers, tests, and tooling may observe or verify values but may not
+  enter a production computation path.
+
+The purity checker and structural boundary gates must classify and scan
+every new production module under these same rules, and the repository must
+fail if a public or production typed Nat surface is reintroduced after the
+public switch.

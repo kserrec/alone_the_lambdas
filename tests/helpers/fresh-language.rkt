@@ -147,7 +147,8 @@
   '("hello.attl"
     "stdout.attl"
     "file-round-trip.attl"
-    "http-server.attl"))
+    "http-server.attl"
+    "foundations.attl"))
 
 (define (regular-file-path? path)
   (with-handlers ([exn:fail? (lambda (failure) #f)])
@@ -171,7 +172,7 @@
     (sort canonical-application-names string<?))
   (unless (equal? actual-names expected-names)
     (error 'fresh-language-install
-           "application inventory differs from the canonical four names"))
+           "application inventory differs from the canonical names"))
   (make-directory target)
   (for ([name (in-list canonical-application-names)])
     (define source-path (build-path source name))

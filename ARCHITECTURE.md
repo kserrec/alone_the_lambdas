@@ -102,7 +102,7 @@ become an object-language representation.
 | Mechanical syntax | `def`, lambda-based `let`, and other expansion-only sugar |
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
-| Public data | List, Nat, Error, Result, Char, and String |
+| Public data | List, Rat, Unit, Byte, Option, Map, Error, Result, Char, and String |
 | Pure effects | Lambda request validation, protocol computation, and wrappers over an injected unary host |
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
@@ -131,15 +131,76 @@ representation instead of importing `core/lists.rkt`; this lets the ordinary
 typed List operations depend on the checker without a cycle. Typed logic sits
 above raw logic, objects, Lists, and the checker; this keeps its List-encoded
 signatures and strict wrappers out of the raw Boolean layer.
-`core/typed-nat.rkt` similarly sits above binary Nat, Lists, tags, and the
-checker. It owns the public strict Nat surface while leaving every binary
-algorithm in `core/binary-nat.rkt` raw and reusable.
-`core/result.rkt` sits above Errors, Lists, objects, and the checker. Typed Nat
-depends on Result only for safe `DIV`, so Result itself remains independent of
-Nat and available to later data types.
-`core/chars.rkt` sits above raw binary Nat, Errors, Lists, objects, and the
-checker. Its reader depends on Char and Nat observation, while no production
-module depends on that reader. `core/strings.rkt` sits above Char, List, raw
+`core/typed-rat.rkt` similarly sits above the private rationals, Lists,
+tags, objects, and the checker. It owns the entire public strict number
+surface while leaving every binary algorithm in `core/binary-nat.rkt` and
+every signed and rational algorithm in `core/int.rkt` and `core/rat.rkt` raw
+and reusable.
+`core/unit.rkt` defines the public Unit type: exactly one value, `UNIT`
+(tag 8), carrying one fixed internal payload. Successful stdout, file-write,
+TCP-write, and TCP-close acknowledgements are `Ok(UNIT)`, so `NIL` means
+only an actual empty List. There is no Unit predicate: the exact-tag checker
+validates Unit positionally, and no polymorphic mechanism exists to support
+one. `readers/unit.rkt` renders the value's type name for humans.
+`core/byte.rkt` defines public Byte (tag 9): exactly 256 valid values
+backed by private normalized binary magnitudes. `MAKE-BYTE` accepts a
+nonnegative whole Rat from 0 through 255 and rejects every other value as
+the InvalidByte Error (kind 16); `BYTE-VALUE` converts back to a whole Rat;
+`BYTE-EQ` through `BYTE-GTE` compare payload magnitudes and return Bool.
+Byte is data, not a second number type: ordinary Rat arithmetic rejects it
+through the unchanged exact-tag checker, and a byte sequence is `List Byte`
+with no separate Bytes type: `STRING-TO-BYTES` maps one Byte per Char, and
+`BYTES-TO-STRING` validates every element before converting, rejecting any
+non-Byte element as InvalidByte rather than assuming a List is a byte
+sequence. Since Step 37.3 file contents cross the host boundary as
+`List Byte`: `read-file` returns `Ok(List Byte)`, and `write-file` accepts a
+byte List validated purely before the request exists, with the codec's
+byte-list conversions doing only deterministic translation. Rebuilding a
+List object from a checker-unwrapped payload restores the one canonical
+`NIL` for the empty case, since the codec deliberately rejects any other
+terminator as forged. Since Step 37.4 network payloads are explicit byte
+Lists too: `tcp-read` returns `Ok(List Byte)` (EOF is the empty List),
+`tcp-write` accepts a purely validated `List Byte`, and the HTTP layer stays
+text-oriented by converting explicitly at the TCP boundary — received bytes
+become Chars one-to-one before parsing, and the rendered response String
+becomes bytes one-to-one before writing, so binary bodies survive exactly.
+`readers/byte.rkt` renders payloads as host integers
+one way.
+`core/option.rkt` defines public Option (tag 10) mirroring the Result
+shape: `SOME value` holds any non-Error object-language value (an Error
+argument bubbles rather than hiding inside Some) and `NONE` is the
+singleton absent form, distinct from failure, false, zero, NIL, and Unit.
+`IS-SOME` and `IS-NONE` are strict Bool checks, and `OPTION-CASE` is the
+lazy polymorphic eliminator: strict on its Option, selecting one branch
+without evaluating the other, exactly as `IF` treats its branches.
+`readers/option.rkt` renders the constructor name one way.
+
+`core/map.rkt` defines persistent public Map (tag 11): a user-supplied pure
+key-equality function paired with a private object-language List of
+key/value Pairs — never a Racket collection or Racket equality. `MAKE-MAP`
+fixes the equality function exactly as supplied — probing an arbitrary
+function with a tag check is undefined under the closed strict convention,
+so the Bool contract is enforced at every comparison instead. `MAP-LOOKUP`
+returns Option with NONE for expected absence; `MAP-EMPTY?` and `MAP-SIZE`
+(a whole Rat) use the checker directly; `MAP-CONTAINS?` answers Bool;
+`MAP-SET` replaces a matched key in place with no duplicate entry or
+prepends an absent one; `MAP-REMOVE` of an absent key is an equivalent
+Map; and every update returns a new Map while the old one keeps its old
+answers. A comparison failure mid-walk becomes the whole answer rather
+than hiding inside a rebuilt List. The equality contract is
+`key -> key -> Bool`: an Error answer bubbles with the operation's frame,
+and any other non-Bool answer is a structured mismatch expecting BOOL.
+Mixed-strictness operations validate their Map argument manually, exactly
+as `IF` and `OPTION-CASE` handle polymorphic positions, because keys and
+values carry no tag contract. `readers/map.rkt` renders the entry count one
+way.
+`core/result.rkt` sits above Errors, Lists, objects, and the checker. The
+strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
+Result itself remains independent of the number surface and available to
+later data types.
+`core/chars.rkt` sits above raw binary Nat, the tagged Nat layer, Errors,
+Lists, objects, and the checker. Its reader depends on Char and Nat
+observation, while no production module depends on that reader. `core/strings.rkt` sits above Char, List, raw
 List length, Errors, objects, and the checker. It reuses those raw layers
 directly, while `readers/string.rkt` remains outside the production dependency
 graph.
@@ -170,7 +231,13 @@ sequentially until a Result Err or Error. The listener remains caller-owned so
 ephemeral bound-port discovery and explicit lifetime management stay visible.
 None imports `runtime/`. The trusted `runtime/codec.rkt` converts exact
 List/Char/String/Nat shapes to private immutable bytes and integers and
-constructs canonical response values without effects or mutation.
+constructs canonical response values without effects or mutation. Since
+Step 35.2 it also translates exact Racket rationals to canonical tagged Rat
+values and back: construction relies on Racket's already-reduced
+positive-denominator exact form so no object-language arithmetic runs, and
+decoding rejects wrong tags, unreduced parts, negative or non-1/1 zeros,
+zero denominators, and non-normalized bits. Inexact and non-real numbers
+are rejected before construction rather than approximated.
 `runtime/host.rkt` alone imports that codec and alone defines the privileged
 `host`; it is the direct producer export, and the standalone facade re-exports
 that same binding once. Its Phase 16 dispatcher writes and flushes raw bytes to the current
@@ -214,8 +281,9 @@ forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
 single-collection package metadata used by fresh installs and declares the
 repository's approved `Apache-2.0` SPDX license identifier. Root `VERSION` is
-the sole product-version source; the current `0.2.0` state projects
-mechanically to Racket package version `0.2`.
+the sole product-version source; the current `0.3.0-dev` state projects
+mechanically to Racket package version `0.2.900` (a released `0.3.0` would
+project to `0.3`).
 
 `runner/attalambda.rkt` is host launch scaffolding, not an effect primitive. It
 accepts only direct `.attl` execution, `--help`, and `--version`; validates the one supplied path,
@@ -330,21 +398,27 @@ objects, not arbitrary untyped lambda terms.
 
 ### Tiny discriminants
 
-The seven runtime type tags use Church numerals:
+The runtime type tags use Church numerals:
 
 | Tag | Type |
 | ---: | --- |
 | 0 | Error |
 | 1 | Bool |
 | 2 | List |
-| 3 | Nat |
+| 3 | retired (was Nat; never reassigned) |
 | 4 | Result |
 | 5 | Char |
 | 6 | String |
+| 7 | Rat |
+| 8 | Unit |
+| 9 | Byte |
+| 10 | Option |
+| 11 | Map |
 
 Tags are closed discriminants, not public arithmetic values. Structured Error
 kinds and argument positions also reuse tiny Church values as explicitly
-permitted metadata. Ordinary numeric computation always uses binary Nat.
+permitted metadata. Ordinary numeric computation always uses Rat, backed by
+private binary Nat machinery.
 
 ### Objects
 
@@ -400,12 +474,14 @@ while dropping beyond the end returns `NIL`. The strict wrappers now use the
 generalized checker. They accept tagged Nat and List values, bubble incoming
 Errors, and preserve the one remaining application after a bad first argument.
 
-### Natural numbers
+### Natural numbers (private machinery)
 
-Public Nat values are normalized binary digit lists in most-significant-bit
-first order. Zero has exactly one representation, `[0]`; positive values have
-no leading zeroes. Each digit is a raw lambda Boolean inside the same proper
-List structure used elsewhere; the outer Nat object supplies the runtime type.
+Binary Nat values are private machinery since Milestone 4: no public Nat type
+or tag exists, and the boundary gate scans against any reintroduced Nat
+surface. Rat's numerator magnitude and denominator are normalized binary
+digit lists in most-significant-bit first order. Zero has exactly one
+representation, `[0]`; positive values have no leading zeroes. Each digit is
+a raw lambda Boolean inside the same proper List structure used elsewhere.
 
 `core/binary-nat.rkt` normalizes empty or all-zero internal inputs to `[0]` and
 removes every unnecessary leading zero. It implements raw zero testing,
@@ -413,32 +489,93 @@ successor, addition, saturating subtraction, multiplication, equality, and all
 four order comparisons directly on MSB-first digit Lists. Addition and
 subtraction reverse their operands for carry and borrow propagation;
 multiplication scans one operand with binary shift-and-add. Division performs
-MSB-first binary long division, maintaining a remainder and building quotient
-bits without repeated host or Church arithmetic. Its raw contract requires a
-nonzero divisor; the strict layer owns the zero policy. None of these
-algorithms converts through Church numerals or host numbers. `ZERO` through
-`TEN` are canonical typed constants.
+MSB-first binary long division: one traversal produces a raw pair holding
+both quotient and remainder, `raw-nat-div` selects the quotient, and
+`raw-nat-rem` selects the remainder. The greatest common divisor iterates
+Euclid's algorithm on that remainder, and the least common multiple divides
+the product by the greatest common divisor behind explicit zero guards, so
+no zero divisor ever reaches the division loop. The raw division contract
+still requires a nonzero divisor; the strict layer owns the zero policy.
+Parity reads the final bit of the normalized value, halving drops it, and
+exponentiation recurses on the halved exponent with one squaring per bit —
+never one multiplication per exponent decrement.
+None of these algorithms converts through Church numerals or host numbers.
+Since Step 32.1 the module contains only normalized binary-list values and
+raw operations: it requires exactly the macro layer, the fixed-point helper,
+raw Lists, raw logic, and raw pairs, exports only `raw-` bindings, and
+depends on no tag, object, typed function, effect, codec, or host machinery.
 
-`core/typed-nat.rkt` routes every public Nat operation through the generalized
-checker. `SUCC`, `ADD`, `SUB`, and `MULT` return tagged Nat values; `EQ`, `LT`,
-`LTE`, `GT`, `GTE`, and `IS-ZERO` return tagged Bool values. `DIV` uses the
-same two-Nat signature but keeps its already-typed Result return. Valid
-division by a nonzero value returns Ok containing a canonical Nat; valid
-division by zero returns Err containing the canonical DivideByZero Error.
-Unary operations use one Nat signature entry, and binary operations use two,
-so partial application, wrong-type failures, incoming-Error bubbling, and
-remaining-arity absorption all have the same behavior as other strict typed
-functions. Every Nat boundary records its canonical function-name String,
-argument position, and expected Nat type when it creates or propagates an
-Error.
+`core/int.rkt` is the private signed layer above raw binary Nat: an Int is a
+raw untagged pair of a raw Boolean sign (true means nonnegative) and a
+normalized magnitude. Every supported construction routes through
+`raw-make-int`, which turns any attempted negative zero into positive zero,
+so Int zero has exactly one representation. Same-sign addition adds
+magnitudes; mixed-sign addition subtracts the smaller magnitude from the
+larger and keeps the larger operand's sign; subtraction adds the negation;
+multiplication compares signs and multiplies magnitudes; ordering puts any
+negative below any nonnegative and reverses the magnitude comparison between
+two negatives; parity reads the magnitude. Every result routes through the
+canonical constructor, so operations whose mathematical result is zero
+produce positive zero. Int exists solely as Rat's
+numerator machinery: it has no type tag, no typed layer, no literal, no
+reader in any production path, and no language export. `readers/int.rkt`
+observes a completed Int as a signed host integer for tests and humans only.
+
+`core/rat.rkt` holds private exact rationals: a raw untagged pair of an Int
+numerator and a positive normalized binary Nat denominator. `raw-make-rat`
+reduces both parts by their greatest common divisor and forces every zero to
+positive `0/1`, so equal rational values have one stored representation and
+the sign lives only in the numerator. A zero denominator is an internal
+invariant failure, never a value: as with raw division, the raw
+constructor's contract requires a nonzero denominator, and every supported
+entry path guards zero before construction. Addition cross-multiplies
+against the opposite denominator, subtraction adds the negation,
+multiplication multiplies parts, ordering cross-multiplies signed
+numerators, equality compares canonical parts directly, wholeness is a
+denominator-one check, and floor divides magnitude by denominator and
+decrements for negative fractions with a nonzero remainder; every Rat
+result routes back through the canonical constructor. Reciprocal and
+division guard a zero operand and return raw Result values: the expected
+failure is the canonical DivideByZero Error inside Err, never an exception
+or a sentinel. Exponentiation accepts only whole Rat exponents — a
+fractional exponent is the expected NonWholeExponent failure (error kind 14,
+numbered after the host-protocol and HTTP kinds)
+even when that power would happen to be rational — computes magnitudes with
+the private squaring exponentiation, takes reciprocals for negative
+exponents, keeps `0^0 = 1`, and turns zero raised to a negative exponent
+into DivideByZero. `readers/rat.rkt`
+observes a completed Rat as an exact host rational for tests and humans
+only.
+
+`core/typed-rat.rkt` is the strict tagged Rat layer (tag 7, church-seven)
+over the private rationals, built entirely on the unchanged generalized
+exact-tag checker: `SUCC`, `ADD`, `SUB`, `MULT`, `NEG`, `ABS`, and `FLOOR`
+wrap Rat returns; the comparisons and the zero/whole/nonnegative-whole
+checks wrap Bool returns; `DIV`, `EXP`, and `RECIP` keep their
+already-typed Result, re-wrapping a successful raw payload as a tagged Rat.
+Since the Step 35.5 public switch this is the language's entire number
+surface: `core/typed-nat.rkt` is deleted, the Nat tag (3) is permanently
+retired, the constants `ZERO` through `TEN` are replaced by exact literals,
+and the boundary gate fails if any production source reintroduces a retired
+Nat spelling. Unary operations use one Rat signature entry, and binary
+operations use two, so partial application, wrong-type failures,
+incoming-Error bubbling, and remaining-arity absorption all behave exactly
+as with every other strict typed function; every boundary records its
+canonical function-name String, argument position, and expected Rat type
+when it creates or propagates an Error.
 
 ### Errors and results
 
 Every Error is an Error-tagged object whose payload pairs one immutable root
 with a proper List of propagation frames. Root kinds are the small Church
 discriminants TypeMismatch, EmptyList, InvalidNat, DivideByZero, InvalidChar,
-InvalidString for a List that violates the String element invariant, and
-WrongResultVariant for unwrapping the variant a Result does not hold. A TypeMismatch root additionally stores its argument position,
+InvalidString for a List that violates the String element invariant,
+WrongResultVariant for unwrapping the variant a Result does not hold,
+NonWholeExponent for EXP with a fractional exponent, InvalidCount for a
+count-valued Rat that is not a nonnegative whole within bounds, and
+InvalidByte for a Byte construction outside 0 through 255; the host protocol
+and HTTP layers extend the same kind space with their own discriminants. A
+TypeMismatch root additionally stores its argument position,
 expected runtime type, and actual runtime type. The other current roots need
 no extra details.
 
@@ -583,9 +720,15 @@ core/
   function-names.rkt
   lists.rkt
   binary-nat.rkt
+  int.rkt
+  rat.rkt
+  typed-rat.rkt
+  unit.rkt
+  byte.rkt
+  option.rkt
+  map.rkt
   result.rkt
   chars.rkt
-  typed-nat.rkt
   list-nat.rkt
   typecheck.rkt
   typed-logic.rkt
@@ -612,6 +755,12 @@ readers/
   type-tag.rkt
   list.rkt
   nat.rkt
+  int.rkt
+  rat.rkt
+  unit.rkt
+  byte.rkt
+  option.rkt
+  map.rkt
   char.rkt
   string.rkt
   error.rkt
@@ -662,9 +811,11 @@ Structured Error tests cover every kind, root
 metadata, the `NIL`/empty-Error knot, frame order, result frames, nested root
 preservation, unframed Error-as-data pass-through, canonical function-name
 Strings, List failures, currying, and lazy field access. The Error reader
-suite exercises all 43 named strict boundaries, every raw-failure boundary's
-result frame, all seven rendered type tags, every current root kind, and
-nested causal output.
+suite exercises the 43 named strict boundaries of the completed core
+milestones, every raw-failure boundary's result frame, every rendered type
+tag, every current root kind, and nested causal output; the Milestone 4
+boundaries (Byte, Option, Map, and the Rat family) have their rendered
+frames pinned in their own type suites.
 The generalized
 checker suite covers lambda List signatures and zero-, one-, two-, three-, and
 five-argument functions; valid partial application; every five-argument
@@ -693,7 +844,8 @@ suite composes Bool, List, Nat, Result, Char, String, and Error behavior in one
 strict typed flow and runs the same structural scan over the complete core.
 
 The structural purity tool judges what Racket compiles. It reads each of the
-16 production modules with its source intact, expands it in a fresh namespace
+29 production modules — the complete core and the complete effects layer —
+with its source intact, expands it in a fresh namespace
 exactly as `raco make` would, and walks the fully expanded module. A reference
 term, `(lambda (f) (lambda (x) (f x)))`, is expanded under the same trusted
 shell so that Lazy Racket's own encodings of a unary `lambda` and a unary
@@ -701,7 +853,9 @@ application become the only two admissible expression templates; every
 production lambda and application must be alpha-equivalent to one of them,
 and every identifier must be lambda-bound, defined in the module, or imported
 from a project module that passes the same scan. The tool pins the shell file
-itself, restricts imports to phase-0 project modules, restricts exports to
+itself, restricts imports to phase-0 project modules (same directory, or one
+sibling directory away and still resolving inside the repository — never a
+sibling spelling into `macros/`), restricts exports to
 plain or renamed project bindings, and rejects host forms, host literals,
 multi-argument or zero-argument applications, strict kernel lambdas,
 compile-time definitions, submodules, module-level expressions, and the
@@ -838,9 +992,11 @@ and confirmed the run's artifact API returned zero. Ordinary `always()`
 cleanup is restored. Those exact systems are demonstrated observations, not
 minimum-version or public-release claims.
 
-The current completion suite passed 4,751 assertions across 32 test files,
-retained the unchanged 16-module expanded core proof, and inventoried all 80
-Racket and `.attl` sources with zero boundary findings.
+That Phase 27 completion suite passed 4,751 assertions across 32 test files
+with the then-16-module expanded core proof and a zero-finding inventory of
+all 80 sources. The current Milestone 4 suite passes 12,297 assertions across
+38 test files, the expanded purity proof covers all 29 core and effects
+modules, and the boundary inventory of every source reports zero findings.
 
 ## Completed milestone boundary
 

@@ -10,41 +10,21 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
+         "../core/int.rkt"
+         "../core/rat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE)
          "../readers/bool.rkt"
          "../readers/char.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (integer->host-bits integer)
-  (for/list ([character
-              (in-string
-               (number->string integer 2))])
-    (char=? character #\1)))
-
-(define (integer->nat integer)
-  (lazy-apply
-   raw-make-nat
-   (host-bits->raw
-    (integer->host-bits integer))))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  integer->host-bits
+                  whole-rat-object))
 
 (define (typed-value? type value)
   (raw-boolean->boolean
@@ -80,19 +60,15 @@
    (lazy-apply raw-error-frames error)
    frame->host))
 
-(define (char-value->nat value)
-  (lazy-apply
-   raw-make-nat
-   (lazy-apply raw-char-value value)))
-
 (define (check-char expected value)
   (check-true
    (typed-value? char-type value))
   (check-equal? (char-value->integer value)
                 expected)
   (check-equal?
-   (nat->host-bits
-    (char-value->nat value))
+   (list->host-list
+    (lazy-apply raw-char-value value)
+    raw-boolean->boolean)
    (integer->host-bits expected))
   (check-equal?
    (type-tag->integer
@@ -213,35 +189,35 @@
   (check-char
    code
    (lazy-apply MAKE-CHAR
-               (integer->nat code))))
+               (whole-rat-object code))))
 
 (check-equal?
  (char-value->string
-  (lazy-apply MAKE-CHAR ZERO))
+  (lazy-apply MAKE-CHAR (whole-rat-object 0)))
  "char:0")
 
 (check-equal?
  (char-value->string
   (lazy-apply MAKE-CHAR
-              (integer->nat 127)))
+              (whole-rat-object 127)))
  "char:127")
 
 (check-equal?
  (char-value->string
   (lazy-apply MAKE-CHAR
-              (integer->nat 173)))
+              (whole-rat-object 173)))
  "char:173")
 
 (check-equal?
  (char-value->string
   (lazy-apply MAKE-CHAR
-              (integer->nat 255)))
+              (whole-rat-object 255)))
  "char:255")
 
 (for ([code (in-list '(256 257 511 65535))])
   (define failure
     (lazy-apply MAKE-CHAR
-                (integer->nat code)))
+                (whole-rat-object code)))
   (check-true
    (typed-value? error-type failure))
   (check-true
@@ -253,7 +229,7 @@
 (check-mismatch
  (lazy-apply MAKE-CHAR TRUE)
  1
- 3)
+ 7)
 
 (define rejected-bool-payload
   (apply2
@@ -267,7 +243,7 @@
  (lazy-apply MAKE-CHAR
              rejected-bool-payload)
  1
- 3)
+ 7)
 
 (define bubbled-error
   (lazy-apply MAKE-CHAR
@@ -277,7 +253,7 @@
  (error-kind=? bubbled-error
                invalid-nat-kind))
 (check-equal? (error-frames->host bubbled-error)
-              '((1 3)))
+              '((1 7)))
 (check-equal? (error-frames->host invalid-nat-error)
               '())
 
@@ -302,9 +278,9 @@
    (list DIGIT-0 DIGIT-9)
    (list RIGHT-BRACE RIGHT-BRACE)
    (list
-    (lazy-apply MAKE-CHAR ZERO)
+    (lazy-apply MAKE-CHAR (whole-rat-object 0))
     (lazy-apply MAKE-CHAR
-                (integer->nat 255)))))
+                (whole-rat-object 255)))))
 
 (for* ([case (in-list comparison-cases)]
        [operation (in-list comparison-operations)])
@@ -380,7 +356,7 @@
 (for ([function (in-list
                  (list raw-make-char
                        raw-char-value
-                       typed-make-char
+                       typed-make-char-rat
                        MAKE-CHAR))])
   (check-equal?
    (procedure-arity

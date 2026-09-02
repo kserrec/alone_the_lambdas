@@ -1932,3 +1932,387 @@ When making a design decision, prefer the option that makes the following senten
 This is a toy language.
 
 It should still be engineered as though its internal rules matter.
+
+---
+
+# Milestone 4 Amendment (2026-09-01) — Exact rational numbers and foundational values
+
+This amendment extends this specification for the fourth milestone. Where it
+conflicts with Sections 1 through 43 above, this amendment wins. The earlier
+sections remain the literal historical contract under which the completed
+milestones were built and are not retroactively rewritten.
+
+The two addenda receive matching Milestone 4 amendments in the same change.
+The purity addendum's amendment governs tags and purity; the naming addendum's
+amendment governs public spellings.
+
+## M4.1 Final public type set
+
+After the Milestone 4 public switch, the complete public type set is exactly:
+
+```text
+Error
+Bool
+List
+Result
+Char
+String
+Rat
+Unit
+Byte
+Option
+Map
+```
+
+`Nat` and `Int` are not public types. There is no public Nat or Int type tag,
+constructor, constant, literal, typed function, reader, or language export.
+There is exactly one public number type: `Rat`.
+
+No floating point, approximate decimal arithmetic, logarithm, trigonometric
+function, irrational constant, numeric hierarchy, automatic promotion,
+generic arithmetic dispatcher, Tuple type, Bytes type, or Set type is added.
+Pair remains internal representation machinery; tuples remain nested Pairs. A
+Set can later be represented as a Map whose values are Unit, without a new
+type.
+
+## M4.2 Private binary Nat
+
+The normalized most-significant-bit-first binary digit list defined in
+Section 3 remains the representation of every whole-number magnitude. It
+becomes exclusively private machinery: raw, untagged values used for
+magnitudes, counting, characters, bytes, ports, handles, and similar internal
+whole-number work.
+
+In addition to the raw operations of Section 12, private Nat provides pure
+raw algorithms for:
+
+```text
+quotient-with-remainder   (one traversal produces both)
+remainder
+greatest common divisor
+least common multiple
+even
+odd
+halve
+exponentiation by repeated squaring
+```
+
+Raw Nat division remains selection of the quotient from the combined
+quotient-with-remainder result and keeps its current answers. Private Nat
+exponentiation must use repeated squaring, not one multiplication per
+exponent decrement.
+
+## M4.3 Private Int
+
+A private Int is a raw, untagged pair:
+
+```text
+{ sign-bool, magnitude }
+```
+
+where `sign-bool` is a raw lambda Boolean (true means nonnegative) and
+`magnitude` is a normalized private binary Nat.
+
+Invariants:
+
+- Every construction routes through one canonical constructor.
+- Int zero has exactly one representation: positive zero. The canonical
+  constructor turns any attempted negative zero into positive zero.
+
+Private Int provides at least: successor, predecessor, addition, subtraction,
+multiplication, negation, absolute value, equality, ordering, sign, magnitude,
+and parity. Every result routes through the canonical constructor.
+
+Int is not public. It exists only as the numerator machinery for Rat and
+related internal work.
+
+## M4.4 Rat representation and canonical form
+
+A Rat is:
+
+```text
+{
+    RAT-TYPE,
+    {
+        int-numerator,
+        nat-denominator
+    }
+}
+```
+
+where `int-numerator` is a private Int and `nat-denominator` is a private
+binary Nat.
+
+Canonical-form invariants, enforced by one canonical constructor through
+which every supported Rat construction passes:
+
+- The denominator is nonzero. A zero denominator is invalid and never means
+  zero; it is an internal invariant failure, not a value.
+- The numerator and denominator are reduced by their greatest common divisor.
+- Rat zero has exactly one representation: positive `0/1`.
+- The sign lives in the Int numerator; the denominator is always positive.
+
+Equal rational values therefore have exactly one stored representation.
+
+## M4.5 Public Rat operations
+
+The exact public operations and contracts are:
+
+```text
+SUCC                  : Rat -> Rat            adds one
+ADD                   : Rat -> Rat -> Rat
+SUB                   : Rat -> Rat -> Rat
+MULT                  : Rat -> Rat -> Rat
+DIV                   : Rat -> Rat -> Result
+EXP                   : Rat -> Rat -> Result
+RECIP                 : Rat -> Result
+NEG                   : Rat -> Rat
+ABS                   : Rat -> Rat
+FLOOR                 : Rat -> Rat
+EQ                    : Rat -> Rat -> Bool
+LT                    : Rat -> Rat -> Bool
+LTE                   : Rat -> Rat -> Bool
+GT                    : Rat -> Rat -> Bool
+GTE                   : Rat -> Rat -> Bool
+IS-ZERO               : Rat -> Bool
+IS-WHOLE              : Rat -> Bool
+IS-NONNEGATIVE-WHOLE  : Rat -> Bool
+```
+
+All use the existing generalized exact-tag checker unchanged. A wrong
+argument type produces Error. An expected arithmetic failure produces
+`Result Err`. Every successful numeric answer is a canonical Rat.
+
+Specific semantics:
+
+- `DIV x zero` → `Err(DIVIDE-BY-ZERO)`. Otherwise `Ok(x / y)` exactly.
+- `RECIP zero` → `Err(DIVIDE-BY-ZERO)`. Otherwise `Ok(1 / x)`.
+- `FLOOR` rounds toward negative infinity, including for negative fractions
+  and negative whole values.
+- `EXP base exponent` accepts only whole-number exponents:
+  - exponent not whole → `Err(NON-WHOLE-EXPONENT)`, even when that particular
+    fractional power would happen to have an exact rational answer. No
+    perfect-root detection exists.
+  - negative whole exponent → the reciprocal of the positive power; if the
+    base is zero, `Err(DIVIDE-BY-ZERO)`.
+  - `EXP 0 0` → `Ok(1)`, following `all_the_lambdas`.
+  - Implementation must use the private repeated-squaring machinery.
+
+## M4.6 Number literals
+
+An exact integer datum (optionally signed) and an exact fraction datum are
+the only accepted numeric literals. Each mechanically lowers to the canonical
+Rat it denotes:
+
+```text
+3      → Rat  3/1
+-3     → Rat -3/1
+7/2    → Rat  7/2
+-7/2   → Rat -7/2
+0      → Rat  0/1
+```
+
+Every inexact numeric datum (such as `1.5` or `1e3`) and every non-real
+numeric datum is rejected during expansion rather than converted into a
+surprising fraction. No other numeric syntax exists.
+
+## M4.7 Retirements and re-specified whole-number consumers
+
+At the single public switch:
+
+- The public Nat type tag, constants `ZERO` through `TEN`, typed Nat
+  functions, Nat reader, and Nat language exports are removed. Literals
+  replace the constants.
+- `LEN` and `STRING-LENGTH` return whole-valued Rat objects.
+- `TAKE`, `DROP`, and `MAKE-CHAR` accept a Rat and verify that it is an
+  allowed nonnegative whole number. A negative or fractional count produces
+  `Error(INVALID-COUNT)`. `MAKE-CHAR` keeps `Error(INVALID-CHAR)` for values
+  above 255. Actual counting and indexing work remains on private binary Nat
+  values.
+- Public Nat and Rat are never both public number types, in any intermediate
+  state a user can observe.
+
+## M4.8 Unit
+
+Unit is a public type with exactly one value:
+
+```text
+UNIT = { UNIT-TYPE, fixed-internal-payload }
+```
+
+The payload is one fixed internal lambda value; its exact encoding is an
+implementation detail. No second Unit value can be constructed.
+
+`UNIT` is the only public Unit operation. There is no Unit predicate: the
+exact-tag checker validates Unit positionally, and no polymorphic `Any`
+mechanism is added to support one.
+
+Unit replaces `Ok(NIL)` wherever an operation succeeds with no useful answer
+(successful stdout, file write, TCP write, TCP close, and related server
+results become `Ok(UNIT)`). `NIL` thereafter means only an actual empty List.
+
+## M4.9 Byte
+
+A Byte is:
+
+```text
+{ BYTE-TYPE, binary-digit-list }
+```
+
+whose payload represents an integer 0 through 255, exactly 256 valid values.
+
+Public operations:
+
+```text
+MAKE-BYTE   : Rat  -> Byte     nonnegative whole 0..255, else Error(INVALID-BYTE)
+BYTE-VALUE  : Byte -> Rat      whole-valued Rat 0..255
+BYTE-EQ     : Byte -> Byte -> Bool
+BYTE-LT     : Byte -> Byte -> Bool
+BYTE-LTE    : Byte -> Byte -> Bool
+BYTE-GT     : Byte -> Byte -> Bool
+BYTE-GTE    : Byte -> Byte -> Bool
+```
+
+Byte is data, not a second number type: every Rat arithmetic operation
+rejects Byte with an ordinary type-mismatch Error.
+
+A byte sequence is `List Byte`. No separate Bytes type or host-backed byte
+collection exists. Pure conversions:
+
+```text
+STRING-TO-BYTES : String -> List      one Byte per Char
+BYTES-TO-STRING : List   -> String    validates every element is a Byte;
+                                      an invalid element produces Error
+```
+
+"BYTES" in these names means a List of Byte values, not a distinct type.
+Both conversions traverse, validate, and convert entirely with
+object-language lambdas.
+
+## M4.10 Option
+
+An Option is:
+
+```text
+{
+    OPTION-TYPE,
+    {
+        some-bool,
+        payload
+    }
+}
+```
+
+mirroring the Result shape: raw `true` means Some, raw `false` means None.
+
+Public operations:
+
+```text
+SOME         : value  -> Option
+NONE         : Option constant
+IS-SOME      : Option -> Bool
+IS-NONE      : Option -> Bool
+OPTION-CASE  : Option -> some-function -> none-value -> result
+```
+
+- `SOME` accepts any non-Error object-language value without an `Any` tag or
+  any change to the generalized checker. An Error argument bubbles rather
+  than hiding inside Some.
+- `OPTION-CASE option some-function none-value` applies `some-function` to
+  the Some payload, or returns `none-value` for None. The unselected branch
+  is not evaluated. Like `IF`, `OPTION-CASE` may use custom logic because its
+  return is intentionally polymorphic; its `option` argument is still
+  strictly validated and bubbles Error.
+
+Semantic rule: `NONE` means expected absence; `Result Err` means a
+computation failed. Option must not be confusable with failure, false, zero,
+NIL, or Unit.
+
+## M4.11 Map
+
+A Map is persistent: setting or removing an entry returns a new Map and never
+alters the old Map.
+
+Representation:
+
+```text
+{
+    MAP-TYPE,
+    {
+        key-equality-function,
+        entry-list
+    }
+}
+```
+
+where `entry-list` is a private object-language List of Pairs (key, value) —
+never a Racket list, association list, hash table, dictionary, struct, or
+mutable value — and `key-equality-function` is the user-supplied pure
+object-language function fixed at construction.
+
+Public operations:
+
+```text
+MAKE-MAP      : key-equality-function -> Map      the empty Map
+MAP-EMPTY?    : Map -> Bool
+MAP-SIZE      : Map -> Rat                        whole-valued
+MAP-LOOKUP    : Map -> key -> Option              SOME value or NONE
+MAP-CONTAINS? : Map -> key -> Bool
+MAP-SET       : Map -> key -> value -> Map
+MAP-REMOVE    : Map -> key -> Map
+```
+
+- Keys and values may be any non-Error object-language values, without an
+  `Any` tag or any change to the generalized checker.
+- `MAP-SET` on an existing key replaces its value without creating a
+  duplicate entry, under the Map's own equality function.
+- `MAP-REMOVE` of an absent key returns an equivalent Map.
+- Every search, comparison, and branch is pure unary lambda computation.
+
+Key-equality-function contract:
+
+- It is curried and pure: `key -> key -> Bool`, returning a typed Bool.
+- If a comparison returns a non-Bool value, the Map operation returns a
+  structured Error. If a comparison returns an Error, it bubbles.
+- The caller is responsible for supplying an equivalence relation; the Map
+  behaves deterministically according to the function as given.
+
+The central type checker gains no special Map mechanism.
+
+## M4.12 Effect wrapper signatures after Milestone 4
+
+The public effect wrappers reach these contracts (implemented across the
+milestone's phases, switched without ever exposing two public number types):
+
+```text
+stdout      : String -> Result                     Ok(UNIT)
+read-file   : String -> Result                     Ok(List Byte)
+write-file  : String -> List Byte -> Result        Ok(UNIT)
+tcp-read    →  Ok(List Byte)
+tcp-write   →  accepts List Byte, Ok(UNIT)
+tcp-close   →  Ok(UNIT)
+```
+
+Filesystem paths remain String. Ports, backlog sizes, read limits, handles,
+and other ordinary numeric fields are Rat objects representing nonnegative
+whole numbers, validated in pure object-language code before any request
+reaches the host. Pure HTTP parsing and rendering remain text-oriented,
+converting explicitly at the TCP boundary; binary HTTP bodies are preserved
+without treating arbitrary bytes as text. The host's authority, the codec's
+deterministic-translation-only role, and the single-bridge rule do not
+broaden. Expected external failures remain `Result Err`; contract failures
+remain Error.
+
+## M4.13 New error kinds
+
+New small internal discriminants, added without renumbering existing kinds:
+
+```text
+NON-WHOLE-EXPONENT   expected failure (Result Err) from EXP
+INVALID-COUNT        contract Error for negative/fractional counts
+INVALID-BYTE         contract Error from MAKE-BYTE outside 0..255
+```
+
+`DIVIDE-BY-ZERO` is reused for `DIV` by zero, `RECIP` of zero, and zero
+raised to a negative exponent. A zero Rat denominator is an internal
+invariant failure, not a public error value.

@@ -96,6 +96,7 @@ case "$product_version" in
   0.2.0-dev) expected_package_version="0.1.900" ;;
   0.2.0-rc.1) expected_package_version="0.1.901" ;;
   0.2.0) expected_package_version="0.2" ;;
+  0.3.0-dev) expected_package_version="0.2.900" ;;
   *) die "VERSION is outside the approved milestone states" ;;
 esac
 
@@ -266,7 +267,7 @@ done < <(
   die "raco distribute did not produce lib/"
 
 mkdir -p -- "$artifact_root/examples"
-for example_name in hello.attl stdout.attl file-round-trip.attl http-server.attl; do
+for example_name in hello.attl stdout.attl file-round-trip.attl http-server.attl foundations.attl; do
   example_source="$project_root/examples/$example_name"
   [[ -f "$example_source" && ! -L "$example_source" ]] ||
     die "canonical example is unavailable or symlinked: $example_name"

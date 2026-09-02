@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rackunit
+         (only-in "../core/unit.rkt" UNIT)
          racket/promise
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -78,9 +79,11 @@
                (lazy-apply is-ok pending))))
 (check-equal? (get-output-bytes output)
               #"A\0\377")
-(check-true (bool->boolean
-             (lazy-apply typed-is-nil
-                         (lazy-apply unwrap-ok pending))))
+(check-equal?
+ (type-tag->integer
+  (lazy-apply raw-object-type
+              (lazy-apply unwrap-ok pending)))
+ 8)
 
 ;; A host application in an unselected object-language branch remains
 ;; unforced and performs no output.
@@ -91,7 +94,7 @@
   (apply3 typed-if
           FALSE
           skipped-host-call
-          (object-ok NIL)))
+          (object-ok UNIT)))
 (parameterize ([current-output-port skipped-output])
   (check-true (bool->boolean
                (lazy-apply is-ok selected-fallback))))
@@ -265,7 +268,7 @@
               (host-list->object-list
                (list write-file-operation
                      (bytes->object-string #"path")
-                     (bytes->object-string #"bytes")
+                     (bytes->object-byte-list #"bytes")
                      TRUE))))
  #"write-file"
  #"wrong-arity")

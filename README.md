@@ -76,10 +76,14 @@ To run the complete test and structural-purity suite:
 
 - Every ordinary function is built from nested one-argument lambdas. Partial
   application follows naturally from that representation.
-- Bool, List, Nat, Error, Result, Char, and String are all lambda-encoded
-  values. Operations check their type tags at runtime.
-- Natural numbers use normalized binary digit Lists instead of Church
-  numerals, so ordinary arithmetic does not grow with a unary encoding.
+- Bool, List, Rat, Unit, Byte, Option, Map, Error, Result, Char, and String
+  are all lambda-encoded values. Operations check their type tags at
+  runtime.
+- The one public number type is Rat: exact rationals stored as a reduced
+  signed numerator over a positive denominator, with normalized binary digit
+  Lists underneath instead of Church numerals. Arithmetic is exact, never
+  grows with a unary encoding, and fractions like `-7/3` are ordinary
+  literals.
 - Errors are ordinary structured values. Expected computational failures use
   `Result`; contract and representation failures use `Error`.
 - Output, files, and blocking TCP are available through one explicit host
@@ -95,13 +99,14 @@ testable.
 
 ## Examples
 
-The repository includes four programs written entirely through the public
+The repository includes five programs written entirely through the public
 `#lang attalambda` surface:
 
 | Example | What it does |
 | --- | --- |
 | [`hello.attl`](examples/hello.attl) | Prints a greeting. |
 | [`stdout.attl`](examples/stdout.attl) | Exercises explicit standard output. |
+| [`foundations.attl`](examples/foundations.attl) | Exercises exact rational arithmetic, Unit, Byte, Option, and Map end to end. |
 | [`file-round-trip.attl`](examples/file-round-trip.attl) | Writes and reads back a file. |
 | [`http-server.attl`](examples/http-server.attl) | Serves one request on an ephemeral loopback port, then exits. |
 
@@ -134,6 +139,7 @@ it.
 | [`runtime/`](runtime) | Deterministic boundary conversion and the sole privileged `host`. |
 | [`lang/`](lang) | The `#lang attalambda` reader and public language surface. |
 | [`runner/`](runner) | The standalone command-line entry point. |
+| [`macros/`](macros) | The two trusted mechanical-expansion modules every production file compiles through. |
 | [`readers/`](readers) | One-way human-readable observation used outside production computation. |
 | [`tests/`](tests) | Behavioral, representation, error, laziness, and boundary tests. |
 | [`tooling/`](tooling) | Purity, boundary, and distribution checks. |
@@ -146,6 +152,8 @@ For more detail:
   documents that define the language.
 - [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) maps requirements to executable
   and structural evidence.
+- [`docs/design/host-boundary.md`](docs/design/host-boundary.md) records the
+  approved host protocol and its exact authority.
 - [`AGENTS.md`](AGENTS.md) contains the implementation rules for contributors
   and coding agents.
 

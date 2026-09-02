@@ -9,6 +9,7 @@
          "../core/function-names.rkt"
          "../core/list-nat.rkt"
          "../core/lists.rkt"
+         "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/result.rkt"
          "../core/strings.rkt"
@@ -20,27 +21,24 @@
                   typed-or
                   typed-xor
                   typed-if)
-         "../core/typed-nat.rkt"
+         "../core/rat.rkt"
+         "../core/typed-rat.rkt"
          "../readers/error.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/string.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  apply3
+                  typed-value?
+                  host-bits->raw
+                  whole-rat-object))
 
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (apply3 function first second third)
-  (lazy-apply
-   (apply2 function first second)
-   third))
-
-(define (typed-value? type value)
-  (raw-boolean->boolean
-   (apply2 raw-is-type type value)))
+(define ONE (whole-rat-object 1))
+(define FOUR (whole-rat-object 4))
+(define EIGHT (whole-rat-object 8))
 
 (define function-name-cases
   (list
@@ -102,7 +100,7 @@
    (list error-type "ERROR")
    (list bool-type "BOOL")
    (list list-type "LIST")
-   (list nat-type "NAT")
+   (list rat-type "RAT")
    (list result-type "RESULT")
    (list char-type "CHAR")
    (list string-type "STRING")))
@@ -122,46 +120,60 @@
          "TAIL" 1 "LIST" "BOOL")
    (list (lazy-apply typed-is-nil TRUE)
          "IS-NIL" 1 "LIST" "BOOL")
-   (list (lazy-apply typed-len TRUE)
+   (list (lazy-apply typed-len-rat TRUE)
          "LEN" 1 "LIST" "BOOL")
-   (list (apply2 typed-take TRUE NIL)
-         "TAKE" 1 "NAT" "BOOL")
-   (list (apply2 typed-drop TRUE NIL)
-         "DROP" 1 "NAT" "BOOL")
+   (list (apply2 typed-take-rat TRUE NIL)
+         "TAKE" 1 "RAT" "BOOL")
+   (list (apply2 typed-drop-rat TRUE NIL)
+         "DROP" 1 "RAT" "BOOL")
 
    (list (lazy-apply typed-not ONE)
-         "NOT" 1 "BOOL" "NAT")
+         "NOT" 1 "BOOL" "RAT")
    (list (apply2 typed-and ONE TRUE)
-         "AND" 1 "BOOL" "NAT")
+         "AND" 1 "BOOL" "RAT")
    (list (apply2 typed-or ONE TRUE)
-         "OR" 1 "BOOL" "NAT")
+         "OR" 1 "BOOL" "RAT")
    (list (apply2 typed-xor ONE TRUE)
-         "XOR" 1 "BOOL" "NAT")
+         "XOR" 1 "BOOL" "RAT")
    (list (apply3 typed-if ONE TRUE TRUE)
-         "if" 1 "BOOL" "NAT")
+         "if" 1 "BOOL" "RAT")
 
-   (list (lazy-apply typed-nat-succ TRUE)
-         "SUCC" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-add TRUE ONE)
-         "ADD" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-sub TRUE ONE)
-         "SUB" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-mult TRUE ONE)
-         "MULT" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-div TRUE ONE)
-         "DIV" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-equal TRUE ONE)
-         "EQ" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-less TRUE ONE)
-         "LT" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-less-equal TRUE ONE)
-         "LTE" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-greater TRUE ONE)
-         "GT" 1 "NAT" "BOOL")
-   (list (apply2 typed-nat-greater-equal TRUE ONE)
-         "GTE" 1 "NAT" "BOOL")
-   (list (lazy-apply typed-nat-is-zero TRUE)
-         "IS-ZERO" 1 "NAT" "BOOL")
+   (list (lazy-apply typed-rat-succ TRUE)
+         "SUCC" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-add TRUE ONE)
+         "ADD" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-sub TRUE ONE)
+         "SUB" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-mult TRUE ONE)
+         "MULT" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-div TRUE ONE)
+         "DIV" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-exp TRUE ONE)
+         "EXP" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-recip TRUE)
+         "RECIP" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-negate TRUE)
+         "NEG" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-abs TRUE)
+         "ABS" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-floor TRUE)
+         "FLOOR" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-equal TRUE ONE)
+         "EQ" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-less TRUE ONE)
+         "LT" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-less-equal TRUE ONE)
+         "LTE" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-greater TRUE ONE)
+         "GT" 1 "RAT" "BOOL")
+   (list (apply2 typed-rat-greater-equal TRUE ONE)
+         "GTE" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-is-zero TRUE)
+         "IS-ZERO" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-is-whole TRUE)
+         "IS-WHOLE" 1 "RAT" "BOOL")
+   (list (lazy-apply typed-rat-is-nonnegative-whole TRUE)
+         "IS-NONNEGATIVE-WHOLE" 1 "RAT" "BOOL")
 
    (list (lazy-apply typed-make-err TRUE)
          "make-err" 1 "ERROR" "BOOL")
@@ -174,8 +186,8 @@
    (list (lazy-apply typed-result-unwrap-err TRUE)
          "unwrap-err" 1 "RESULT" "BOOL")
 
-   (list (lazy-apply typed-make-char TRUE)
-         "MAKE-CHAR" 1 "NAT" "BOOL")
+   (list (lazy-apply typed-make-char-rat TRUE)
+         "MAKE-CHAR" 1 "RAT" "BOOL")
    (list (apply2 typed-char-equal TRUE A)
          "CHAR-EQ" 1 "CHAR" "BOOL")
    (list (apply2 typed-char-less TRUE A)
@@ -191,7 +203,7 @@
          "MAKE-STRING" 1 "LIST" "BOOL")
    (list (lazy-apply typed-string-empty? TRUE)
          "STRING-EMPTY?" 1 "STRING" "BOOL")
-   (list (lazy-apply typed-string-length TRUE)
+   (list (lazy-apply typed-string-length-rat TRUE)
          "STRING-LENGTH" 1 "STRING" "BOOL")
    (list (apply2 typed-string-equal TRUE EMPTY-STRING)
          "STRING-EQ" 1 "STRING" "BOOL")
@@ -223,21 +235,21 @@
            actual-type)))
 
 (define add-error
-  (apply2 typed-nat-add TRUE ONE))
+  (apply2 typed-rat-add TRUE ONE))
 
 (define nested-error
-  (lazy-apply typed-string-length
+  (lazy-apply typed-string-length-rat
               add-error))
 
 (check-equal?
  (error-value->string nested-error)
- "ADD(arg1 expected NAT got BOOL)\n  -> STRING-LENGTH(arg1 expected STRING)")
+ "ADD(arg1 expected RAT got BOOL)\n  -> STRING-LENGTH(arg1 expected STRING)")
 
 (check-equal?
  (error-value->string
-  (lazy-apply typed-nat-succ
+  (lazy-apply typed-rat-succ
               invalid-nat-error))
- "INVALID-NAT\n  -> SUCC(arg1 expected NAT)")
+ "INVALID-NAT\n  -> SUCC(arg1 expected RAT)")
 
 (define raw-mismatch
   (apply3 raw-make-type-mismatch-error
@@ -273,9 +285,9 @@
          "EMPTY-LIST" "HEAD")
    (list (lazy-apply typed-tail NIL)
          "EMPTY-LIST" "TAIL")
-   (list (lazy-apply typed-make-char
-                     (apply2 typed-nat-mult
-                             (apply2 typed-nat-mult FOUR EIGHT)
+   (list (lazy-apply typed-make-char-rat
+                     (apply2 typed-rat-mult
+                             (apply2 typed-rat-mult FOUR EIGHT)
                              EIGHT))
          "INVALID-CHAR" "MAKE-CHAR")
    (list (lazy-apply typed-make-string one-element-list)
@@ -303,6 +315,6 @@
 
 (check-equal?
  (error-value->string
-  (lazy-apply typed-nat-succ
+  (lazy-apply typed-rat-succ
               (lazy-apply typed-head NIL)))
- "EMPTY-LIST\n  -> HEAD(result)\n  -> SUCC(arg1 expected NAT)")
+ "EMPTY-LIST\n  -> HEAD(result)\n  -> SUCC(arg1 expected RAT)")

@@ -4,40 +4,71 @@
          "fix.rkt"
          "lists.rkt"
          "logic.rkt"
-         "objects.rkt"
-         "tags.rkt")
+         "pair.rkt")
 
-(provide raw-normalize-nat
+(provide raw-zero-bits
+         raw-one-bits
+         raw-two-bits
+         raw-four-bits
+         raw-five-bits
+         raw-eight-bits
+         raw-nine-bits
+         raw-ten-bits
+         raw-sixteen-bits
+         raw-byte-max-bits
+         raw-normalize-nat
          raw-nat-is-zero
          raw-nat-succ
          raw-nat-add
          raw-nat-sub
          raw-nat-mult
+         raw-nat-div-rem
          raw-nat-div
+         raw-nat-rem
+         raw-nat-gcd
+         raw-nat-lcm
+         raw-nat-odd
+         raw-nat-even
+         raw-nat-half
+         raw-nat-exp
          raw-nat-equal
          raw-nat-less
          raw-nat-less-equal
          raw-nat-greater
-         raw-nat-greater-equal
-         raw-make-nat
-         raw-nat-value
-         ZERO
-         ONE
-         TWO
-         THREE
-         FOUR
-         FIVE
-         SIX
-         SEVEN
-         EIGHT
-         NINE
-         TEN)
+         raw-nat-greater-equal)
 
 (def raw-zero-bits =
   ((raw-cons raw-false) NIL))
 
 (def raw-one-bits =
   ((raw-cons raw-true) NIL))
+
+(def raw-two-bits =
+  (raw-nat-succ raw-one-bits))
+
+(def raw-four-bits =
+  ((raw-nat-add raw-two-bits) raw-two-bits))
+
+(def raw-five-bits =
+  (raw-nat-succ raw-four-bits))
+
+(def raw-eight-bits =
+  ((raw-nat-add raw-four-bits) raw-four-bits))
+
+(def raw-nine-bits =
+  (raw-nat-succ raw-eight-bits))
+
+(def raw-ten-bits =
+  (raw-nat-succ raw-nine-bits))
+
+(def raw-sixteen-bits =
+  ((raw-nat-add raw-eight-bits) raw-eight-bits))
+
+(def raw-byte-max-bits =
+  ((raw-nat-sub
+    ((raw-nat-mult raw-sixteen-bits)
+     raw-sixteen-bits))
+   raw-one-bits))
 
 (def raw-normalize-nat-step recur bits =
   (((raw-if
@@ -297,11 +328,13 @@
       (raw-nat-succ doubled))
      doubled)))
 
-(def raw-nat-div-step recur remaining divisor remainder quotient-reversed =
+(def raw-nat-div-rem-step recur remaining divisor remainder quotient-reversed =
   (((raw-if
      (raw-list-is-nil remaining))
-    (raw-normalize-nat
-     (raw-reverse quotient-reversed)))
+    ((raw-pair
+      (raw-normalize-nat
+       (raw-reverse quotient-reversed)))
+     (raw-normalize-nat remainder)))
    (lambda-let shifted =
      ((raw-nat-shift-in remainder)
       (raw-list-head remaining))
@@ -317,67 +350,88 @@
         ((raw-cons subtracts)
          quotient-reversed))))))
 
-(def raw-nat-div dividend divisor =
-  (((((raw-fix raw-nat-div-step)
+(def raw-nat-div-rem dividend divisor =
+  (((((raw-fix raw-nat-div-rem-step)
       (raw-normalize-nat dividend))
      (raw-normalize-nat divisor))
     raw-zero-bits)
    NIL))
 
-(def raw-make-nat bits =
-  ((raw-make-object nat-type)
+(def raw-nat-div dividend divisor =
+  (raw-first
+   ((raw-nat-div-rem dividend) divisor)))
+
+(def raw-nat-rem dividend divisor =
+  (raw-second
+   ((raw-nat-div-rem dividend) divisor)))
+
+(def raw-nat-gcd-step recur left right =
+  (((raw-if
+     (raw-nat-is-zero right))
+    left)
+   ((recur right)
+    ((raw-nat-rem left) right))))
+
+(def raw-nat-gcd left right =
+  (((raw-fix raw-nat-gcd-step)
+    (raw-normalize-nat left))
+   (raw-normalize-nat right)))
+
+(def raw-nat-lcm left right =
+  (lambda-let normalized-left = (raw-normalize-nat left)
+    (lambda-let normalized-right = (raw-normalize-nat right)
+      (((raw-if
+         ((raw-or
+           (raw-nat-is-zero normalized-left))
+          (raw-nat-is-zero normalized-right)))
+        raw-zero-bits)
+       ((raw-nat-div
+         ((raw-nat-mult normalized-left) normalized-right))
+        ((raw-nat-gcd normalized-left) normalized-right))))))
+
+(def raw-nat-last-bit-step recur bits =
+  (((raw-if
+     (raw-list-is-nil
+      (raw-list-tail bits)))
+    (raw-list-head bits))
+   (recur (raw-list-tail bits))))
+
+(def raw-nat-odd bits =
+  ((raw-fix raw-nat-last-bit-step)
    (raw-normalize-nat bits)))
 
-(def raw-nat-value nat =
-  (raw-object-value nat))
+(def raw-nat-even bits =
+  (raw-not (raw-nat-odd bits)))
 
-(def ZERO =
-  (raw-make-nat raw-zero-bits))
+(def raw-nat-drop-last-bit-step recur bits =
+  (((raw-if
+     (raw-list-is-nil
+      (raw-list-tail bits)))
+    NIL)
+   ((raw-cons
+     (raw-list-head bits))
+    (recur (raw-list-tail bits)))))
 
-(def ONE =
-  (raw-make-nat raw-one-bits))
+(def raw-nat-half bits =
+  (raw-normalize-nat
+   ((raw-fix raw-nat-drop-last-bit-step)
+    (raw-normalize-nat bits))))
 
-(def TWO =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value ONE))))
+(def raw-nat-exp-step recur base exponent =
+  (((raw-if
+     (raw-nat-is-zero exponent))
+    raw-one-bits)
+   (lambda-let half-power =
+     ((recur base)
+      (raw-nat-half exponent))
+     (lambda-let squared =
+       ((raw-nat-mult half-power) half-power)
+       (((raw-if
+          (raw-nat-odd exponent))
+         ((raw-nat-mult squared) base))
+        squared)))))
 
-(def THREE =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value TWO))))
-
-(def FOUR =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value THREE))))
-
-(def FIVE =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value FOUR))))
-
-(def SIX =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value FIVE))))
-
-(def SEVEN =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value SIX))))
-
-(def EIGHT =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value SEVEN))))
-
-(def NINE =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value EIGHT))))
-
-(def TEN =
-  (raw-make-nat
-   (raw-nat-succ
-    (raw-nat-value NINE))))
+(def raw-nat-exp base exponent =
+  (((raw-fix raw-nat-exp-step)
+    (raw-normalize-nat base))
+   (raw-normalize-nat exponent)))

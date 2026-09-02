@@ -48,7 +48,34 @@
          string-head-function-name
          string-tail-function-name
          string-prefix-function-name
-         string-contains-function-name)
+         string-contains-function-name
+         exp-function-name
+         recip-function-name
+         neg-function-name
+         abs-function-name
+         floor-function-name
+         is-whole-function-name
+         is-nonnegative-whole-function-name
+         make-byte-function-name
+         byte-value-function-name
+         byte-eq-function-name
+         byte-lt-function-name
+         byte-lte-function-name
+         byte-gt-function-name
+         byte-gte-function-name
+         string-to-bytes-function-name
+         bytes-to-string-function-name
+         some-function-name
+         is-some-function-name
+         is-none-function-name
+         option-case-function-name
+         make-map-function-name
+         map-empty-function-name
+         map-size-function-name
+         map-lookup-function-name
+         map-contains-function-name
+         map-set-function-name
+         map-remove-function-name)
 
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))
@@ -104,3 +131,34 @@
 (define-function-name string-tail-function-name STRING-TAIL)
 (define-function-name string-prefix-function-name STRING-PREFIX?)
 (define-function-name string-contains-function-name STRING-CONTAINS?)
+
+(define-function-name exp-function-name EXP)
+(define-function-name recip-function-name RECIP)
+(define-function-name neg-function-name NEG)
+(define-function-name abs-function-name ABS)
+(define-function-name floor-function-name FLOOR)
+(define-function-name is-whole-function-name IS-WHOLE)
+(define-function-name is-nonnegative-whole-function-name IS-NONNEGATIVE-WHOLE)
+
+(define-function-name make-byte-function-name MAKE-BYTE)
+(define-function-name byte-value-function-name BYTE-VALUE)
+(define-function-name byte-eq-function-name BYTE-EQ)
+(define-function-name byte-lt-function-name BYTE-LT)
+(define-function-name byte-lte-function-name BYTE-LTE)
+(define-function-name byte-gt-function-name BYTE-GT)
+(define-function-name byte-gte-function-name BYTE-GTE)
+(define-function-name string-to-bytes-function-name STRING-TO-BYTES)
+(define-function-name bytes-to-string-function-name BYTES-TO-STRING)
+
+(define-function-name some-function-name SOME)
+(define-function-name is-some-function-name IS-SOME)
+(define-function-name is-none-function-name IS-NONE)
+(define-function-name option-case-function-name OPTION-CASE)
+
+(define-function-name make-map-function-name MAKE-MAP)
+(define-function-name map-empty-function-name MAP-EMPTY?)
+(define-function-name map-size-function-name MAP-SIZE)
+(define-function-name map-lookup-function-name MAP-LOOKUP)
+(define-function-name map-contains-function-name MAP-CONTAINS?)
+(define-function-name map-set-function-name MAP-SET)
+(define-function-name map-remove-function-name MAP-REMOVE)

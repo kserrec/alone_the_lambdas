@@ -49,11 +49,15 @@ design.
 
 ## Representation invariants
 
-- Church numerals are limited to the seven closed type tags and tiny fixed
-  metadata explicitly required by the specifications, including Error kinds
-  and argument positions. Never use them for ordinary numeric values.
-- Public Nat is a normalized most-significant-bit-first binary digit List.
-  `[0]` is the only zero; positive values have no leading zeroes.
+- Church numerals are limited to the closed type tags (tag 3, formerly Nat,
+  is permanently retired) and tiny fixed metadata explicitly required by the
+  specifications, including Error kinds and argument positions. Never use
+  them for ordinary numeric values.
+- The only public number type is Rat: a reduced Int numerator over a
+  positive binary Nat denominator, with positive `0/1` as the only zero.
+  Private binary Nat magnitudes remain normalized most-significant-bit-first
+  digit Lists where `[0]` is the only zero, and private Int is a sign plus
+  magnitude with one zero. Neither Nat nor Int may become public again.
 - List follows the explicit Michaelson-style representation. `NIL` is a
   List, distinct from false and zero, and every tail is a List.
 - One generalized arbitrary-arity curried checker owns strict runtime typing.
@@ -119,7 +123,10 @@ design.
 
 ## Git
 
-- Work directly on `main`.
+- Work directly on `main` for ordinary phases. A multi-phase milestone that
+  changes the released language lands on one milestone branch (as Milestone 4
+  did on `milestone-4-rationals`) and merges to `main` only with Kyle's
+  explicit approval.
 - Commit and push after each meaningful, verified phase.
 - Keep commits narrow and descriptive.
 - Do not leave generated Racket artifacts in Git.

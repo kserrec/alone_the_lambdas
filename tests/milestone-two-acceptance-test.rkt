@@ -13,6 +13,7 @@
 (define-runtime-path stdout-example "../examples/stdout.attl")
 (define-runtime-path file-example "../examples/file-round-trip.attl")
 (define-runtime-path http-example "../examples/http-server.attl")
+(define-runtime-path foundations-example "../examples/foundations.attl")
 
 (define project-root
   (simplify-path project-root-path #f))
@@ -178,6 +179,27 @@
      (build-path file-directory
                  "attalambda-round-trip.txt"))
     #"AttaLambda file round trip.\n")
+
+   (define foundations-directory
+     (build-path temporary-root "foundations-example"))
+   (make-directory foundations-directory)
+   (check-command-success
+    (run-command environment
+                 racket-executable
+                 (list (path->string runner)
+                       (path->string foundations-example))
+                 60
+                 #:current-directory foundations-directory)
+    (bytes-append
+     #"ok negative-fraction\n"
+     #"ok exact-division\n"
+     #"ok power\n"
+     #"ok negative-power\n"
+     #"ok floor\n"
+     #"ok unit-acknowledgement\n"
+     #"ok bytes\n"
+     #"ok option\n"
+     #"ok map-persistence\n"))
 
    (define http-directory
      (build-path temporary-root "http-example"))

@@ -14,6 +14,9 @@
          invalid-char-kind
          invalid-string-kind
          wrong-result-variant-kind
+         non-whole-exponent-kind
+         invalid-count-kind
+         invalid-byte-kind
          result-position
          argument-position-one
          argument-position-two
@@ -47,7 +50,10 @@
          divide-by-zero-error
          invalid-char-error
          invalid-string-error
-         wrong-result-variant-error)
+         wrong-result-variant-error
+         non-whole-exponent-error
+         invalid-count-error
+         invalid-byte-error)
 
 (def type-mismatch-kind = church-zero)
 (def empty-list-kind = church-one)
@@ -56,6 +62,22 @@
 (def invalid-char-kind = church-four)
 (def invalid-string-kind = church-five)
 (def wrong-result-variant-kind = church-six)
+;; Kinds 7 and 8 belong to the host protocol, 9 through 12 to the pure
+;; HTTP layer, and 13 to the HTTP server's handler contract; new core
+;; kinds continue after the complete assigned space.
+(def non-whole-exponent-kind =
+  (church-succ
+   (church-succ
+    (church-succ
+     (church-succ
+      (church-succ
+       (church-succ church-eight)))))))
+
+(def invalid-count-kind =
+  (church-succ non-whole-exponent-kind))
+
+(def invalid-byte-kind =
+  (church-succ invalid-count-kind))
 
 (def result-position = church-zero)
 (def argument-position-one = church-one)
@@ -195,3 +217,12 @@
 
 (def wrong-result-variant-error =
   (raw-make-root-error wrong-result-variant-kind))
+
+(def non-whole-exponent-error =
+  (raw-make-root-error non-whole-exponent-kind))
+
+(def invalid-count-error =
+  (raw-make-root-error invalid-count-kind))
+
+(def invalid-byte-error =
+  (raw-make-root-error invalid-byte-kind))

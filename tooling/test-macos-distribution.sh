@@ -109,7 +109,7 @@ artifact_root_name="${archive_name%.tar.gz}"
 product_version="${artifact_root_name#attalambda-}"
 product_version="${product_version%-$target_identifier}"
 case "$product_version" in
-  0.2.0-dev|0.2.0-rc.1|0.2.0) ;;
+  0.2.0-dev|0.2.0-rc.1|0.2.0|0.3.0-dev) ;;
   *) die "archive filename contains an unapproved product version" ;;
 esac
 [[ "$artifact_root_name" == "attalambda-$product_version-$target_identifier" ]] ||
@@ -183,6 +183,7 @@ for required_path in \
   examples/stdout.attl \
   examples/file-round-trip.attl \
   examples/http-server.attl \
+  examples/foundations.attl \
   GETTING_STARTED.md \
   BUILD-MANIFEST.txt \
   LICENSE \
@@ -227,7 +228,7 @@ find "$first_root/examples" -mindepth 1 -maxdepth 1 \
   \( "${dotenv_name_expression[@]}" \) -prune -o \
   -exec basename {} \; |
   sort > "$actual_examples"
-printf '%s\n' file-round-trip.attl hello.attl http-server.attl stdout.attl \
+printf '%s\n' file-round-trip.attl foundations.attl hello.attl http-server.attl stdout.attl \
   > "$scratch_root/expected-examples.txt"
 cmp -s "$actual_examples" "$scratch_root/expected-examples.txt" ||
   die "artifact examples/ inventory differs from the contract"

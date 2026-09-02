@@ -3,8 +3,6 @@
 (require rackunit
          racket/list
          racket/promise
-         (only-in "../core/binary-nat.rkt"
-                  raw-make-nat)
          "../core/errors.rkt"
          "../core/lists.rkt"
          "../core/logic.rkt"
@@ -14,39 +12,28 @@
          (only-in "../core/typed-logic.rkt"
                   FALSE
                   TRUE)
-         "../core/typed-nat.rkt"
+         "../core/rat.rkt"
+         "../core/typed-rat.rkt"
          "../readers/bool.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  integer->host-bits
+                  whole-rat-object))
 
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
+(define ZERO (whole-rat-object 0))
+(define ONE (whole-rat-object 1))
+(define THREE (whole-rat-object 3))
+(define SEVEN (whole-rat-object 7))
+(define TEN (whole-rat-object 10))
 
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (integer->host-bits integer)
-  (for/list ([character
-              (in-string
-               (number->string integer 2))])
-    (char=? character #\1)))
-
-(define (integer->nat integer)
-  (lazy-apply
-   raw-make-nat
-   (host-bits->raw
-    (integer->host-bits integer))))
+(define DIV typed-rat-div)
+(define SUCC typed-rat-succ)
 
 (define (typed-value? type value)
   (raw-boolean->boolean
@@ -84,10 +71,14 @@
 
 (define (check-nat expected value)
   (check-true
-   (typed-value? nat-type value))
-  (check-equal? (nat->integer value)
+   (typed-value? rat-type value))
+  (check-equal? (rat->number
+                 (lazy-apply raw-object-value value))
                 expected)
-  (check-equal? (nat->host-bits value)
+  (check-equal? (list->host-list
+                 (lazy-apply raw-rat-magnitude-bits
+                             (lazy-apply raw-object-value value))
+                 raw-boolean->boolean)
                 (integer->host-bits expected)))
 
 (define (check-result-case expected-ok? result)
@@ -211,7 +202,7 @@
  (error-kind=? wrong-variant-then-succ
                wrong-result-variant-kind))
 (check-equal? (error-frames->host wrong-variant-then-succ)
-              '((1 3) (0 0)))
+              '((1 7) (0 0)))
 
 (define propagated-ok-input
   (lazy-apply make-ok
@@ -262,7 +253,7 @@
 (define lazy-nat
   (apply2
    raw-make-object
-   nat-type
+   rat-type
    (delay
      (error 'result
             "forced Ok payload"))))
@@ -288,41 +279,40 @@
     (lazy-force function))
    1))
 
+;; Public division is exact rational division since the Step 35.5 switch.
 (define division-cases
-  '((0 1 0)
-    (1 1 1)
-    (1 2 0)
-    (7 2 3)
-    (8 2 4)
-    (15 4 3)
-    (255 16 15)
-    (256 16 16)
-    (65535 255 257)
-    (654321 123 5319)))
+  '((0 1)
+    (1 1)
+    (1 2)
+    (7 2)
+    (8 2)
+    (15 4)
+    (255 16)
+    (256 16)
+    (65535 255)
+    (654321 123)))
 
 (for ([case (in-list division-cases)])
   (define dividend (first case))
   (define divisor (second case))
-  (define expected (third case))
   (define result
     (apply2 DIV
-            (integer->nat dividend)
-            (integer->nat divisor)))
+            (whole-rat-object dividend)
+            (whole-rat-object divisor)))
   (check-result-case #t result)
   (define quotient-value
     (lazy-apply unwrap-ok result))
-  (check-nat expected quotient-value)
-  (define quotient
-    (nat->integer quotient-value))
-  (check-true (<= (* quotient divisor)
-                  dividend))
-  (check-true (< dividend
-                 (* (add1 quotient) divisor))))
+  (check-true
+   (typed-value? rat-type quotient-value))
+  (check-equal?
+   (rat->number
+    (lazy-apply raw-object-value quotient-value))
+   (/ dividend divisor)))
 
 (for ([dividend (in-list '(0 1 999 65535))])
   (define result
-    (apply2 typed-nat-div
-            (integer->nat dividend)
+    (apply2 typed-rat-div
+            (whole-rat-object dividend)
             ZERO))
   (check-result-case #f result)
   (define failure
@@ -350,13 +340,13 @@
     (error 'result
            "forced argument after first DIV mismatch")))
  1
- 3
+ 7
  1)
 
 (check-mismatch
  (apply2 DIV ONE FALSE)
  2
- 3
+ 7
  1)
 
 (define bubbled-first-partial
@@ -374,17 +364,17 @@
     (error 'result
            "forced argument after first DIV Error")))
  1
- 3)
+ 7)
 
 (check-bubbled
  (apply2 DIV ONE invalid-nat-error)
  2
- 3)
+ 7)
 
 (define lazy-dividend
   (apply2
    raw-make-object
-   nat-type
+   rat-type
    (delay
      (error 'result
             "forced dividend bits for zero divisor"))))
@@ -417,11 +407,11 @@
               '())
 (check-equal? (error-frames->host
                later-propagated-error)
-              '((1 3)))
+              '((1 7)))
 
 (for ([function (in-list
                  (list DIV
-                       typed-nat-div))])
+                       typed-rat-div))])
   (check-equal?
    (procedure-arity
     (lazy-force function))

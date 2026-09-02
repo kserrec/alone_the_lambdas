@@ -48,20 +48,23 @@
   (text->object-string
    (path->string value)))
 
-(define (check-ok-nil value)
+(define (check-ok-unit value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (check-true (bool->boolean
-               (lazy-apply typed-is-nil
-                           (lazy-apply unwrap-ok value)))))
+  (check-equal?
+   (type-tag->integer
+    (lazy-apply raw-object-type
+                (lazy-apply unwrap-ok value)))
+   8))
 
+;; Read results carry a List of Byte since the Step 37.3 switch.
 (define (check-ok-bytes value expected)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
   (check-equal?
-   (object-string->bytes
+   (object-byte-list->bytes
     (lazy-apply unwrap-ok value))
    expected))
 
@@ -143,22 +146,22 @@
     (define pending-write
       (apply2 write-file-with-host
               content-path-value
-              (bytes->object-string initial-bytes)))
+              (bytes->object-byte-list initial-bytes)))
     (check-false (file-exists? content-path))
-    (check-ok-nil pending-write)
+    (check-ok-unit pending-write)
     (check-equal? (file->bytes content-path) initial-bytes)
 
     (write-host-bytes content-path #"outside-change")
-    (check-ok-nil pending-write)
+    (check-ok-unit pending-write)
     (check-equal? (file->bytes content-path) #"outside-change")
 
     ;; A fresh write truncates an existing longer file. Reads return complete,
     ;; byte-exact object Strings without a reader or text normalization.
     (define replacement #"short\0\377")
-    (check-ok-nil
+    (check-ok-unit
      (apply2 write-file-with-host
              content-path-value
-             (bytes->object-string replacement)))
+             (bytes->object-byte-list replacement)))
     (check-equal? (file->bytes content-path) replacement)
     (check-ok-bytes
      (lazy-apply read-file-with-host content-path-value)
@@ -167,10 +170,10 @@
     ;; Empty files and relative UTF-8 paths use the same byte-exact contract.
     (define relative-name "relative-\u03bb.bin")
     (parameterize ([current-directory temporary-root])
-      (check-ok-nil
+      (check-ok-unit
        (apply2 write-file-with-host
                (text->object-string relative-name)
-               (bytes->object-string #"")))
+               (bytes->object-byte-list #"")))
       (check-ok-bytes
        (lazy-apply read-file-with-host
                    (text->object-string relative-name))
@@ -189,10 +192,10 @@
     (write-host-bytes symlink-target #"target-before")
     (make-file-or-directory-link symlink-target symlink-path)
     (parameterize ([current-security-guard no-delete-guard])
-      (check-ok-nil
+      (check-ok-unit
        (apply2 write-file-with-host
                (path->object-string symlink-path)
-               (bytes->object-string #"target-after"))))
+               (bytes->object-byte-list #"target-after"))))
     (check-true (link-exists? symlink-path))
     (check-equal? (file->bytes symlink-target) #"target-after")
     (check-equal? (file->bytes symlink-path) #"target-after")
@@ -221,14 +224,14 @@
     (check-host-failure
      (apply2 write-file-with-host
              (bytes->object-string #"\377")
-             (bytes->object-string #"bytes"))
+             (bytes->object-byte-list #"bytes"))
      #"write-file"
      #"invalid-text")
 
     (check-host-failure
      (apply2 write-file-with-host
              (bytes->object-string #"bad\0path")
-             (bytes->object-string #"bytes"))
+             (bytes->object-byte-list #"bytes"))
      #"write-file"
      #"invalid-path")
 
@@ -237,7 +240,7 @@
       write-file-with-host
       (path->object-string
        (build-path temporary-root "missing-parent" "file.bin"))
-      (bytes->object-string #"bytes"))
+      (bytes->object-byte-list #"bytes"))
      #"write-file"
      #"not-found")
 
@@ -259,7 +262,7 @@
       (check-host-failure
        (apply2 write-file-with-host
                content-path-value
-               (bytes->object-string #"denied"))
+               (bytes->object-byte-list #"denied"))
        #"write-file"
        #"permission-denied"))
 

@@ -8,17 +8,20 @@
          "logic.rkt"
          "objects.rkt"
          "tags.rkt"
-         "typecheck.rkt")
+         "typecheck.rkt"
+         (only-in "rat.rkt"
+                  raw-rat-is-nonnegative-whole
+                  raw-rat-magnitude-bits))
 
 (provide raw-make-char
          raw-char-value
-         typed-make-char
+         typed-make-char-rat
          typed-char-equal
          typed-char-less
          typed-char-less-equal
          typed-char-greater
          typed-char-greater-equal
-         (rename-out [typed-make-char MAKE-CHAR]
+         (rename-out [typed-make-char-rat MAKE-CHAR]
                      [typed-char-equal CHAR-EQ]
                      [typed-char-less CHAR-LT]
                      [typed-char-less-equal CHAR-LTE]
@@ -38,17 +41,6 @@
          LEFT-BRACKET RIGHT-BRACKET
          LEFT-BRACE RIGHT-BRACE)
 
-(def raw-sixteen-bits =
-  ((raw-nat-add
-    (raw-nat-value EIGHT))
-   (raw-nat-value EIGHT)))
-
-(def raw-char-max-bits =
-  ((raw-nat-sub
-    ((raw-nat-mult raw-sixteen-bits)
-     raw-sixteen-bits))
-   (raw-nat-value ONE)))
-
 (def raw-make-char bits =
   ((raw-make-object char-type)
    (raw-normalize-nat bits)))
@@ -61,22 +53,33 @@
     (raw-normalize-nat bits)
     (((raw-if
        ((raw-nat-less-equal normalized)
-        raw-char-max-bits))
+        raw-byte-max-bits))
       (raw-make-char normalized))
      ((raw-add-result-frame invalid-char-error)
       make-char-function-name))))
-
-(def char-constructor-signature =
-  ((raw-cons nat-type) NIL))
 
 (def char-binary-signature =
   ((raw-cons char-type)
    ((raw-cons char-type) NIL)))
 
-(def typed-make-char =
-  ((((make-typed-function raw-make-checked-char)
+;; The public constructor accepts a Rat since the Step 35.5 switch. The Rat
+;; must be a nonnegative whole number; range checking stays on private
+;; binary Nat bits.
+(def raw-make-checked-char-rat rat =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole rat))
+    (raw-make-checked-char
+     (raw-rat-magnitude-bits rat)))
+   ((raw-add-result-frame invalid-count-error)
+    make-char-function-name)))
+
+(def char-rat-constructor-signature =
+  ((raw-cons rat-type) NIL))
+
+(def typed-make-char-rat =
+  ((((make-typed-function raw-make-checked-char-rat)
      make-char-function-name)
-    char-constructor-signature)
+    char-rat-constructor-signature)
    raw-keep-return))
 
 (def typed-char-equal =
@@ -115,12 +118,10 @@
     (raw-char-value char))))
 
 (def TAB =
-  (raw-make-char
-   (raw-nat-value NINE)))
+  (raw-make-char raw-nine-bits))
 
 (def LF =
-  (raw-make-char
-   (raw-nat-value TEN)))
+  (raw-make-char raw-ten-bits))
 
 (def CR =
   (raw-char-succ
@@ -129,9 +130,8 @@
 
 (def SPACE =
   (raw-make-char
-   ((raw-nat-mult
-     (raw-nat-value FOUR))
-    (raw-nat-value EIGHT))))
+   ((raw-nat-mult raw-four-bits)
+    raw-eight-bits)))
 
 (def HASH =
   (raw-char-succ

@@ -156,7 +156,8 @@
       (for ([name (in-list '("hello.attl"
                              "stdout.attl"
                              "file-round-trip.attl"
-                             "http-server.attl"))])
+                             "http-server.attl"
+                             "foundations.attl"))])
         (copy-file (build-path project-root "examples" name)
                    (build-path root "examples" name)))
       (write-datum
@@ -188,8 +189,11 @@
                     host-list->object-list
                     object-string->bytes
                     bytes->object-string
-                    object-nat->integer
-                    integer->object-nat
+                    object-byte-list->bytes
+                    bytes->object-byte-list
+                    exact->object-rat
+                    object-rat->exact
+                    object-unit
                     object-ok
                     object-err))))
       (write-datum
@@ -221,14 +225,14 @@
           (eq? (source-classification-class classification)
                'application))
         project-classifications)
- 4)
+ 5)
 
 (check-equal?
  (count (lambda (classification)
           (eq? (source-classification-class classification)
                'reader))
         project-classifications)
- 8)
+ 13)
 
 (temporary-project
  (lambda (root)
@@ -579,8 +583,11 @@
                   host-list->object-list
                   object-string->bytes
                   bytes->object-string
-                  object-nat->integer
-                  integer->object-nat
+                  object-byte-list->bytes
+                  bytes->object-byte-list
+                  exact->object-rat
+                  object-rat->exact
+                  object-unit
                   object-ok
                   object-err)
          ,extra)))
@@ -1053,19 +1060,20 @@
    (for ([version-pair
           (in-list '((#"0.2.0-dev\n" "0.1.900")
                      (#"0.2.0-rc.1\n" "0.1.901")
-                     (#"0.2.0\n" "0.2")))])
+                     (#"0.2.0\n" "0.2")
+                     (#"0.3.0-dev\n" "0.2.900")))])
      (write-exact-bytes product-version-file (car version-pair))
      (write-datum
       package-info
       (replace-package-version clean-package-info-datum
                                (cadr version-pair)))
      (check-equal? (project-boundary-violations root) '()))
-   (write-exact-bytes product-version-file #"0.2.0\n")
+   (write-exact-bytes product-version-file #"0.3.0-dev\n")
    (write-datum package-info clean-package-info-datum)
 
-   (write-exact-bytes product-version-file #"0.2.0")
+   (write-exact-bytes product-version-file #"0.3.0-dev")
    (check-project-kind 'invalid-product-version)
-   (write-exact-bytes product-version-file #"0.2.0\n")
+   (write-exact-bytes product-version-file #"0.3.0-dev\n")
 
    (define saved-version-file
      (build-path root "VERSION.backup"))
@@ -1073,7 +1081,7 @@
      (make-temporary-file "attalambda-version-target-~a"
                           #f
                           (path-only root)))
-   (write-exact-bytes version-target #"0.2.0\n")
+   (write-exact-bytes version-target #"0.3.0-dev\n")
    (rename-file-or-directory product-version-file saved-version-file)
    (make-file-or-directory-link version-target product-version-file)
    (define-values (version-link-findings version-target-reads)

@@ -10,10 +10,13 @@
          "lists.rkt"
          "logic.rkt"
          "objects.rkt"
+         (only-in "rat.rkt"
+                  raw-whole-rat)
          "tags.rkt"
          "typecheck.rkt")
 
 (provide EMPTY-STRING
+         typed-string-length-rat
          raw-make-string
          raw-string-value
          raw-string-empty?
@@ -26,7 +29,6 @@
          raw-string-contains?
          typed-make-string
          typed-string-empty?
-         typed-string-length
          typed-string-equal
          typed-string-append
          typed-string-head
@@ -35,7 +37,7 @@
          typed-string-contains?
          (rename-out [typed-make-string MAKE-STRING]
                      [typed-string-empty? STRING-EMPTY?]
-                     [typed-string-length STRING-LENGTH]
+                     [typed-string-length-rat STRING-LENGTH]
                      [typed-string-equal STRING-EQ]
                      [typed-string-append STRING-APPEND]
                      [typed-string-head STRING-HEAD]
@@ -66,9 +68,12 @@
 (def raw-char-list-valid? =
   (raw-fix raw-char-list-valid-step))
 
+;; raw-rebuild-list, not raw-list-object: the checker hands over a bare
+;; payload, and an empty rebuild must restore the one canonical NIL the
+;; codec's forged-terminator hardening requires.
 (def raw-make-checked-string list-payload =
   (lambda-let chars =
-    (raw-list-object list-payload)
+    (raw-rebuild-list list-payload)
     (((raw-if
        (raw-char-list-valid? chars))
       (raw-make-string chars))
@@ -179,11 +184,17 @@
     string-unary-signature)
    (raw-wrap-return bool-type)))
 
-(def typed-string-length =
-  ((((make-typed-function raw-string-length)
+;; The public length is Rat-based since the Step 35.5 switch; counting
+;; stays on the raw binary List counter.
+(def raw-string-length-rat chars =
+  (raw-whole-rat
+   (raw-string-length chars)))
+
+(def typed-string-length-rat =
+  ((((make-typed-function raw-string-length-rat)
      string-length-function-name)
     string-unary-signature)
-   (raw-wrap-return nat-type)))
+   (raw-wrap-return rat-type)))
 
 (def typed-string-equal =
   ((((make-typed-function raw-string-equal)

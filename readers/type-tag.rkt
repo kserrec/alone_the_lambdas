@@ -21,10 +21,14 @@
     [(0) "ERROR"]
     [(1) "BOOL"]
     [(2) "LIST"]
-    [(3) "NAT"]
     [(4) "RESULT"]
     [(5) "CHAR"]
     [(6) "STRING"]
+    [(7) "RAT"]
+    [(8) "UNIT"]
+    [(9) "BYTE"]
+    [(10) "OPTION"]
+    [(11) "MAP"]
     [else
      (format "TYPE:~a"
              tag-number)]))

@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rackunit
+         (only-in "../core/unit.rkt" UNIT)
          racket/promise
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -32,7 +33,8 @@
    (object-list->host-list
     (lazy-apply raw-error-frames error))))
 
-(define (check-contract-frame error expected-name expected-position)
+(define (check-contract-frame error expected-name expected-position
+                              expected-type)
   (check-true (typed-value? error-type error))
   (check-equal? (error-kind-integer error) 0)
   (define frame (first-error-frame error))
@@ -47,13 +49,14 @@
   (check-equal?
    (type-tag->integer
     (lazy-apply raw-error-frame-expected-type frame))
-   6))
+   expected-type))
 
 (define path-value
   (bytes->object-string #"relative/\316\273.bin"))
 
+;; File contents are a List of Byte since the Step 37.3 switch.
 (define bytes-value
-  (bytes->object-string #"\0\200\377contents"))
+  (bytes->object-byte-list #"\0\200\377contents"))
 
 (define read-request
   (lazy-apply make-read-file-request path-value))
@@ -80,7 +83,7 @@
               #"write-file")
 (check-equal? (object-string->bytes (cadr write-parts))
               #"relative/\316\273.bin")
-(check-equal? (object-string->bytes (caddr write-parts))
+(check-equal? (object-byte-list->bytes (caddr write-parts))
               #"\0\200\377contents")
 
 (define calls 0)
@@ -89,7 +92,7 @@
 (define (fake-host request-value)
   (set! calls (add1 calls))
   (set! traces (cons request-value traces))
-  (object-ok NIL))
+  (object-ok UNIT))
 
 (define read-with-fake
   (lazy-apply make-read-file fake-host))
@@ -109,9 +112,11 @@
 (check-true (bool->boolean
              (lazy-apply is-ok pending-read)))
 (check-equal? calls 1)
-(check-true (bool->boolean
-             (lazy-apply typed-is-nil
-                         (lazy-apply unwrap-ok pending-read))))
+(check-equal?
+ (type-tag->integer
+  (lazy-apply raw-object-type
+              (lazy-apply unwrap-ok pending-read)))
+ 8)
 (check-equal? calls 1)
 
 (define pending-write-function
@@ -129,9 +134,11 @@
 (check-true (bool->boolean
              (lazy-apply is-ok pending-write)))
 (check-equal? calls 2)
-(check-true (bool->boolean
-             (lazy-apply typed-is-nil
-                         (lazy-apply unwrap-ok pending-write))))
+(check-equal?
+ (type-tag->integer
+  (lazy-apply raw-object-type
+              (lazy-apply unwrap-ok pending-write)))
+ 8)
 (check-equal? calls 2)
 
 (define traced-write
@@ -139,10 +146,12 @@
 (define traced-read
   (object-list->host-list (cadr traces)))
 
-(check-equal? (map object-string->bytes traced-write)
-              (list #"write-file"
-                    #"relative/\316\273.bin"
-                    #"\0\200\377contents"))
+(check-equal? (object-string->bytes (car traced-write))
+              #"write-file")
+(check-equal? (object-string->bytes (cadr traced-write))
+              #"relative/\316\273.bin")
+(check-equal? (object-byte-list->bytes (caddr traced-write))
+              #"\0\200\377contents")
 (check-equal? (map object-string->bytes traced-read)
               (list #"read-file"
                     #"relative/\316\273.bin"))
@@ -151,7 +160,7 @@
 ;; argument failure absorbs exactly the remaining curried write argument.
 (define wrong-read
   (lazy-apply read-with-fake TRUE))
-(check-contract-frame wrong-read #"read-file" 1)
+(check-contract-frame wrong-read #"read-file" 1 6)
 (check-equal? calls 2)
 
 (define wrong-write-first
@@ -159,14 +168,25 @@
 (check-equal? (procedure-arity (lazy-force wrong-write-first)) 1)
 (define absorbed-write-error
   (lazy-apply wrong-write-first bytes-value))
-(check-contract-frame absorbed-write-error #"write-file" 1)
+(check-contract-frame absorbed-write-error #"write-file" 1 6)
 (check-equal? calls 2)
 
 (define wrong-write-second
   (lazy-apply
    (lazy-apply write-with-fake path-value)
    TRUE))
-(check-contract-frame wrong-write-second #"write-file" 2)
+(check-contract-frame wrong-write-second #"write-file" 2 2)
+(check-equal? calls 2)
+
+;; A well-typed List whose element is not a Byte never reaches the host:
+;; the constructor's raw-byte-list-valid? guard answers the documented
+;; INVALID-BYTE contract Error (kind 16) before any request value exists.
+(define non-byte-write
+  (lazy-apply
+   (lazy-apply write-with-fake path-value)
+   (apply2 typed-cons TRUE NIL)))
+(check-true (typed-value? error-type non-byte-write))
+(check-equal? (error-kind-integer non-byte-write) 16)
 (check-equal? calls 2)
 
 (define incoming-read-error

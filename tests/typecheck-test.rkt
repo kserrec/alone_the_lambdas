@@ -11,9 +11,10 @@
          "../core/objects.rkt"
          "../core/tags.rkt"
          "../core/typecheck.rkt"
+         "../core/rat.rkt"
          "../macros/macros.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/string.rkt"
          "../readers/type-tag.rkt"
@@ -32,7 +33,9 @@
   first)
 
 (def raw-return-two ignored =
-  TWO)
+  ((raw-make-object rat-type)
+   (raw-whole-rat
+    (raw-nat-succ raw-one-bits))))
 
 (def raw-return-error ignored =
   invalid-nat-error)
@@ -238,8 +241,9 @@
    true-object))
 
 (check-true
- (typed-value? nat-type kept-two))
-(check-equal? (nat->integer kept-two)
+ (typed-value? rat-type kept-two))
+(check-equal? (rat->number
+               (lazy-apply raw-object-value kept-two))
               2)
 
 (define kept-error
@@ -255,6 +259,9 @@
 (check-equal? (error-frames->host kept-error)
               '())
 
+(define rat-zero-object
+  (apply2 raw-make-object rat-type raw-rat-zero))
+
 (define valid-five
   (list true-object
         false-object
@@ -266,7 +273,7 @@
   (define failure
     (apply-all
      checked-five
-     (list-set valid-five wrong-index ZERO)))
+     (list-set valid-five wrong-index rat-zero-object)))
   (define details
     (mismatch-details failure))
   (check-true
@@ -289,7 +296,7 @@
     (lazy-apply
      raw-type-mismatch-actual-type
      details))
-   3)
+   7)
   (check-equal? (error-frames->host failure)
                 (list
                  (list (add1 wrong-index) 1)))
@@ -297,7 +304,7 @@
                 '("AND")))
 
 (define failure-after-first
-  (lazy-apply checked-five ZERO))
+  (lazy-apply checked-five rat-zero-object))
 
 (define failure-with-three-remaining
   (lazy-apply
@@ -346,7 +353,7 @@
    (lazy-apply
     (lazy-apply checked-five true-object)
     false-object)
-   ZERO))
+   rat-zero-object))
 
 (check-equal?
  (procedure-arity

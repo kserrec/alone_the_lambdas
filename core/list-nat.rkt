@@ -8,15 +8,21 @@
          "logic.rkt"
          "objects.rkt"
          "tags.rkt"
-         "typecheck.rkt")
+         "typecheck.rkt"
+         (only-in "errors.rkt"
+                  raw-add-result-frame
+                  invalid-count-error)
+         (only-in "rat.rkt"
+                  raw-rat-is-nonnegative-whole
+                  raw-rat-magnitude-bits
+                  raw-whole-rat))
 
 (provide raw-list-length
          raw-list-take
          raw-list-drop
-         raw-list-object
-         typed-len
-         typed-take
-         typed-drop)
+         typed-len-rat
+         typed-take-rat
+         typed-drop-rat)
 
 (def raw-list-length-step recur list count =
   (((raw-if
@@ -29,7 +35,7 @@
 (def raw-list-length list =
   (((raw-fix raw-list-length-step)
     list)
-   (raw-nat-value ZERO)))
+   raw-zero-bits))
 
 (def raw-list-take-step recur count list =
   (((raw-if
@@ -41,7 +47,7 @@
      (raw-list-head list))
     ((recur
       ((raw-nat-sub count)
-       (raw-nat-value ONE)))
+       raw-one-bits))
      (raw-list-tail list)))))
 
 (def raw-list-take count list =
@@ -57,7 +63,7 @@
     list)
    ((recur
      ((raw-nat-sub count)
-      (raw-nat-value ONE)))
+      raw-one-bits))
     (raw-list-tail list))))
 
 (def raw-list-drop count list =
@@ -65,39 +71,54 @@
     count)
    list))
 
-(def nat-list-signature =
-  ((raw-cons nat-type)
+;; The public counting surface is Rat-based since the Step 35.5 switch.
+;; Counting and indexing stay on private binary Nat; the Rat layer only
+;; validates and converts at the typed boundary.
+
+(def rat-list-signature =
+  ((raw-cons rat-type)
    ((raw-cons list-type) NIL)))
 
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
+(def raw-list-length-rat-value list-value =
+  (raw-whole-rat
+   (raw-list-length
+    (raw-list-object list-value))))
 
-(def raw-list-length-value list-value =
-  (raw-list-length
-   (raw-list-object list-value)))
+(def raw-list-take-rat-values count list-value =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole count))
+    ((raw-list-take
+      (raw-rat-magnitude-bits count))
+     (raw-list-object list-value)))
+   ((raw-add-result-frame invalid-count-error)
+    take-function-name)))
 
-(def raw-list-take-values count list-value =
-  ((raw-list-take count)
-   (raw-list-object list-value)))
+;; raw-rebuild-list, not raw-list-object: drop can return the rebuilt
+;; object itself, so an empty rebuild must restore the one canonical NIL
+;; the codec's forged-terminator hardening requires.
+(def raw-list-drop-rat-values count list-value =
+  (((raw-if
+     (raw-rat-is-nonnegative-whole count))
+    ((raw-list-drop
+      (raw-rat-magnitude-bits count))
+     (raw-rebuild-list list-value)))
+   ((raw-add-result-frame invalid-count-error)
+    drop-function-name)))
 
-(def raw-list-drop-values count list-value =
-  ((raw-list-drop count)
-   (raw-list-object list-value)))
-
-(def typed-len =
-  ((((make-typed-function raw-list-length-value)
+(def typed-len-rat =
+  ((((make-typed-function raw-list-length-rat-value)
      len-function-name)
     list-unary-signature)
-   (raw-wrap-return nat-type)))
+   (raw-wrap-return rat-type)))
 
-(def typed-take =
-  ((((make-typed-function raw-list-take-values)
+(def typed-take-rat =
+  ((((make-typed-function raw-list-take-rat-values)
      take-function-name)
-    nat-list-signature)
+    rat-list-signature)
    raw-keep-return))
 
-(def typed-drop =
-  ((((make-typed-function raw-list-drop-values)
+(def typed-drop-rat =
+  ((((make-typed-function raw-list-drop-rat-values)
      drop-function-name)
-    nat-list-signature)
+    rat-list-signature)
    raw-keep-return))
