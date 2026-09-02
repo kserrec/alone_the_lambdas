@@ -406,7 +406,7 @@
 
 (def raw-tcp-write-schema =
   ((raw-cons raw-handle-rule)
-   ((raw-cons raw-string-rule) NIL)))
+   ((raw-cons raw-byte-list-rule) NIL)))
 
 (def raw-validate-request-arguments-step recur dispatcher request operation arguments rules =
   (((raw-if

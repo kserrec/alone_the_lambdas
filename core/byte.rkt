@@ -39,6 +39,8 @@
 (provide raw-make-byte
          raw-byte-value
          raw-byte-list-valid?
+         raw-bytes-to-chars
+         raw-chars-to-bytes
          typed-string-to-bytes
          typed-bytes-to-string
          typed-make-byte
@@ -157,8 +159,14 @@
   (raw-make-byte
    (raw-char-value char)))
 
-(def raw-string-to-bytes chars =
+(def raw-chars-to-bytes chars =
   ((raw-map raw-char-to-byte) chars))
+
+(def raw-string-to-bytes chars =
+  (raw-chars-to-bytes chars))
+
+(def raw-bytes-to-chars bytes =
+  ((raw-map raw-byte-to-char) bytes))
 
 (def raw-byte-to-char byte =
   (raw-make-char

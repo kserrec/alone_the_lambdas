@@ -1,11 +1,13 @@
 #lang s-exp "../macros/lazy-with-macros.rkt"
 
 (require "../macros/macros.rkt"
+         (only-in "../core/byte.rkt" raw-byte-list-valid?)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-add-result-frame
-                  invalid-count-error)
-         (only-in "../core/lists.rkt" raw-cons)
+                  invalid-count-error
+                  invalid-byte-error)
+         (only-in "../core/lists.rkt" raw-cons raw-list-is-nil)
          (only-in "../core/logic.rkt" raw-if raw-and)
          (only-in "../core/objects.rkt" raw-is-type raw-make-object)
          (only-in "../core/rat.rkt" raw-rat-is-nonnegative-whole)
@@ -50,9 +52,16 @@
   ((raw-cons rat-type)
    ((raw-cons rat-type) NIL)))
 
-(def rat-and-string-signature =
+(def rat-and-list-signature =
   ((raw-cons rat-type)
-   ((raw-cons string-type) NIL)))
+   ((raw-cons list-type) NIL)))
+
+(def raw-rebuild-list payload =
+  (lambda-let rebuilt = ((raw-make-object list-type) payload)
+    (((raw-if
+       (raw-list-is-nil rebuilt))
+      NIL)
+     rebuilt)))
 
 (def raw-rat-field payload =
   ((raw-make-object rat-type) payload))
@@ -109,15 +118,21 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-read-function-name)))
 
-(def raw-make-tcp-write-request connection-payload bytes-payload =
+;; The byte List is validated in pure lambda computation before any
+;; request value exists, so a non-Byte element never reaches the host.
+(def raw-make-tcp-write-request connection-payload list-payload =
   (((raw-if
      (raw-rat-is-nonnegative-whole connection-payload))
-    ((raw-cons tcp-write-operation)
-     ((raw-cons
-       (raw-rat-field connection-payload))
-      ((raw-cons
-        (raw-make-string bytes-payload))
-       NIL))))
+    (lambda-let bytes = (raw-rebuild-list list-payload)
+      (((raw-if
+         (raw-byte-list-valid? bytes))
+        ((raw-cons tcp-write-operation)
+         ((raw-cons
+           (raw-rat-field connection-payload))
+          ((raw-cons bytes)
+           NIL))))
+       ((raw-add-result-frame invalid-byte-error)
+        tcp-write-function-name))))
    ((raw-add-result-frame invalid-count-error)
     tcp-write-function-name)))
 
@@ -158,7 +173,7 @@
 (def make-tcp-write-request =
   ((((make-typed-function raw-make-tcp-write-request)
      tcp-write-function-name)
-    rat-and-string-signature)
+    rat-and-list-signature)
    raw-keep-return))
 
 (def make-tcp-close-request =
@@ -234,7 +249,7 @@
   ((((make-typed-function
       (raw-call-tcp-write host))
      tcp-write-function-name)
-    rat-and-string-signature)
+    rat-and-list-signature)
    raw-keep-return))
 
 (def make-tcp-close host =

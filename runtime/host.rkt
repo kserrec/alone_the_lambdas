@@ -420,11 +420,11 @@
         (cond
           [(eof-object? amount)
            (object-ok
-            (bytes->object-string #""))]
+            (bytes->object-byte-list #""))]
           [(and (exact-positive-integer? amount)
                 (<= amount maximum))
            (object-ok
-            (bytes->object-string
+            (bytes->object-byte-list
              (subbytes buffer 0 amount)))]
           [else
            (discard-entry! handle connection)
@@ -608,7 +608,7 @@
         (if (not (exact-nonnegative-integer? handle))
             handle
             (let ([payload
-                   (object-string->bytes
+                   (object-byte-list->bytes
                     (caddr decoded-request))])
               (if (codec-failure? payload)
                   (invalid-codec-request tcp-write-operation payload)

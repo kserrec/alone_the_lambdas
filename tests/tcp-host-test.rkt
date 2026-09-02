@@ -91,11 +91,12 @@
   (check-true (typed-value? list-type payload))
   (object-list->host-list payload))
 
+;; Read results carry a List of Byte since the Step 37.4 switch.
 (define (ok-bytes value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (object-string->bytes
+  (object-byte-list->bytes
    (lazy-apply unwrap-ok value)))
 
 (define (object-request parts)
@@ -145,7 +146,7 @@
 (define (write-all connection payload)
   (apply2 tcp-write-with-host
           (exact->object-rat connection)
-          (bytes->object-string payload)))
+          (bytes->object-byte-list payload)))
 
 (define (close-handle connection)
   (lazy-apply tcp-close-with-host

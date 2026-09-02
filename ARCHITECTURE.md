@@ -158,7 +158,13 @@ byte List validated purely before the request exists, with the codec's
 byte-list conversions doing only deterministic translation. Rebuilding a
 List object from a checker-unwrapped payload restores the one canonical
 `NIL` for the empty case, since the codec deliberately rejects any other
-terminator as forged. `readers/byte.rkt` renders payloads as host integers
+terminator as forged. Since Step 37.4 network payloads are explicit byte
+Lists too: `tcp-read` returns `Ok(List Byte)` (EOF is the empty List),
+`tcp-write` accepts a purely validated `List Byte`, and the HTTP layer stays
+text-oriented by converting explicitly at the TCP boundary — received bytes
+become Chars one-to-one before parsing, and the rendered response String
+becomes bytes one-to-one before writing, so binary bodies survive exactly.
+`readers/byte.rkt` renders payloads as host integers
 one way.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. The
 strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so

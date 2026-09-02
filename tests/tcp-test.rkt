@@ -79,7 +79,7 @@
 (define local
   (bytes->object-string #""))
 (define payload
-  (bytes->object-string #"A\0\200\377"))
+  (bytes->object-byte-list #"A\0\200\377"))
 (define port
   (exact->object-rat 8080))
 (define listen-port
@@ -105,6 +105,7 @@
 
 (define string-decoder object-string->bytes)
 (define rat-field-decoder object-rat->exact)
+(define byte-list-decoder object-byte-list->bytes)
 
 ;; Each request is a proper typed List containing only canonical object values.
 (define request-cases
@@ -127,7 +128,7 @@
          (list #"tcp-read" 2 65536))
    (list make-tcp-write-request
          (list connection-handle payload)
-         (list string-decoder rat-field-decoder string-decoder)
+         (list string-decoder rat-field-decoder byte-list-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
    (list make-tcp-close-request
          (list connection-handle)
@@ -169,9 +170,9 @@
          (list connection-handle maximum)
          (list string-decoder rat-field-decoder rat-field-decoder)
          (list #"tcp-read" 2 65536))
-   (list make-tcp-write #"tcp-write" '(7 6)
+   (list make-tcp-write #"tcp-write" '(7 2)
          (list connection-handle payload)
-         (list string-decoder rat-field-decoder string-decoder)
+         (list string-decoder rat-field-decoder byte-list-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
    (list make-tcp-close #"tcp-close" '(7)
          (list connection-handle)
@@ -302,7 +303,7 @@
          (list #"tcp-read" 2 65536))
    (list make-tcp-write-request
          (list rat-connection-handle payload)
-         (list string-decoder rat-decoder string-decoder)
+         (list string-decoder rat-decoder byte-list-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
    (list make-tcp-close-request
          (list rat-connection-handle)
@@ -368,7 +369,7 @@
          (list #"tcp-read" 2 65536))
    (list make-tcp-write
          (list rat-connection-handle payload)
-         (list string-decoder rat-decoder string-decoder)
+         (list string-decoder rat-decoder byte-list-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
    (list make-tcp-close
          (list rat-connection-handle)

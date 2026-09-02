@@ -1861,19 +1861,33 @@ probe, and the design-document amendment moved together. The full suite passed 1
 
 ### Step 37.4 — Move TCP and HTTP boundaries to `List Byte`
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Make TCP read and write use `List Byte` and make successful writes return
+- [x] Make TCP read and write use `List Byte` and make successful writes return
   `Result Ok(Unit)`.
-- Keep pure HTTP parsing and rendering text-oriented by converting explicitly
+- [x] Keep pure HTTP parsing and rendering text-oriented by converting explicitly
   at the TCP boundary.
-- Preserve binary HTTP bodies without treating arbitrary bytes as text.
-- Update the HTTP server, protocol validation, host conversion, fake hosts,
+- [x] Preserve binary HTTP bodies without treating arbitrary bytes as text.
+- [x] Update the HTTP server, protocol validation, host conversion, fake hosts,
   real loopback tests, examples, purity checks, and boundary checks together.
 
 Acceptance: network payloads are explicit byte lists, HTTP remains pure, and
 no Racket string, byte sequence, parser, or branch decides an object-language
 HTTP result.
+
+Completion evidence: `tcp-write` takes a `List Byte` validated purely
+(canonical-NIL rebuild included) before any request exists, with the
+protocol's write schema on the shared byte-List rule; `tcp-read` returns
+`Ok(List Byte)` with EOF as the empty List; successful writes were already
+`Ok(UNIT)`. The HTTP server converts exactly at the boundary — received
+bytes become Chars one-to-one before the pure parser runs, and the rendered
+response String becomes bytes one-to-one before `tcp-write` — so parsing,
+routing, and rendering remain text-oriented lambda computation and binary
+bodies survive byte-exactly. Fake-host scripts, trace decoders, the raw-peer
+loopback suite, and the real end-to-end HTTP example all moved together;
+the milestone-two acceptance run serves the example over the byte-List
+boundary. The full suite passed 11,877 assertions across all 36 test files
+with the 20-module purity proof and zero-finding boundary inventory.
 
 ## Phase 38 — Add Option
 

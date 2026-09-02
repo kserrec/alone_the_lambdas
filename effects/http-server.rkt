@@ -3,6 +3,9 @@
 (require "../macros/macros.rkt"
          (only-in "../core/binary-nat.rkt"
                   raw-nat-less)
+         (only-in "../core/byte.rkt"
+                  raw-bytes-to-chars
+                  raw-chars-to-bytes)
          (only-in "../core/list-nat.rkt"
                   raw-list-length)
          (only-in "../core/errors.rkt"
@@ -13,7 +16,8 @@
                   raw-make-root-error)
          "../core/fix.rkt"
          (only-in "../core/lists.rkt"
-                  raw-cons)
+                  raw-cons
+                  raw-list-is-nil)
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/result.rkt"
@@ -161,9 +165,11 @@
      maximum)
     ((raw-bind-result read-result)
      (lambda (chunk)
-       (lambda-let combined =
+       (lambda-let chunk-chars =
+         (raw-bytes-to-chars chunk)
+        (lambda-let combined =
          ((raw-string-append accumulated)
-          (raw-string-value chunk))
+          chunk-chars)
          (((raw-if
             (raw-request-too-large? combined))
            raw-request-too-large-result)
@@ -177,14 +183,13 @@
              (((raw-if
                 (raw-http-parse-incomplete? parsed))
                (((raw-if
-                  (raw-string-empty?
-                   (raw-string-value chunk)))
+                  (raw-list-is-nil chunk))
                  parsed)
                 ((((recur host)
                    connection)
                   maximum)
                  combined)))
-              parsed)))))))))
+              parsed))))))))))
 
 (def raw-read-http-request =
   (raw-fix raw-read-http-request-step))
@@ -254,7 +259,8 @@
           (lambda (response)
             (((make-tcp-write host)
               connection)
-             response)))))
+             (raw-chars-to-bytes
+              (raw-string-value response)))))))
       (((raw-complete-http-connection host)
         connection)
        outcome))))

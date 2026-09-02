@@ -220,7 +220,7 @@
     [(bytes=? operation #"tcp-write")
      (list operation
            (object-rat->exact (cadr parts))
-           (object-string->bytes (caddr parts)))]
+           (object-byte-list->bytes (caddr parts)))]
     [(bytes=? operation #"tcp-close")
      (list operation
            (object-rat->exact (cadr parts)))]
@@ -256,8 +256,8 @@
 (define-values (success-host success-traces success-calls success-remaining)
   (make-scripted-host
    (list (object-ok connection-handle)
-         (object-ok (bytes->object-string valid-request-one))
-         (object-ok (bytes->object-string valid-request-two))
+         (object-ok (bytes->object-byte-list valid-request-one))
+         (object-ok (bytes->object-byte-list valid-request-two))
          (object-ok UNIT)
          (object-ok UNIT))))
 (define success-serve-one
@@ -290,7 +290,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok
-          (bytes->object-string
+          (bytes->object-byte-list
            #"GET / HTTP/1.1\nHost: x\r\n\r\n"))
          (object-ok UNIT))))
 (define malformed-result
@@ -310,9 +310,9 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok
-          (bytes->object-string
+          (bytes->object-byte-list
            #"GET /lambda HTTP/1.1\r\nHost: x\r\n"))
-         (object-ok EMPTY-STRING)
+         (object-ok (bytes->object-byte-list #""))
          (object-ok UNIT))))
 (define eof-result
   (apply2 (configure-serve-one eof-host handler)
@@ -370,7 +370,7 @@
 (check-equal? (double-failure-remaining) '())
 
 (define complete-request
-  (bytes->object-string
+  (bytes->object-byte-list
    #"GET /lambda HTTP/1.1\r\nHost: localhost\r\n\r\n"))
 (define-values (write-failure-host write-failure-traces write-failure-calls
                                    write-failure-remaining)
@@ -538,7 +538,7 @@
 (define second-connection-handle
   (exact->object-rat 3))
 (define second-request
-  (bytes->object-string
+  (bytes->object-byte-list
    #"GET /missing HTTP/1.1\r\nHost: localhost\r\n\r\n"))
 (define-values (loop-host loop-traces loop-calls loop-remaining)
   (make-scripted-host
@@ -704,7 +704,7 @@
         (when (> reads read-budget)
           (error 'counting-host
                  "request buffer was not bounded: ~a reads" reads))
-        (object-ok (bytes->object-string chunk-bytes))]
+        (object-ok (bytes->object-byte-list chunk-bytes))]
        [(bytes=? op #"tcp-close") (object-ok UNIT)]
        [else (error 'counting-host "unexpected op ~s" op)]))
    (lambda () (reverse traces))
