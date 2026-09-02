@@ -1,6 +1,8 @@
 #lang racket/base
 
 (require rackunit
+         (only-in "../readers/type-tag.rkt" type-tag->integer)
+         (only-in "../core/unit.rkt" UNIT)
          racket/promise
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -42,7 +44,7 @@
 (define (fake-host request-value)
   (set! calls (add1 calls))
   (set! traces (cons request-value traces))
-  (object-ok NIL))
+  (object-ok UNIT))
 
 (define stdout-with-fake
   (lazy-apply make-stdout fake-host))
@@ -60,9 +62,11 @@
 (check-true (bool->boolean
              (lazy-apply is-ok pending)))
 (check-equal? calls 1)
-(check-true (bool->boolean
-             (lazy-apply typed-is-nil
-                         (lazy-apply unwrap-ok pending))))
+(check-equal?
+ (type-tag->integer
+  (lazy-apply raw-object-type
+              (lazy-apply unwrap-ok pending)))
+ 8)
 (check-equal? calls 1)
 
 (define traced-request

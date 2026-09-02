@@ -25,6 +25,7 @@
     [(5) "CHAR"]
     [(6) "STRING"]
     [(7) "RAT"]
+    [(8) "UNIT"]
     [else
      (format "TYPE:~a"
              tag-number)]))

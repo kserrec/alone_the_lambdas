@@ -20,6 +20,7 @@
          char-type
          string-type
          rat-type
+         unit-type
          raw-tag-equal)
 
 (def church-zero step seed =
@@ -59,6 +60,7 @@
 (def char-type = church-five)
 (def string-type = church-six)
 (def rat-type = church-seven)
+(def unit-type = church-eight)
 
 (def raw-church-is-zero numeral =
   ((numeral

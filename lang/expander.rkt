@@ -76,6 +76,8 @@
                   [typed-if language-if])
          (only-in "../core/tags.rkt"
                   rat-type)
+         (only-in "../core/unit.rkt"
+                  UNIT)
          (only-in "../core/typed-rat.rkt"
                   [typed-rat-succ SUCC]
                   [typed-rat-add ADD]
@@ -136,6 +138,7 @@
          NIL HEAD TAIL IS-NIL LEN TAKE DROP
          SUCC ADD SUB MULT DIV EXP RECIP NEG ABS FLOOR
          EQ LT LTE GT GTE IS-ZERO IS-WHOLE IS-NONNEGATIVE-WHOLE
+         UNIT
          make-ok make-err is-ok is-err unwrap-ok unwrap-err
          MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
          A B C D E F G H I J K L M

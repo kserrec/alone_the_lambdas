@@ -190,6 +190,7 @@
                     bytes->object-string
                     exact->object-rat
                     object-rat->exact
+                    object-unit
                     object-ok
                     object-err))))
       (write-datum
@@ -228,7 +229,7 @@
           (eq? (source-classification-class classification)
                'reader))
         project-classifications)
- 9)
+ 10)
 
 (temporary-project
  (lambda (root)
@@ -581,6 +582,7 @@
                   bytes->object-string
                   exact->object-rat
                   object-rat->exact
+                  object-unit
                   object-ok
                   object-err)
          ,extra)))

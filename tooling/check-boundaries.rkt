@@ -211,6 +211,7 @@
     module null? or position provide quote racket/base
     racket/list racket/promise racket/string raw-boolean raw-boolean->boolean
     rat->number raw-char-value raw-error-frame-argument-position
+    raw-object-type
     raw-int-magnitude raw-int-sign
     raw-rat-denominator raw-rat-numerator
     raw-error-frame-expected-type raw-error-frame-function-name
@@ -220,7 +221,8 @@
     raw-type-mismatch-expected-type read-value remaining require reverse root
     string string-append string-join string-value->string tag-number
     supported-ascii-code? total type-mismatch-root->string type-tag
-    type-tag->integer type-tag->string typed-head typed-is-nil typed-tail value
+    type-tag->integer type-tag->string typed-head typed-is-nil typed-tail
+    unit->string value
     values))
 
 (define privileged-host-only-identifiers
@@ -251,7 +253,7 @@
     module negative? nil? not null? numerator object-char->byte
     object-err
     object-has-type? object-list->host-list object-ok
-    object-rat->exact
+    object-rat->exact object-unit
     object-string->bytes odd? only-in or ormap
     out-of-range payload provide quote quotient racket/base racket/promise
     raise-argument-error rat-type rational? raw-bit->boolean raw-bits->byte
@@ -263,12 +265,13 @@
     raw-object-value raw-pair raw-rat-denominator
     raw-rat-numerator raw-string-value
     raw-true reason remaining require result reverse reversed second seen
-    selected sign string-type struct struct-out tail total true-marker unless
+    selected sign string-type struct struct-out tail total true-marker UNIT
+    unless
     value
     values with-handlers wrong-type zero?))
 
 (define phase16-host-vocabulary
-  '(#%module-begin + < <= = > EMPTY-STRING NIL add1 address-in-use-code amount
+  '(#%module-begin + < <= = > EMPTY-STRING add1 address-in-use-code amount
     and argument attempt-close backlog begin bound-port broken-pipe-code buffer
     bytes-length bytes->object-string bytes->string/utf-8 bytes=? cadr caddr
     cadddr call-with-output-file car case cdr cleanup-new-connection
@@ -298,6 +301,7 @@
     name-resolution-failed-code network-failure network-failure-code
     network-unreachable-code next-handle not not-found-code null? numbers
     object-err object-list->host-list object-rat->exact object-ok
+    object-unit
     object-string->bytes only-in operation operation-bytes operation-value or
     out-of-range out-of-range-reason output output-failure pair? path
     path-payload payload perform-read-file perform-stdout perform-tcp-accept
@@ -354,6 +358,7 @@
             bytes->object-string
             exact->object-rat
             object-rat->exact
+            object-unit
             object-ok
             object-err))
 
@@ -383,6 +388,7 @@
    '(TRUE FALSE NOT AND OR XOR
      NIL HEAD TAIL IS-NIL LEN TAKE DROP)
    rat-public-bindings
+   '(UNIT)
    '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
    character-public-bindings
    string-public-bindings
@@ -431,6 +437,7 @@
               TRUE FALSE NOT AND OR XOR
               (typed-if language-if))
      (only-in "../core/tags.rkt" rat-type)
+     (only-in "../core/unit.rkt" UNIT)
      (only-in "../core/typed-rat.rkt"
               (typed-rat-succ SUCC)
               (typed-rat-add ADD)

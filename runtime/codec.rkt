@@ -34,6 +34,8 @@
          (only-in "../core/strings.rkt"
                   raw-make-string
                   raw-string-value)
+         (only-in "../core/unit.rkt"
+                  UNIT)
          (only-in "../core/tags.rkt"
                   char-type
                   list-type
@@ -47,6 +49,7 @@
          bytes->object-string
          exact->object-rat
          object-rat->exact
+         object-unit
          object-ok
          object-err)
 
@@ -258,6 +261,8 @@
           (codec-failure 'out-of-range)]
          [sign (/ magnitude bottom)]
          [else (- (/ magnitude bottom))])])))
+
+(define object-unit UNIT)
 
 (define (object-ok payload)
   (lazy-apply raw-make-ok payload))

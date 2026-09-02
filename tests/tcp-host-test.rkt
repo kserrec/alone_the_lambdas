@@ -62,13 +62,15 @@
   (check-equal? (error-detail-strings error)
                 (list operation code)))
 
-(define (check-ok-nil value)
+(define (check-ok-unit value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (check-true (bool->boolean
-               (lazy-apply typed-is-nil
-                           (lazy-apply unwrap-ok value)))))
+  (check-equal?
+   (type-tag->integer
+    (lazy-apply raw-object-type
+                (lazy-apply unwrap-ok value)))
+   8))
 
 (define (ok-nat value)
   (check-true (typed-value? result-type value))
@@ -345,7 +347,7 @@
   (set! open-handles (remove handle open-handles)))
 
 (define (close-tracked! handle)
-  (check-ok-nil (close-handle handle))
+  (check-ok-unit (close-handle handle))
   (untrack! handle))
 
 (define (start-worker thunk)
@@ -432,14 +434,14 @@
        (lambda ()
          (ok-bytes (read-some server 8)))))
     (check-false (sync/timeout 0.05 blocking-worker))
-    (check-ok-nil (write-all client #"ab"))
+    (check-ok-unit (write-all client #"ab"))
     (check-equal? (finish-worker blocking-worker blocking-result)
                   #"ab")
 
     ;; The maximum is a hard per-call bound. Multiple writes and reads preserve
     ;; exact ordering without assuming TCP packet boundaries.
-    (check-ok-nil (write-all client #"cde"))
-    (check-ok-nil (write-all client #"fgh"))
+    (check-ok-unit (write-all client #"cde"))
+    (check-ok-unit (write-all client #"fgh"))
     (check-equal? (read-exactly server 6 2)
                   #"cdefgh")
 
@@ -449,9 +451,9 @@
        (lambda ()
          (ok-bytes (read-some server 1)))))
     (check-false (sync/timeout 0.05 empty-worker))
-    (check-ok-nil (write-all client #""))
+    (check-ok-unit (write-all client #""))
     (check-false (sync/timeout 0.05 empty-worker))
-    (check-ok-nil (write-all client #"Z"))
+    (check-ok-unit (write-all client #"Z"))
     (check-equal? (finish-worker empty-worker empty-result)
                   #"Z")
 
@@ -467,13 +469,13 @@
          (read-exactly server
                        (bytes-length complete-payload)
                        37))))
-    (check-ok-nil (write-all client complete-payload))
+    (check-ok-unit (write-all client complete-payload))
     (check-equal? (finish-worker complete-worker complete-result)
                   complete-payload)
 
     ;; Connections are full duplex and payloads are byte-exact.
     (define reverse-payload #"\0\377\200reply")
-    (check-ok-nil (write-all server reverse-payload))
+    (check-ok-unit (write-all server reverse-payload))
     (check-equal? (read-exactly client
                                 (bytes-length reverse-payload)
                                 3)

@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rackunit
+         (only-in "../core/unit.rkt" UNIT)
          racket/promise
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -89,7 +90,7 @@
 (define (fake-host request-value)
   (set! calls (add1 calls))
   (set! traces (cons request-value traces))
-  (object-ok NIL))
+  (object-ok UNIT))
 
 (define read-with-fake
   (lazy-apply make-read-file fake-host))
@@ -109,9 +110,11 @@
 (check-true (bool->boolean
              (lazy-apply is-ok pending-read)))
 (check-equal? calls 1)
-(check-true (bool->boolean
-             (lazy-apply typed-is-nil
-                         (lazy-apply unwrap-ok pending-read))))
+(check-equal?
+ (type-tag->integer
+  (lazy-apply raw-object-type
+              (lazy-apply unwrap-ok pending-read)))
+ 8)
 (check-equal? calls 1)
 
 (define pending-write-function
@@ -129,9 +132,11 @@
 (check-true (bool->boolean
              (lazy-apply is-ok pending-write)))
 (check-equal? calls 2)
-(check-true (bool->boolean
-             (lazy-apply typed-is-nil
-                         (lazy-apply unwrap-ok pending-write))))
+(check-equal?
+ (type-tag->integer
+  (lazy-apply raw-object-type
+              (lazy-apply unwrap-ok pending-write)))
+ 8)
 (check-equal? calls 2)
 
 (define traced-write

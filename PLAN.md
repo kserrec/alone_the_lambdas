@@ -1723,20 +1723,37 @@ reintroduction check.
 
 ### Step 36.1 — Add Unit and use it where “nothing” is the answer
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add one Unit type with exactly one value, `UNIT`.
-- Add its reader and public export.
-- Change successful stdout, file-write, TCP-write, TCP-close, and related
+- [x] Add one Unit type with exactly one value, `UNIT`.
+- [x] Add its reader and public export.
+- [x] Change successful stdout, file-write, TCP-write, TCP-close, and related
   server operations from `Ok NIL` to `Ok UNIT`.
-- Preserve `NIL` wherever an actual empty List is the answer.
-- Implement Unit construction, checking, propagation, and effect use entirely
+- [x] Preserve `NIL` wherever an actual empty List is the answer.
+- [x] Implement Unit construction, checking, propagation, and effect use entirely
   with pure object-language lambdas; the host may only return its encoded
   value through the existing codec boundary.
-- Add effect, host, reader, error, laziness, purity, and boundary tests.
+- [x] Add effect, host, reader, error, laziness, purity, and boundary tests.
 
 Acceptance: Unit carries successful no-value results, NIL means only an empty
 List, and neither the type nor its effect integration broadens host authority.
+
+Completion evidence: `core/unit.rkt` defines `UNIT` as the single
+`unit-type` (church-eight, tag 8) value over one fixed raw payload, exported
+through the facade; the codec exposes the same canonical value as
+`object-unit`, and the host's four no-value acknowledgements (stdout,
+file write, TCP write, TCP close) return `Ok(UNIT)` instead of `Ok(NIL)`
+with the host's `NIL` import removed entirely. `readers/unit.rkt` renders
+the type name one way. The pinned expander forms, codec provide, and
+codec/host/reader vocabularies, the reintroduction-safe boundary gate, the
+19-module purity pins, and the ten-reader classification all moved in the
+same change. `tests/unit-test.rkt` proves the tag, distinctness from NIL,
+false, zero, and every other public type, the reader, the codec value, the
+Ok(UNIT) acknowledgement shape, NIL's List meaning, and lazy payload
+handling, while the stdout, files, host, TCP-host, TCP, and HTTP-server
+suites now assert tag-8 payloads for every successful no-value result. The
+full suite passed 11,720 assertions across all 35 test files with the
+zero-finding boundary inventory.
 
 ## Phase 37 — Add Byte and distinguish binary data from text
 

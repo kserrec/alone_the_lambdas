@@ -10,6 +10,7 @@
          "../core/result.rkt"
          "../core/strings.rkt"
          "../core/tags.rkt"
+         "../core/unit.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE)
          "../effects/http-response.rkt"
@@ -70,13 +71,15 @@
     (lazy-apply raw-error-frame-expected-type frame))
    expected-type))
 
-(define (check-ok-nil value)
+(define (check-ok-unit value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (check-true (bool->boolean
-               (lazy-apply typed-is-nil
-                           (lazy-apply unwrap-ok value)))))
+  (check-equal?
+   (type-tag->integer
+    (lazy-apply raw-object-type
+                (lazy-apply unwrap-ok value)))
+   8))
 
 (define (check-result-err-kind value expected-kind)
   (check-true (typed-value? result-type value))
@@ -255,8 +258,8 @@
    (list (object-ok connection-handle)
          (object-ok (bytes->object-string valid-request-one))
          (object-ok (bytes->object-string valid-request-two))
-         (object-ok NIL)
-         (object-ok NIL))))
+         (object-ok UNIT)
+         (object-ok UNIT))))
 (define success-serve-one
   (configure-serve-one success-host handler))
 (check-equal? (procedure-arity
@@ -267,9 +270,9 @@
           listener-handle
           maximum))
 (check-equal? (success-calls) 0)
-(check-ok-nil pending-success)
+(check-ok-unit pending-success)
 (check-equal? (success-calls) 5)
-(check-ok-nil pending-success)
+(check-ok-unit pending-success)
 (check-equal? (success-calls) 5)
 (check-equal? (success-remaining) '())
 (check-equal?
@@ -289,7 +292,7 @@
          (object-ok
           (bytes->object-string
            #"GET / HTTP/1.1\nHost: x\r\n\r\n"))
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define malformed-result
   (apply2 (configure-serve-one malformed-host handler)
           listener-handle
@@ -310,7 +313,7 @@
           (bytes->object-string
            #"GET /lambda HTTP/1.1\r\nHost: x\r\n"))
          (object-ok EMPTY-STRING)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define eof-result
   (apply2 (configure-serve-one eof-host handler)
           listener-handle
@@ -332,7 +335,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-err invalid-nat-error)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (check-result-err-kind
  (apply2 (configure-serve-one read-failure-host handler)
          listener-handle
@@ -375,7 +378,7 @@
    (list (object-ok connection-handle)
          (object-ok complete-request)
          (object-err invalid-nat-error)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (check-result-err-kind
  (apply2 (configure-serve-one write-failure-host handler)
          listener-handle
@@ -395,7 +398,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL)
+         (object-ok UNIT)
          (object-err invalid-nat-error))))
 (check-result-err-kind
  (apply2 (configure-serve-one close-failure-host handler)
@@ -421,7 +424,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (check-result-err-kind
  (apply2 (configure-serve-one handler-err-host unsupported-handler)
          listener-handle
@@ -440,7 +443,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define handler-error-result
   (apply2
    (configure-serve-one
@@ -464,7 +467,7 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL))))
+         (object-ok UNIT))))
 (define invalid-handler-result
   (apply2
    (configure-serve-one
@@ -541,12 +544,12 @@
   (make-scripted-host
    (list (object-ok connection-handle)
          (object-ok complete-request)
-         (object-ok NIL)
-         (object-ok NIL)
+         (object-ok UNIT)
+         (object-ok UNIT)
          (object-ok second-connection-handle)
          (object-ok second-request)
-         (object-ok NIL)
-         (object-ok NIL)
+         (object-ok UNIT)
+         (object-ok UNIT)
          (object-err invalid-nat-error))))
 (define configured-loop
   (configure-server loop-host handler))
@@ -656,9 +659,9 @@
      (member #"Connection: close" (cadr response)))
     (check-equal? (caddr response)
                   #"lambda says hello")
-    (check-ok-nil
+    (check-ok-unit
      (finish-worker server-worker server-result))
-    (check-ok-nil
+    (check-ok-unit
      (lazy-apply real-close real-listener))
     (set! listener-closed? #t))
   (lambda ()
@@ -702,7 +705,7 @@
           (error 'counting-host
                  "request buffer was not bounded: ~a reads" reads))
         (object-ok (bytes->object-string chunk-bytes))]
-       [(bytes=? op #"tcp-close") (object-ok NIL)]
+       [(bytes=? op #"tcp-close") (object-ok UNIT)]
        [else (error 'counting-host "unexpected op ~s" op)]))
    (lambda () (reverse traces))
    (lambda () reads)))

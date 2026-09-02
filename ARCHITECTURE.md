@@ -102,7 +102,7 @@ become an object-language representation.
 | Mechanical syntax | `def`, lambda-based `let`, and other expansion-only sugar |
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
-| Public data | List, Rat, Error, Result, Char, and String |
+| Public data | List, Rat, Unit, Error, Result, Char, and String |
 | Pure effects | Lambda request validation, protocol computation, and wrappers over an injected unary host |
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
@@ -136,6 +136,12 @@ tags, objects, and the checker. It owns the entire public strict number
 surface while leaving every binary algorithm in `core/binary-nat.rkt` and
 every signed and rational algorithm in `core/int.rkt` and `core/rat.rkt` raw
 and reusable.
+`core/unit.rkt` defines the public Unit type: exactly one value, `UNIT`
+(tag 8), carrying one fixed internal payload. Successful stdout, file-write,
+TCP-write, and TCP-close acknowledgements are `Ok(UNIT)`, so `NIL` means
+only an actual empty List. There is no Unit predicate: the exact-tag checker
+validates Unit positionally, and no polymorphic mechanism exists to support
+one. `readers/unit.rkt` renders the value's type name for humans.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. The
 strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
 Result itself remains independent of the number surface and available to
@@ -651,6 +657,7 @@ core/
   int.rkt
   rat.rkt
   typed-rat.rkt
+  unit.rkt
   result.rkt
   chars.rkt
   list-nat.rkt
@@ -681,6 +688,7 @@ readers/
   nat.rkt
   int.rkt
   rat.rkt
+  unit.rkt
   char.rkt
   string.rkt
   error.rkt

@@ -8,6 +8,7 @@
          "../core/objects.rkt"
          "../core/result.rkt"
          "../core/tags.rkt"
+         "../core/unit.rkt"
          (only-in "../core/typed-logic.rkt"
                   FALSE
                   typed-if)
@@ -63,13 +64,15 @@
     (lazy-apply raw-error-frame-expected-type frame))
    expected-type))
 
-(define (check-ok-nil value)
+(define (check-ok-unit value)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
-  (check-true (bool->boolean
-               (lazy-apply typed-is-nil
-                           (lazy-apply unwrap-ok value)))))
+  (check-equal?
+   (type-tag->integer
+    (lazy-apply raw-object-type
+                (lazy-apply unwrap-ok value)))
+   8))
 
 (define remote
   (bytes->object-string #"127.0.0.1"))
@@ -144,7 +147,7 @@
 (define (fake-host request)
   (set! calls (add1 calls))
   (set! traces (cons request traces))
-  (object-ok NIL))
+  (object-ok UNIT))
 
 ;; Builder, function name, expected type-tag integers, normal arguments,
 ;; request decoders, and the exact decoded request.
@@ -187,10 +190,10 @@
 
 (for ([pending (in-list pending-results)]
       [expected-calls (in-naturals 1)])
-  (check-ok-nil pending)
+  (check-ok-unit pending)
   (check-equal? calls expected-calls)
   ;; A promise performs its host call at most once.
-  (check-ok-nil pending)
+  (check-ok-unit pending)
   (check-equal? calls expected-calls))
 
 (for ([trace (in-list (reverse traces))]
@@ -202,14 +205,14 @@
 (define skipped-calls 0)
 (define (skipped-host request)
   (set! skipped-calls (add1 skipped-calls))
-  (object-ok NIL))
+  (object-ok UNIT))
 (define skipped-connect
   (apply2 (lazy-apply make-tcp-connect skipped-host)
           remote
           port))
 (define selected-fallback
-  (apply3 typed-if FALSE skipped-connect (object-ok NIL)))
-(check-ok-nil selected-fallback)
+  (apply3 typed-if FALSE skipped-connect (object-ok UNIT)))
+(check-ok-unit selected-fallback)
 (check-equal? skipped-calls 0)
 
 ;; Every argument position uses the generalized strict checker. An early Error
@@ -343,7 +346,7 @@
 (define (rat-fake-host request)
   (set! rat-calls (add1 rat-calls))
   (set! rat-traces (cons request rat-traces))
-  (object-ok NIL))
+  (object-ok UNIT))
 
 (define rat-wrapper-cases
   (list
@@ -383,7 +386,7 @@
 
 (for ([pending (in-list rat-pending-results)]
       [expected-calls (in-naturals 1)])
-  (check-ok-nil pending)
+  (check-ok-unit pending)
   (check-equal? rat-calls expected-calls))
 
 (for ([trace (in-list (reverse rat-traces))]

@@ -12,7 +12,6 @@
                   tcp-close
                   tcp-connect
                   tcp-listen)
-         (only-in "../core/errors.rkt" NIL)
          (only-in "../core/strings.rkt" EMPTY-STRING)
          (only-in "../effects/protocol.rkt"
                   invalid-path-code
@@ -51,6 +50,7 @@
                   codec-failure-reason
                   codec-failure?
                   object-err
+                  object-unit
                   exact->object-rat
                   object-rat->exact
                   object-list->host-list
@@ -243,7 +243,7 @@
     (define output (current-output-port))
     (write-bytes payload output)
     (flush-output output)
-    (object-ok NIL)))
+    (object-ok object-unit)))
 
 (define (decode-utf8 operation payload)
   (with-handlers ([exn:fail:out-of-memory?
@@ -283,7 +283,7 @@
           #:exists 'truncate
           (lambda (output)
             (write-bytes payload output)))
-        (object-ok NIL))
+        (object-ok object-unit))
       path))
 
 (define (cleanup-new-connection input output handle)
@@ -451,7 +451,7 @@
   (if (not (connection-entry? connection))
       connection
       (if (zero? (bytes-length payload))
-          (object-ok NIL)
+          (object-ok object-unit)
           (with-handlers ([exn:fail?
                            (lambda (failure)
                              (discard-entry! handle connection)
@@ -461,7 +461,7 @@
             (if (write-all-bytes
                  (connection-entry-output connection)
                  payload)
-                (object-ok NIL)
+                (object-ok object-unit)
                 (begin
                   (discard-entry! handle connection)
                   (host-failure tcp-write-operation
@@ -483,7 +483,7 @@
               (network-failure tcp-close-operation
                                io-failure-code
                                failure)
-              (object-ok NIL))))))
+              (object-ok object-unit))))))
 
 (define (dispatch-one-string operation decoded-request performer)
   (if (not (= (length decoded-request) 2))
