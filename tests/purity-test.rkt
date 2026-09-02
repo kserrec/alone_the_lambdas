@@ -344,6 +344,49 @@
              (list (list "dependency.rkt" pure-dependency-datum)))
  '())
 
+;; A one-level sibling-directory import is a project import only when the
+;; resolved file sits inside the repository: the exact spelling the effects
+;; layer uses is rejected from a tree outside the project root, a two-level
+;; parent spelling is rejected everywhere, and a sibling spelling into the
+;; trusted macros directory is never an ordinary project import.
+(let ()
+  (define directory
+    (make-temporary-file "attalambda-outside-~a"
+                         'directory
+                         (find-system-path 'temp-dir)))
+  (define (fixture-kinds base spec)
+    (define core (build-path base "core"))
+    (define production (build-path core "production.rkt"))
+    (make-directory* core)
+    (unless (link-exists? (build-path base "macros"))
+      (make-file-or-directory-link trusted-macros-directory
+                                   (build-path base "macros")))
+    (make-directory* (build-path base "other"))
+    (write-datum (build-path base "other" "dependency.rkt")
+                 pure-dependency-datum)
+    (write-datum production
+                 `(module production "../macros/lazy-with-macros.rkt"
+                    (#%module-begin
+                     (require "../macros/macros.rkt"
+                              ,spec))))
+    (map violation-kind (file-violations production)))
+  (dynamic-wind
+    void
+    (lambda ()
+      (check-equal?
+       (fixture-kinds directory "../other/dependency.rkt")
+       '(disallowed-production-import))
+      (check-equal?
+       (fixture-kinds (build-path directory "deep")
+                      "../../other/dependency.rkt")
+       '(disallowed-production-import))
+      (check-equal?
+       (fixture-kinds (build-path directory "third")
+                      "../macros/lazy-with-macros.rkt")
+       '(disallowed-production-import)))
+    (lambda ()
+      (delete-directory/files directory))))
+
 (check-equal?
  (file-kinds '(module example "../macros/lazy-with-macros.rkt"
                 (#%module-begin
@@ -772,6 +815,22 @@
 (check-equal? (length production-results)
               22)
 (for ([entry (in-list production-results)])
+  (check-equal? (cdr entry)
+                '()
+                (format "~a" (car entry))))
+
+;; ---------------------------------------------------------------------------
+;; The real effects layer passes the same expanded scan
+
+(define-runtime-path effects-directory
+  "../effects")
+
+(define effects-results
+  (files-violations (production-files-under effects-directory)))
+
+(check-equal? (length effects-results)
+              7)
+(for ([entry (in-list effects-results)])
   (check-equal? (cdr entry)
                 '()
                 (format "~a" (car entry))))

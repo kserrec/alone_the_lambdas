@@ -6,7 +6,8 @@
 ;; classes without weakening that proof:
 ;;
 ;;   core/                separately scanned pure unary-lambda computation
-;;   effects/             pure source forms, including the HTTP server
+;;   effects/             pure source forms, including the HTTP server, and
+;;                        also covered by check-purity's expanded scan
 ;;   macros/              the two exact mechanical expansion modules
 ;;   runtime/codec.rkt    deterministic conversion, no effect capabilities
 ;;   runtime/host.rkt     sole host export and the unchanged effect allowlist

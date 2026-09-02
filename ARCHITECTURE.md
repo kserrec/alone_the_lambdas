@@ -841,7 +841,8 @@ suite composes Bool, List, Nat, Result, Char, String, and Error behavior in one
 strict typed flow and runs the same structural scan over the complete core.
 
 The structural purity tool judges what Racket compiles. It reads each of the
-16 production modules with its source intact, expands it in a fresh namespace
+29 production modules — the complete core and the complete effects layer —
+with its source intact, expands it in a fresh namespace
 exactly as `raco make` would, and walks the fully expanded module. A reference
 term, `(lambda (f) (lambda (x) (f x)))`, is expanded under the same trusted
 shell so that Lazy Racket's own encodings of a unary `lambda` and a unary
@@ -849,7 +850,9 @@ application become the only two admissible expression templates; every
 production lambda and application must be alpha-equivalent to one of them,
 and every identifier must be lambda-bound, defined in the module, or imported
 from a project module that passes the same scan. The tool pins the shell file
-itself, restricts imports to phase-0 project modules, restricts exports to
+itself, restricts imports to phase-0 project modules (same directory, or one
+sibling directory away and still resolving inside the repository — never a
+sibling spelling into `macros/`), restricts exports to
 plain or renamed project bindings, and rejects host forms, host literals,
 multi-argument or zero-argument applications, strict kernel lambdas,
 compile-time definitions, submodules, module-level expressions, and the
