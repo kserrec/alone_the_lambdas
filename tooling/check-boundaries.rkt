@@ -255,7 +255,9 @@
     module negative? nil? not null? numerator object-char->byte
     object-err
     object-has-type? object-list->host-list object-ok
-    object-rat->exact object-unit
+    object-rat->exact object-unit object-byte->integer
+    object-byte-list->bytes bytes->object-byte-list integer->object-byte
+    element elements byte-type raw-make-byte raw-byte-value
     object-string->bytes odd? only-in or ormap
     out-of-range payload provide quote quotient racket/base racket/promise
     raise-argument-error rat-type rational? raw-bit->boolean raw-bits->byte
@@ -284,7 +286,7 @@
     connection-reset-code contract-code current-output-port decode-bounded-count
     decode-utf8
     decoded decoded-request define define-values discard-entry!
-    dispatch-one-string dispatch-request dispatch-tcp-accept dispatch-tcp-close
+    dispatch-one-string dispatch-string-and-byte-list dispatch-request dispatch-tcp-accept dispatch-tcp-close
     dispatch-tcp-connect dispatch-tcp-listen dispatch-tcp-read
     dispatch-tcp-write dispatch-two-strings domain else end eof-object? entry
     eq? errno errno-in? exact-nonnegative-integer? exact-positive-integer?
@@ -303,7 +305,7 @@
     name-resolution-failed-code network-failure network-failure-code
     network-unreachable-code next-handle not not-found-code null? numbers
     object-err object-list->host-list object-rat->exact object-ok
-    object-unit
+    object-unit object-byte-list->bytes bytes->object-byte-list
     object-string->bytes only-in operation operation-bytes operation-value or
     out-of-range out-of-range-reason output output-failure pair? path
     path-payload payload perform-read-file perform-stdout perform-tcp-accept
@@ -358,6 +360,8 @@
             host-list->object-list
             object-string->bytes
             bytes->object-string
+            object-byte-list->bytes
+            bytes->object-byte-list
             exact->object-rat
             object-rat->exact
             object-unit

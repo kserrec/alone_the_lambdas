@@ -58,12 +58,13 @@
                 (lazy-apply unwrap-ok value)))
    8))
 
+;; Read results carry a List of Byte since the Step 37.3 switch.
 (define (check-ok-bytes value expected)
   (check-true (typed-value? result-type value))
   (check-true (bool->boolean
                (lazy-apply is-ok value)))
   (check-equal?
-   (object-string->bytes
+   (object-byte-list->bytes
     (lazy-apply unwrap-ok value))
    expected))
 
@@ -145,7 +146,7 @@
     (define pending-write
       (apply2 write-file-with-host
               content-path-value
-              (bytes->object-string initial-bytes)))
+              (bytes->object-byte-list initial-bytes)))
     (check-false (file-exists? content-path))
     (check-ok-unit pending-write)
     (check-equal? (file->bytes content-path) initial-bytes)
@@ -160,7 +161,7 @@
     (check-ok-unit
      (apply2 write-file-with-host
              content-path-value
-             (bytes->object-string replacement)))
+             (bytes->object-byte-list replacement)))
     (check-equal? (file->bytes content-path) replacement)
     (check-ok-bytes
      (lazy-apply read-file-with-host content-path-value)
@@ -172,7 +173,7 @@
       (check-ok-unit
        (apply2 write-file-with-host
                (text->object-string relative-name)
-               (bytes->object-string #"")))
+               (bytes->object-byte-list #"")))
       (check-ok-bytes
        (lazy-apply read-file-with-host
                    (text->object-string relative-name))
@@ -194,7 +195,7 @@
       (check-ok-unit
        (apply2 write-file-with-host
                (path->object-string symlink-path)
-               (bytes->object-string #"target-after"))))
+               (bytes->object-byte-list #"target-after"))))
     (check-true (link-exists? symlink-path))
     (check-equal? (file->bytes symlink-target) #"target-after")
     (check-equal? (file->bytes symlink-path) #"target-after")
@@ -223,14 +224,14 @@
     (check-host-failure
      (apply2 write-file-with-host
              (bytes->object-string #"\377")
-             (bytes->object-string #"bytes"))
+             (bytes->object-byte-list #"bytes"))
      #"write-file"
      #"invalid-text")
 
     (check-host-failure
      (apply2 write-file-with-host
              (bytes->object-string #"bad\0path")
-             (bytes->object-string #"bytes"))
+             (bytes->object-byte-list #"bytes"))
      #"write-file"
      #"invalid-path")
 
@@ -239,7 +240,7 @@
       write-file-with-host
       (path->object-string
        (build-path temporary-root "missing-parent" "file.bin"))
-      (bytes->object-string #"bytes"))
+      (bytes->object-byte-list #"bytes"))
      #"write-file"
      #"not-found")
 
@@ -261,7 +262,7 @@
       (check-host-failure
        (apply2 write-file-with-host
                content-path-value
-               (bytes->object-string #"denied"))
+               (bytes->object-byte-list #"denied"))
        #"write-file"
        #"permission-denied"))
 

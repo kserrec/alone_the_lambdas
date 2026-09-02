@@ -4,6 +4,9 @@
 ;; operating-system effect and is imported in production only by host.rkt.
 
 (require racket/promise
+         (only-in "../core/byte.rkt"
+                  raw-make-byte
+                  raw-byte-value)
          (only-in "../core/chars.rkt"
                   raw-char-value
                   raw-make-char)
@@ -37,6 +40,7 @@
          (only-in "../core/unit.rkt"
                   UNIT)
          (only-in "../core/tags.rkt"
+                  byte-type
                   char-type
                   list-type
                   rat-type
@@ -47,6 +51,8 @@
          host-list->object-list
          object-string->bytes
          bytes->object-string
+         object-byte-list->bytes
+         bytes->object-byte-list
          exact->object-rat
          object-rat->exact
          object-unit
@@ -182,6 +188,28 @@
                     (bytes->immutable-bytes
                      (apply bytes decoded)))))))))
 
+(define (object-byte->integer value)
+  (with-handlers ([exn:fail? malformed-value-failure])
+    (if (object-has-type? byte-type value)
+        (raw-bits->byte
+         (lazy-apply raw-byte-value value))
+        (codec-failure 'wrong-type))))
+
+(define (object-byte-list->bytes value)
+  (with-handlers ([exn:fail? malformed-value-failure])
+    (let ([elements (object-list->host-list value)])
+      (if (codec-failure? elements)
+          elements
+          (let ([decoded
+                 (for/list ([element (in-list elements)])
+                   (object-byte->integer element))])
+            (define failure
+              (first-codec-failure decoded))
+            (if failure
+                failure
+                (bytes->immutable-bytes
+                 (apply bytes decoded))))))))
+
 (define (integer->raw-bits integer)
   (define bits
     (if (zero? integer)
@@ -200,6 +228,17 @@
 (define (byte->object-char integer)
   (lazy-apply raw-make-char
               (integer->raw-bits integer)))
+
+(define (integer->object-byte integer)
+  (lazy-apply raw-make-byte
+              (integer->raw-bits integer)))
+
+(define (bytes->object-byte-list value)
+  (unless (bytes? value)
+    (raise-argument-error 'bytes->object-byte-list "bytes?" value))
+  (host-list->object-list
+   (for/list ([integer (in-bytes value)])
+             (integer->object-byte integer))))
 
 (define (bytes->object-string value)
   (unless (bytes? value)

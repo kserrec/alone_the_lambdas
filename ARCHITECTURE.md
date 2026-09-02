@@ -152,7 +152,14 @@ through the unchanged exact-tag checker, and a byte sequence is `List Byte`
 with no separate Bytes type: `STRING-TO-BYTES` maps one Byte per Char, and
 `BYTES-TO-STRING` validates every element before converting, rejecting any
 non-Byte element as InvalidByte rather than assuming a List is a byte
-sequence. `readers/byte.rkt` renders payloads as host integers one way.
+sequence. Since Step 37.3 file contents cross the host boundary as
+`List Byte`: `read-file` returns `Ok(List Byte)`, and `write-file` accepts a
+byte List validated purely before the request exists, with the codec's
+byte-list conversions doing only deterministic translation. Rebuilding a
+List object from a checker-unwrapped payload restores the one canonical
+`NIL` for the empty case, since the codec deliberately rejects any other
+terminator as forged. `readers/byte.rkt` renders payloads as host integers
+one way.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. The
 strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
 Result itself remains independent of the number surface and available to

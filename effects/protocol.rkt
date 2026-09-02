@@ -285,6 +285,26 @@
     raw-char-representation-valid)
    (raw-string-value value)))
 
+(def raw-byte-representation-valid value =
+  (((raw-if
+     ((raw-is-type byte-type) value))
+    (lambda-let bits =
+      (raw-object-value value)
+      (((raw-if
+         (raw-proper-bit-list bits))
+        (((raw-if
+           (raw-normalized-bit-list bits))
+          ((raw-nat-less-equal bits)
+           raw-eight-true-bits))
+         raw-false))
+       raw-false)))
+   raw-false))
+
+(def raw-byte-list-representation-valid value =
+  ((raw-proper-list-satisfying
+    raw-byte-representation-valid)
+   value))
+
 (def raw-rat-field-magnitude value =
   (raw-second
    (raw-first
@@ -359,9 +379,14 @@
 (def raw-one-string-schema =
   ((raw-cons raw-string-rule) NIL))
 
-(def raw-two-strings-schema =
+(def raw-byte-list-rule =
+  (((raw-make-argument-rule list-type)
+    raw-byte-list-representation-valid)
+   raw-unconstrained-argument))
+
+(def raw-string-and-byte-list-schema =
   ((raw-cons raw-string-rule)
-   ((raw-cons raw-string-rule) NIL)))
+   ((raw-cons raw-byte-list-rule) NIL)))
 
 (def raw-tcp-connect-schema =
   ((raw-cons raw-nonempty-string-rule)
@@ -445,7 +470,7 @@
       raw-one-string-schema))
     ((raw-cons
       ((raw-make-operation-entry write-file-operation)
-       raw-two-strings-schema))
+       raw-string-and-byte-list-schema))
      ((raw-cons
        ((raw-make-operation-entry tcp-connect-operation)
         raw-tcp-connect-schema))

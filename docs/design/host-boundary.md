@@ -18,6 +18,17 @@ TCP lifecycle, followed by pure HTTP parsing, rendering, routing, and
 sequential serving outside the host, then the standalone reader, facade,
 runnable applications, and whole-milestone acceptance evidence.
 
+
+> **Milestone 4 amendment (2026-09-01).** Since Step 35.4/35.5 the ordinary
+> numeric request fields (ports, backlog sizes, read limits, handles) are
+> canonical nonnegative whole Rat objects and handle responses are Rat; since
+> Step 36.1 successful no-value acknowledgements are `Ok(UNIT)`; since Step
+> 37.3 file contents cross the boundary as `List Byte` (`read-file` returns
+> `Ok(List Byte)`, `write-file` accepts a validated `List Byte`). Operation
+> codes, error kinds, and argument positions remain fixed Church numerals,
+> and the authority of the single bridge is unchanged. The pre-amendment
+> text below is the literal contract of the completed milestones.
+
 ## Decision summary
 
 - The public boundary is exactly one unary function: `host`.

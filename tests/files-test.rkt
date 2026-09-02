@@ -33,7 +33,8 @@
    (object-list->host-list
     (lazy-apply raw-error-frames error))))
 
-(define (check-contract-frame error expected-name expected-position)
+(define (check-contract-frame error expected-name expected-position
+                              expected-type)
   (check-true (typed-value? error-type error))
   (check-equal? (error-kind-integer error) 0)
   (define frame (first-error-frame error))
@@ -48,13 +49,14 @@
   (check-equal?
    (type-tag->integer
     (lazy-apply raw-error-frame-expected-type frame))
-   6))
+   expected-type))
 
 (define path-value
   (bytes->object-string #"relative/\316\273.bin"))
 
+;; File contents are a List of Byte since the Step 37.3 switch.
 (define bytes-value
-  (bytes->object-string #"\0\200\377contents"))
+  (bytes->object-byte-list #"\0\200\377contents"))
 
 (define read-request
   (lazy-apply make-read-file-request path-value))
@@ -81,7 +83,7 @@
               #"write-file")
 (check-equal? (object-string->bytes (cadr write-parts))
               #"relative/\316\273.bin")
-(check-equal? (object-string->bytes (caddr write-parts))
+(check-equal? (object-byte-list->bytes (caddr write-parts))
               #"\0\200\377contents")
 
 (define calls 0)
@@ -144,10 +146,12 @@
 (define traced-read
   (object-list->host-list (cadr traces)))
 
-(check-equal? (map object-string->bytes traced-write)
-              (list #"write-file"
-                    #"relative/\316\273.bin"
-                    #"\0\200\377contents"))
+(check-equal? (object-string->bytes (car traced-write))
+              #"write-file")
+(check-equal? (object-string->bytes (cadr traced-write))
+              #"relative/\316\273.bin")
+(check-equal? (object-byte-list->bytes (caddr traced-write))
+              #"\0\200\377contents")
 (check-equal? (map object-string->bytes traced-read)
               (list #"read-file"
                     #"relative/\316\273.bin"))
@@ -156,7 +160,7 @@
 ;; argument failure absorbs exactly the remaining curried write argument.
 (define wrong-read
   (lazy-apply read-with-fake TRUE))
-(check-contract-frame wrong-read #"read-file" 1)
+(check-contract-frame wrong-read #"read-file" 1 6)
 (check-equal? calls 2)
 
 (define wrong-write-first
@@ -164,14 +168,14 @@
 (check-equal? (procedure-arity (lazy-force wrong-write-first)) 1)
 (define absorbed-write-error
   (lazy-apply wrong-write-first bytes-value))
-(check-contract-frame absorbed-write-error #"write-file" 1)
+(check-contract-frame absorbed-write-error #"write-file" 1 6)
 (check-equal? calls 2)
 
 (define wrong-write-second
   (lazy-apply
    (lazy-apply write-with-fake path-value)
    TRUE))
-(check-contract-frame wrong-write-second #"write-file" 2)
+(check-contract-frame wrong-write-second #"write-file" 2 2)
 (check-equal? calls 2)
 
 (define incoming-read-error

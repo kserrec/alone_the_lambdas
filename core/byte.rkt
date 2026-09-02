@@ -38,6 +38,7 @@
 
 (provide raw-make-byte
          raw-byte-value
+         raw-byte-list-valid?
          typed-string-to-bytes
          typed-bytes-to-string
          typed-make-byte

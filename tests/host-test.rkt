@@ -268,7 +268,7 @@
               (host-list->object-list
                (list write-file-operation
                      (bytes->object-string #"path")
-                     (bytes->object-string #"bytes")
+                     (bytes->object-byte-list #"bytes")
                      TRUE))))
  #"write-file"
  #"wrong-arity")

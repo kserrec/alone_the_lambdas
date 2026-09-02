@@ -1827,20 +1827,37 @@ without examining a divergent later element. The full suite passed 11,875 assert
 
 ### Step 37.3 — Move file contents to `List Byte`
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Keep filesystem paths as String.
-- Make file reads return `Result Ok(List Byte)`.
-- Make file writes accept `List Byte` and return `Result Ok(Unit)`.
-- Extend only the deterministic codec conversions and existing host operation
+- [x] Keep filesystem paths as String.
+- [x] Make file reads return `Result Ok(List Byte)`.
+- [x] Make file writes accept `List Byte` and return `Result Ok(Unit)`.
+- [x] Extend only the deterministic codec conversions and existing host operation
   needed to exchange external bytes.
-- Keep all object-language List and Byte validation in pure lambdas before the
+- [x] Keep all object-language List and Byte validation in pure lambdas before the
   host call.
-- Update file examples, fake hosts, real-host tests, failures, purity checks,
+- [x] Update file examples, fake hosts, real-host tests, failures, purity checks,
   and boundary checks together.
 
 Acceptance: arbitrary file bytes round-trip exactly, text and binary data are
 no longer conflated, and the host gains no object-language computation.
+
+Completion evidence: `write-file : String -> List -> Result` validates the
+byte List purely (`raw-byte-list-valid?`) before any request value exists,
+so a non-Byte element is an INVALID-BYTE Error with no host call; the
+protocol schema's second write field is a byte-List rule validating each
+element's tag and canonical bit payload; the codec gained only
+`object-byte-list->bytes` and `bytes->object-byte-list`; and the host's
+read path returns `Ok(List Byte)` while its write dispatch decodes the
+byte List deterministically. Rebuilding a List object from a
+checker-unwrapped payload now restores the one canonical `NIL` for the
+empty case — found when an empty write crashed because the codec's
+forged-terminator hardening correctly rejected a structurally-empty but
+non-canonical rebuilt terminator. `examples/file-round-trip.attl` converts
+explicitly with `STRING-TO-BYTES`/`BYTES-TO-STRING`. Fake-host traces,
+real-host round trips (binary, empty, replacement, UTF-8 relative paths,
+symlink truncation, denied and synthetic failures), the four-field arity
+probe, and the design-document amendment moved together. The full suite passed 11,877 assertions across all 36 test files with the 20-module purity proof and zero-finding boundary inventory.
 
 ### Step 37.4 — Move TCP and HTTP boundaries to `List Byte`
 

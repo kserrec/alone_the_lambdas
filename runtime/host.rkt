@@ -56,6 +56,8 @@
                   object-list->host-list
                   object-ok
                   object-string->bytes
+                  object-byte-list->bytes
+                  bytes->object-byte-list
                   host-list->object-list))
 
 (provide host)
@@ -268,7 +270,7 @@
                        (lambda (failure)
                          (file-failure read-file-operation failure))])
         (object-ok
-         (bytes->object-string
+         (bytes->object-byte-list
           (file->bytes path))))
       path))
 
@@ -495,7 +497,7 @@
             (invalid-codec-request operation payload)
             (performer payload)))))
 
-(define (dispatch-two-strings operation decoded-request performer)
+(define (dispatch-string-and-byte-list operation decoded-request performer)
   (if (not (= (length decoded-request) 3))
       (invalid-request operation wrong-arity-reason)
       (let ([first
@@ -504,7 +506,7 @@
         (if (codec-failure? first)
             (invalid-codec-request operation first)
             (let ([second
-                   (object-string->bytes
+                   (object-byte-list->bytes
                     (caddr decoded-request))])
               (if (codec-failure? second)
                   (invalid-codec-request operation second)
@@ -648,9 +650,9 @@
                              decoded-request
                              perform-read-file)]
        [(bytes=? operation-bytes #"write-file")
-        (dispatch-two-strings write-file-operation
-                              decoded-request
-                              perform-write-file)]
+        (dispatch-string-and-byte-list write-file-operation
+                                       decoded-request
+                                       perform-write-file)]
        [(bytes=? operation-bytes #"tcp-connect")
         (dispatch-tcp-connect decoded-request)]
        [(bytes=? operation-bytes #"tcp-listen")

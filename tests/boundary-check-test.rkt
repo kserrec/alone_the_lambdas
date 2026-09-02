@@ -188,6 +188,8 @@
                     host-list->object-list
                     object-string->bytes
                     bytes->object-string
+                    object-byte-list->bytes
+                    bytes->object-byte-list
                     exact->object-rat
                     object-rat->exact
                     object-unit
@@ -580,6 +582,8 @@
                   host-list->object-list
                   object-string->bytes
                   bytes->object-string
+                  object-byte-list->bytes
+                  bytes->object-byte-list
                   exact->object-rat
                   object-rat->exact
                   object-unit
