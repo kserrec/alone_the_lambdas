@@ -6,6 +6,14 @@
          (only-in "../macros/macros.rkt"
                   def
                   [lambda-let language-let])
+         (only-in "../core/byte.rkt"
+                  MAKE-BYTE
+                  BYTE-VALUE
+                  BYTE-EQ
+                  BYTE-LT
+                  BYTE-LTE
+                  BYTE-GT
+                  BYTE-GTE)
          (only-in "../core/chars.rkt"
                   raw-make-char
                   MAKE-CHAR
@@ -139,6 +147,7 @@
          SUCC ADD SUB MULT DIV EXP RECIP NEG ABS FLOOR
          EQ LT LTE GT GTE IS-ZERO IS-WHOLE IS-NONNEGATIVE-WHOLE
          UNIT
+         MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
          make-ok make-err is-ok is-err unwrap-ok unwrap-err
          MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
          A B C D E F G H I J K L M

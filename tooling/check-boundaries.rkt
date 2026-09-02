@@ -210,7 +210,9 @@
     kind-number lambda lazy-apply let let* list list->host-list loop map memv
     module null? or position provide quote racket/base
     racket/list racket/promise racket/string raw-boolean raw-boolean->boolean
-    rat->number raw-char-value raw-error-frame-argument-position
+    byte-value->integer
+    rat->number raw-byte-value raw-char-value
+    raw-error-frame-argument-position
     raw-object-type
     raw-int-magnitude raw-int-sign
     raw-rat-denominator raw-rat-numerator
@@ -389,6 +391,7 @@
      NIL HEAD TAIL IS-NIL LEN TAKE DROP)
    rat-public-bindings
    '(UNIT)
+   '(MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE)
    '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
    character-public-bindings
    string-public-bindings
@@ -409,6 +412,8 @@
      (for-syntax racket/base)
      (only-in racket/base (void language-discard))
      (only-in "../macros/macros.rkt" def (lambda-let language-let))
+     (only-in "../core/byte.rkt"
+              MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE)
      (only-in "../core/chars.rkt"
               raw-make-char
               ,@character-public-bindings)

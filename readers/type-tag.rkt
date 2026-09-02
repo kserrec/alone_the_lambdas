@@ -26,6 +26,7 @@
     [(6) "STRING"]
     [(7) "RAT"]
     [(8) "UNIT"]
+    [(9) "BYTE"]
     [else
      (format "TYPE:~a"
              tag-number)]))

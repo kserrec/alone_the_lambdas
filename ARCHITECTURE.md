@@ -102,7 +102,7 @@ become an object-language representation.
 | Mechanical syntax | `def`, lambda-based `let`, and other expansion-only sugar |
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
-| Public data | List, Rat, Unit, Error, Result, Char, and String |
+| Public data | List, Rat, Unit, Byte, Error, Result, Char, and String |
 | Pure effects | Lambda request validation, protocol computation, and wrappers over an injected unary host |
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
@@ -142,6 +142,15 @@ TCP-write, and TCP-close acknowledgements are `Ok(UNIT)`, so `NIL` means
 only an actual empty List. There is no Unit predicate: the exact-tag checker
 validates Unit positionally, and no polymorphic mechanism exists to support
 one. `readers/unit.rkt` renders the value's type name for humans.
+`core/byte.rkt` defines public Byte (tag 9): exactly 256 valid values
+backed by private normalized binary magnitudes. `MAKE-BYTE` accepts a
+nonnegative whole Rat from 0 through 255 and rejects every other value as
+the InvalidByte Error (kind 15); `BYTE-VALUE` converts back to a whole Rat;
+`BYTE-EQ` through `BYTE-GTE` compare payload magnitudes and return Bool.
+Byte is data, not a second number type: ordinary Rat arithmetic rejects it
+through the unchanged exact-tag checker, and a byte sequence is `List Byte`
+with no separate Bytes type. `readers/byte.rkt` renders payloads as host
+integers one way.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. The
 strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
 Result itself remains independent of the number surface and available to
@@ -658,6 +667,7 @@ core/
   rat.rkt
   typed-rat.rkt
   unit.rkt
+  byte.rkt
   result.rkt
   chars.rkt
   list-nat.rkt
@@ -689,6 +699,7 @@ readers/
   int.rkt
   rat.rkt
   unit.rkt
+  byte.rkt
   char.rkt
   string.rkt
   error.rkt

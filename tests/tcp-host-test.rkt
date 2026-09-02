@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rackunit
+         (only-in racket/tcp tcp-connect)
          racket/promise
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -428,58 +429,73 @@
      #"tcp-accept"
      #"wrong-handle-kind")
 
-    ;; A read remains blocked until a byte is written.
-    (define-values (blocking-worker blocking-result)
-      (start-worker
-       (lambda ()
-         (ok-bytes (read-some server 8)))))
-    (check-false (sync/timeout 0.05 blocking-worker))
-    (check-ok-unit (write-all client #"ab"))
-    (check-equal? (finish-worker blocking-worker blocking-result)
-                  #"ab")
+    ;; Only this thread ever forces lambda values: Lazy Racket promises are
+    ;; not thread-safe, so test-side concurrency uses a raw Racket loopback
+    ;; peer socket, mirroring the test-side external clients used by the
+    ;; HTTP suites. The worker below performs plain port writes only.
+    (define-values (peer-in peer-out)
+      (tcp-connect "127.0.0.1" bound-port))
+    (define raw-served
+      (track! (ok-nat (accept listener))))
+    (check-equal? raw-served 4)
 
-    ;; The maximum is a hard per-call bound. Multiple writes and reads preserve
-    ;; exact ordering without assuming TCP packet boundaries.
-    (check-ok-unit (write-all client #"cde"))
-    (check-ok-unit (write-all client #"fgh"))
-    (check-equal? (read-exactly server 6 2)
+    ;; A read remains blocked until a byte is written: the raw peer writes
+    ;; only after a delay, and the blocking wrapper read returns exactly
+    ;; those bytes no earlier than the write.
+    (define write-instant (box #f))
+    (define delayed-writer
+      (thread
+       (lambda ()
+         (sleep 0.2)
+         (set-box! write-instant (current-inexact-milliseconds))
+         (write-bytes #"ab" peer-out)
+         (flush-output peer-out))))
+    (set! active-threads (cons delayed-writer active-threads))
+    (check-equal? (ok-bytes (read-some raw-served 8)) #"ab")
+    (define read-instant (current-inexact-milliseconds))
+    (check-not-false (sync/timeout 5 delayed-writer))
+    (set! active-threads (remove delayed-writer active-threads))
+    (check-true (>= read-instant (unbox write-instant)))
+
+    ;; The maximum is a hard per-call bound. Multiple writes and reads
+    ;; preserve exact ordering without assuming TCP packet boundaries.
+    (write-bytes #"cdefgh" peer-out)
+    (flush-output peer-out)
+    (check-equal? (read-exactly raw-served 6 2)
                   #"cdefgh")
 
     ;; A valid empty write emits no byte and does not unblock the peer.
-    (define-values (empty-worker empty-result)
-      (start-worker
-       (lambda ()
-         (ok-bytes (read-some server 1)))))
-    (check-false (sync/timeout 0.05 empty-worker))
-    (check-ok-unit (write-all client #""))
-    (check-false (sync/timeout 0.05 empty-worker))
-    (check-ok-unit (write-all client #"Z"))
-    (check-equal? (finish-worker empty-worker empty-result)
-                  #"Z")
+    (check-ok-unit (write-all raw-served #""))
+    (check-false (sync/timeout 0.05 peer-in))
+    (check-ok-unit (write-all raw-served #"Z"))
+    (check-equal? (read-bytes 1 peer-in) #"Z")
 
-    ;; Complete-write acknowledgement means a concurrent reader can recover
-    ;; every byte, including zero and values above ASCII, across many reads.
+    ;; Complete-write acknowledgement means the peer can recover every
+    ;; byte, including zero and values above ASCII, across many reads.
     (define complete-payload
       (apply bytes
              (for/list ([index (in-range 512)])
                (modulo (* index 73) 256))))
-    (define-values (complete-worker complete-result)
-      (start-worker
-       (lambda ()
-         (read-exactly server
-                       (bytes-length complete-payload)
-                       37))))
-    (check-ok-unit (write-all client complete-payload))
-    (check-equal? (finish-worker complete-worker complete-result)
+    (check-ok-unit (write-all raw-served complete-payload))
+    (check-equal? (read-bytes (bytes-length complete-payload) peer-in)
                   complete-payload)
 
-    ;; Connections are full duplex and payloads are byte-exact.
+    ;; Host-handle pairs remain full duplex and byte-exact; loopback
+    ;; buffering lets each direction complete sequentially on this thread.
+    (check-ok-unit (write-all client #"ping\0\377"))
+    (check-equal? (read-exactly server 6 3) #"ping\0\377")
     (define reverse-payload #"\0\377\200reply")
     (check-ok-unit (write-all server reverse-payload))
     (check-equal? (read-exactly client
                                 (bytes-length reverse-payload)
                                 3)
                   reverse-payload)
+
+    ;; Orderly shutdown of the raw peer produces EOF for its host handle.
+    (close-output-port peer-out)
+    (check-equal? (ok-bytes (read-some raw-served 16)) #"")
+    (close-input-port peer-in)
+    (close-tracked! raw-served)
 
     ;; Closing one endpoint produces orderly EOF at its peer. Explicit close
     ;; removes a handle first, so every second close is deterministically stale.
@@ -506,7 +522,7 @@
     (define second-listener
       (track! (object-rat->exact
                (car second-listener-result))))
-    (check-equal? second-listener 4)
+    (check-equal? second-listener 5)
     (close-tracked! second-listener)
 
     ;; Racket custodians close their owned TCP resources at shutdown. A later
@@ -519,7 +535,7 @@
     (define custodian-listener
       (track! (object-rat->exact
                (car custodian-listener-result))))
-    (check-equal? custodian-listener 5)
+    (check-equal? custodian-listener 6)
     (custodian-shutdown-all socket-custodian)
     (check-host-failure
      (close-handle custodian-listener)

@@ -13,6 +13,7 @@
          church-six
          church-seven
          church-eight
+         church-nine
          error-type
          bool-type
          list-type
@@ -21,6 +22,7 @@
          string-type
          rat-type
          unit-type
+         byte-type
          raw-tag-equal)
 
 (def church-zero step seed =
@@ -53,6 +55,9 @@
 (def church-eight =
   (church-succ church-seven))
 
+(def church-nine =
+  (church-succ church-eight))
+
 (def error-type = church-zero)
 (def bool-type = church-one)
 (def list-type = church-two)
@@ -61,6 +66,7 @@
 (def string-type = church-six)
 (def rat-type = church-seven)
 (def unit-type = church-eight)
+(def byte-type = church-nine)
 
 (def raw-church-is-zero numeral =
   ((numeral

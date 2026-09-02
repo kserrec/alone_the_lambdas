@@ -26,6 +26,7 @@
     [(6) "WRONG-RESULT-VARIANT"]
     [(13) "NON-WHOLE-EXPONENT"]
     [(14) "INVALID-COUNT"]
+    [(15) "INVALID-BYTE"]
     [else
      (format "ERROR-KIND:~a"
              kind-number)]))

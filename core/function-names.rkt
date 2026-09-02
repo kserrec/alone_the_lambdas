@@ -55,7 +55,14 @@
          abs-function-name
          floor-function-name
          is-whole-function-name
-         is-nonnegative-whole-function-name)
+         is-nonnegative-whole-function-name
+         make-byte-function-name
+         byte-value-function-name
+         byte-eq-function-name
+         byte-lt-function-name
+         byte-lte-function-name
+         byte-gt-function-name
+         byte-gte-function-name)
 
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))
@@ -119,3 +126,11 @@
 (define-function-name floor-function-name FLOOR)
 (define-function-name is-whole-function-name IS-WHOLE)
 (define-function-name is-nonnegative-whole-function-name IS-NONNEGATIVE-WHOLE)
+
+(define-function-name make-byte-function-name MAKE-BYTE)
+(define-function-name byte-value-function-name BYTE-VALUE)
+(define-function-name byte-eq-function-name BYTE-EQ)
+(define-function-name byte-lt-function-name BYTE-LT)
+(define-function-name byte-lte-function-name BYTE-LTE)
+(define-function-name byte-gt-function-name BYTE-GT)
+(define-function-name byte-gte-function-name BYTE-GTE)

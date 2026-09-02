@@ -1759,18 +1759,42 @@ zero-finding boundary inventory.
 
 ### Step 37.1 — Add Byte
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add Byte values from 0 through 255, internally backed by private binary Nat
+- [x] Add Byte values from 0 through 255, internally backed by private binary Nat
   magnitudes.
-- Add construction from a nonnegative whole Rat, conversion back to Rat,
+- [x] Add construction from a nonnegative whole Rat, conversion back to Rat,
   equality, and ordering.
-- Reject negative, fractional, and over-255 inputs.
-- Ensure ordinary Rat arithmetic rejects Byte.
-- Add Byte reader, type, invariant, error, purity, and public-language tests.
+- [x] Reject negative, fractional, and over-255 inputs.
+- [x] Ensure ordinary Rat arithmetic rejects Byte.
+- [x] Add Byte reader, type, invariant, error, purity, and public-language tests.
 
 Acceptance: Byte is a distinct pure data type with exactly 256 valid values,
 not a second numeric type or a host byte hidden inside an object.
+
+Completion evidence: `core/byte.rkt` defines Byte as tag 9 (church-nine)
+over private normalized magnitudes. `MAKE-BYTE : Rat -> Byte` validates
+`IS-NONNEGATIVE-WHOLE` and the 255 bound purely, rejecting every other
+value as the new InvalidByte Error (kind 15, rendered `INVALID-BYTE`);
+`BYTE-VALUE : Byte -> Rat` returns the whole Rat; `BYTE-EQ` through
+`BYTE-GTE` compare magnitudes through the unchanged checker. All seven
+operations are facade exports with pinned forms, vocabularies, 20-module
+purity pins, and the eleven-reader classification updated together.
+`tests/byte-test.rkt` passes 210 assertions covering boundary construction,
+round trips, every rejection class, Rat arithmetic rejecting Byte with
+`ADD(arg1 expected RAT got BYTE)`, host-agreement of all comparisons, and
+unary arity. This step also root-caused and fixed a concurrency defect the
+Rat/Unit work exposed: `tests/tcp-host-test.rkt` forced Lazy Racket values
+from two threads at once (a worker blocked mid-force in a wrapper read while
+the main thread forced wrapper writes), and Racket promises are not
+thread-safe, so runs failed intermittently with "force: reentrant promise" —
+about half the time after the switch widened the forcing windows, versus a
+stable pre-switch baseline reproduced 6/6 in a worktree. The suite now keeps
+every lambda force on one thread and drives concurrency through a raw
+Racket loopback peer socket (the pattern the HTTP suites already use for
+test-side clients); ten consecutive runs pass. The full suite passed 11,860
+assertions across all 36 test files with the zero-finding boundary
+inventory.
 
 ### Step 37.2 — Add pure String and byte-sequence conversion
 
