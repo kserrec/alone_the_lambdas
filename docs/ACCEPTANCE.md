@@ -378,3 +378,19 @@ orders of magnitude slower than host numbers; Map lookup is a linear walk
 calling a lambda-encoded equality per entry; and HTTP serving retains the
 documented O(cap²) re-parse bound within its 8192-byte request cap. These
 are accepted properties of the experiment, not defects.
+
+### Pre-release review addendum (2026-09-02)
+
+Before the 0.3.0 release, the full `milestone-4-rationals` branch received a
+multi-angle adversarial review; all ten confirmed findings were fixed and the
+fixes were verified by an independent cold-review agent. The substantive
+corrections: the three Milestone 4 error kinds moved to 14/15/16 after a
+collision with the HTTP server's pre-existing kind 13, with every kind now
+pinned pairwise-distinct in [`errors-test.rkt`](../tests/errors-test.rkt);
+`MAKE-STRING` and `DROP` now restore the canonical `NIL` terminator on empty
+results, with the class pinned in [`codec-test.rkt`](../tests/codec-test.rkt);
+the codec's list walk is linear (Floyd cycle detection) and inbound decoding
+reuses 256 canonical Byte/Char objects; and the expanded purity proof now
+covers the effects layer. Current verification: 12,297 assertions across all
+38 test files, the 29-module expanded purity proof, and the zero-finding
+boundary inventory.

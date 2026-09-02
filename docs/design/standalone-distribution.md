@@ -1142,8 +1142,10 @@ let's update our documentation and releases page to not include mac and if we th
 Before deletion, all three exact targets were resolved against the public API
 and byte-identical local recovery copies were reverified against their
 published SHA-256 values. Release ID `379061612` was then revised to present
-Linux x86-64 as its sole supported binary target. These exact assets were
-deleted:
+Linux x86-64 as its sole supported binary target; the revised Release body's
+exact bytes have SHA-256
+`c25dca80acc2d53564be8a88f211d925e0d5fb79ef67f1ea251fd8d7db204db5`. These
+exact assets were deleted:
 
 | Withdrawn asset | GitHub asset ID | SHA-256 |
 | --- | ---: | --- |

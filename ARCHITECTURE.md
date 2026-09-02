@@ -281,8 +281,9 @@ forces top-level effects but discards their lambda-encoded Results so Racket
 does not print host procedure representations. `info.rkt` supplies the
 single-collection package metadata used by fresh installs and declares the
 repository's approved `Apache-2.0` SPDX license identifier. Root `VERSION` is
-the sole product-version source; the current `0.2.0` state projects
-mechanically to Racket package version `0.2`.
+the sole product-version source; the current `0.3.0-dev` state projects
+mechanically to Racket package version `0.2.900` (a released `0.3.0` would
+project to `0.3`).
 
 `runner/attalambda.rkt` is host launch scaffolding, not an effect primitive. It
 accepts only direct `.attl` execution, `--help`, and `--version`; validates the one supplied path,
@@ -810,9 +811,11 @@ Structured Error tests cover every kind, root
 metadata, the `NIL`/empty-Error knot, frame order, result frames, nested root
 preservation, unframed Error-as-data pass-through, canonical function-name
 Strings, List failures, currying, and lazy field access. The Error reader
-suite exercises all 43 named strict boundaries, every raw-failure boundary's
-result frame, every rendered type tag, every current root kind, and
-nested causal output.
+suite exercises the 43 named strict boundaries of the completed core
+milestones, every raw-failure boundary's result frame, every rendered type
+tag, every current root kind, and nested causal output; the Milestone 4
+boundaries (Byte, Option, Map, and the Rat family) have their rendered
+frames pinned in their own type suites.
 The generalized
 checker suite covers lambda List signatures and zero-, one-, two-, three-, and
 five-argument functions; valid partial application; every five-argument
@@ -989,9 +992,11 @@ and confirmed the run's artifact API returned zero. Ordinary `always()`
 cleanup is restored. Those exact systems are demonstrated observations, not
 minimum-version or public-release claims.
 
-The current completion suite passed 4,751 assertions across 32 test files,
-retained the unchanged 16-module expanded core proof, and inventoried all 80
-Racket and `.attl` sources with zero boundary findings.
+That Phase 27 completion suite passed 4,751 assertions across 32 test files
+with the then-16-module expanded core proof and a zero-finding inventory of
+all 80 sources. The current Milestone 4 suite passes 12,297 assertions across
+38 test files, the expanded purity proof covers all 29 core and effects
+modules, and the boundary inventory of every source reports zero findings.
 
 ## Completed milestone boundary
 

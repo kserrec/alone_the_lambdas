@@ -123,7 +123,10 @@ design.
 
 ## Git
 
-- Work directly on `main`.
+- Work directly on `main` for ordinary phases. A multi-phase milestone that
+  changes the released language lands on one milestone branch (as Milestone 4
+  did on `milestone-4-rationals`) and merges to `main` only with Kyle's
+  explicit approval.
 - Commit and push after each meaningful, verified phase.
 - Keep commits narrow and descriptive.
 - Do not leave generated Racket artifacts in Git.
