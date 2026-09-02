@@ -174,6 +174,37 @@
    (procedure-arity (lazy-force absorbed))
    1))
 
+;; After a first-position mismatch or bubbled Error, every binary Rat
+;; operation never forces its second argument: a delayed raise proves the
+;; absorber stays lazy, the guarantee the deleted typed-nat-test carried
+;; for the old Nat family.
+(for ([operation (in-list
+                  (list typed-rat-add
+                        typed-rat-sub
+                        typed-rat-mult
+                        typed-rat-div
+                        typed-rat-exp
+                        typed-rat-equal
+                        typed-rat-less
+                        typed-rat-less-equal
+                        typed-rat-greater
+                        typed-rat-greater-equal))])
+  (define mismatch-result
+    (lazy-apply
+     (lazy-apply operation TRUE)
+     (delay
+       (error 'typed-rat
+              "forced argument after first-position mismatch"))))
+  (check-equal? (object-tag mismatch-result) 0)
+  (define bubbled-result
+    (lazy-apply
+     (lazy-apply operation
+                 (apply2 typed-rat-add TRUE (exact->typed-rat 1)))
+     (delay
+       (error 'typed-rat
+              "forced argument after first-position Error"))))
+  (check-equal? (object-tag bubbled-result) 0))
+
 ;; Strict operations remain chains of unary lambdas.
 (for ([function (in-list
                  (list typed-rat-succ

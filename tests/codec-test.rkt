@@ -272,3 +272,68 @@
   (forged-rat (host-integer->int -3)
               (host-integer->bits 2)))
  -3/2)
+
+;; ---------------------------------------------------------------------------
+;; Every public operation that can return an empty List or String must
+;; restore the one canonical NIL terminator: the codec deliberately rejects
+;; any other empty as forged, so a checker-unwrapped payload rebuilt with a
+;; fresh terminator would fail at the host boundary (the MAKE-STRING/DROP
+;; release blocker found in the Milestone 4 branch review).
+
+(require (only-in "../core/list-nat.rkt" typed-take-rat typed-drop-rat)
+         (only-in "../core/byte.rkt" STRING-TO-BYTES BYTES-TO-STRING)
+         (only-in "helpers/values.rkt" whole-rat-object))
+
+(check-equal? (object-string->bytes (lazy-apply MAKE-STRING NIL))
+              #"")
+(check-equal? (object-string->bytes
+               (lazy-apply BYTES-TO-STRING (bytes->object-byte-list #"")))
+              #"")
+(check-equal? (object-byte-list->bytes
+               (lazy-apply STRING-TO-BYTES (bytes->object-string #"")))
+              #"")
+
+(define two-element-list
+  (apply2 typed-cons
+          (whole-rat-object 1)
+          (apply2 typed-cons (whole-rat-object 2) NIL)))
+
+(for ([empty-result
+       (in-list
+        (list (apply2 typed-drop-rat (whole-rat-object 0) NIL)
+              (apply2 typed-drop-rat (whole-rat-object 3) NIL)
+              (apply2 typed-drop-rat (whole-rat-object 2) two-element-list)
+              (apply2 typed-take-rat (whole-rat-object 0) NIL)
+              (apply2 typed-take-rat (whole-rat-object 0) two-element-list)))])
+  (check-equal? (object-list->host-list empty-result)
+                '()))
+
+;; ---------------------------------------------------------------------------
+;; Cyclic chains are rejected as forged, never walked forever. The walk uses
+;; Floyd tortoise/hare detection (codec forbids mutable state), so cycles of
+;; several lengths behind several proper prefixes pin the property.
+
+(define (cycle-cells cycle-length)
+  (letrec ([head-cell
+            (let build ([i cycle-length])
+              (if (= i 1)
+                  (apply2 raw-cons TRUE (lazy head-cell))
+                  (apply2 raw-cons TRUE (build (sub1 i)))))])
+    head-cell))
+
+(define (with-prefix prefix-length cyclic)
+  (let build ([i prefix-length])
+    (if (zero? i)
+        cyclic
+        (apply2 raw-cons TRUE (build (sub1 i))))))
+
+(for* ([cycle-length (in-list '(1 2 3 5))]
+       [prefix-length (in-list '(0 1 2 5))])
+  (define walked
+    (object-list->host-list
+     (with-prefix prefix-length (cycle-cells cycle-length))))
+  (check-true (codec-failure? walked)
+              (format "cycle ~a prefix ~a" cycle-length prefix-length))
+  (check-equal? (codec-failure-reason walked)
+                'wrong-type
+                (format "cycle ~a prefix ~a" cycle-length prefix-length)))

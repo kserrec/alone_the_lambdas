@@ -1630,7 +1630,7 @@ counter to a whole Rat through the new `raw-whole-rat` helper; counts and
 character codes validate `IS-NONNEGATIVE-WHOLE` in pure lambda computation
 and then reuse the unchanged raw binary take/drop/range machinery through
 `raw-rat-magnitude-bits`. A negative or fractional count is the new
-INVALID-COUNT contract Error (kind 14, added to errors and the error
+INVALID-COUNT contract Error (kind 15, added to errors and the error
 reader), rendered as `INVALID-COUNT\n  -> TAKE(result)` style
 frames; an out-of-range code above 255 remains INVALID-CHAR. Focused tests
 cover whole-Rat lengths for Lists and Strings, take/drop across zero,
@@ -1706,8 +1706,10 @@ codec dropped its Nat conversions, and the host decodes bounded counts with
 `object-rat->exact` and returns handles via `exact->object-rat`. During the
 switch a latent kind collision was found and fixed: the Step 34.3/35.3 kinds
 had reused Church 7 and 8, which already belong to the host protocol, so
-NON-WHOLE-EXPONENT and INVALID-COUNT are now kinds 13 and 14, numbered after
-the host and HTTP kinds. The boundary gate gained
+NON-WHOLE-EXPONENT and INVALID-COUNT are now kinds 14 and 15, numbered after
+the host, HTTP, and HTTP-server kinds (a second miscount — starting them at
+13, which the HTTP server already owned — was found by the pre-release
+branch review and fixed in commit fb96dea). The boundary gate gained
 `reintroduced-nat-surface`, a repository-wide scan that fails if any
 production source mentions a retired Nat spelling, and its pinned expander
 forms, codec provide, and codec/host/reader/expander vocabularies moved with
@@ -1775,7 +1777,7 @@ not a second numeric type or a host byte hidden inside an object.
 Completion evidence: `core/byte.rkt` defines Byte as tag 9 (church-nine)
 over private normalized magnitudes. `MAKE-BYTE : Rat -> Byte` validates
 `IS-NONNEGATIVE-WHOLE` and the 255 bound purely, rejecting every other
-value as the new InvalidByte Error (kind 15, rendered `INVALID-BYTE`);
+value as the new InvalidByte Error (kind 16, rendered `INVALID-BYTE`);
 `BYTE-VALUE : Byte -> Rat` returns the whole Rat; `BYTE-EQ` through
 `BYTE-GTE` compare magnitudes through the unchanged checker. All seven
 operations are facade exports with pinned forms, vocabularies, 20-module

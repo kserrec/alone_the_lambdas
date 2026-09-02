@@ -244,17 +244,19 @@
 (define phase16-codec-vocabulary
   '(#%module-begin * + - / <= = > NIL abs and apply argument bit bits
     bits-value bottom
-    boolean? byte->object-char bytes bytes->immutable-bytes
-    bytes->object-string bytes? car cdr char char-type chars codec
+    advance-tortoise? boolean? build-object-byte build-object-char
+    build-vector byte->object-char bytes bytes->immutable-bytes
+    bytes->object-string bytes? canonical-object-bytes
+    canonical-object-chars car cdr char char-type chars codec
     codec-failure codec-failure? codec-false codec-true cond cons decoded
     define denominator else eq? error-value exact->object-rat exact?
-    exact-nonnegative-integer? exn:fail? expected
+    exn:fail? expected
     failure false-marker first
     first-codec-failure for/fold for/list force function gcd
     host-list->object-list if in-bytes in-list integer
     integer->raw-bits
     lambda lazy-apply lazy-apply2 length let list list-type loop magnitude
-    malformed-value-failure map memq
+    malformed-value-failure map
     module negative? nil? not null? numerator object-char->byte
     object-err
     object-has-type? object-list->host-list object-ok
@@ -271,9 +273,10 @@
     raw-make-int raw-make-object raw-make-ok raw-make-string
     raw-object-value raw-pair raw-rat-denominator
     raw-rat-numerator raw-string-value
-    raw-true reason remaining require result reverse reversed second seen
-    selected sign string-type struct struct-out tail total true-marker UNIT
-    unless
+    raw-true reason remaining require result reverse reversed second
+    selected sign string-type struct struct-out tail
+    next-tortoise tortoise total true-marker UNIT
+    unless vector-ref
     value
     values with-handlers wrong-type zero?))
 
@@ -291,7 +294,7 @@
     decoded decoded-request define define-values discard-entry!
     dispatch-one-string dispatch-string-and-byte-list dispatch-request dispatch-tcp-accept dispatch-tcp-close
     dispatch-tcp-connect dispatch-tcp-listen dispatch-tcp-read
-    dispatch-tcp-write dispatch-two-strings domain else end eof-object? entry
+    dispatch-tcp-write domain else end eof-object? entry
     eq? errno errno-in? exact-nonnegative-integer? exact-positive-integer?
     exn:fail:contract? exn:fail:filesystem:errno-errno
     exn:fail:filesystem:errno? exn:fail:network:errno-errno

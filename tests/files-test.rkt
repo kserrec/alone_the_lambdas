@@ -178,6 +178,17 @@
 (check-contract-frame wrong-write-second #"write-file" 2 2)
 (check-equal? calls 2)
 
+;; A well-typed List whose element is not a Byte never reaches the host:
+;; the constructor's raw-byte-list-valid? guard answers the documented
+;; INVALID-BYTE contract Error (kind 16) before any request value exists.
+(define non-byte-write
+  (lazy-apply
+   (lazy-apply write-with-fake path-value)
+   (apply2 typed-cons TRUE NIL)))
+(check-true (typed-value? error-type non-byte-write))
+(check-equal? (error-kind-integer non-byte-write) 16)
+(check-equal? calls 2)
+
 (define incoming-read-error
   (lazy-apply read-with-fake invalid-nat-error))
 (check-true (typed-value? error-type incoming-read-error))

@@ -89,30 +89,40 @@
 (define (malformed-value-failure failure)
   (codec-failure 'wrong-type))
 
+;; Floyd cycle detection: the tortoise trails the walk at half speed, so a
+;; cyclic chain is caught in linear time with no per-node membership scan
+;; and no mutable state. Every node is type-checked exactly once — the
+;; head of the chain before the loop, every tail inside it.
 (define (object-list->host-list value)
   (with-handlers ([exn:fail? malformed-value-failure])
     (if (not (object-has-type? list-type value))
         (codec-failure 'wrong-type)
         (let loop ([remaining (force value)]
-                   [reversed '()]
-                   [seen '()])
-            (cond
-              [(memq remaining seen)
-               (codec-failure 'wrong-type)]
-              [(not (object-has-type? list-type remaining))
-               (codec-failure 'wrong-type)]
-              [(eq? remaining (force NIL))
-               (reverse reversed)]
-              [else
-               (define tail
-                 (force (lazy-apply raw-list-tail remaining)))
-               (if (not (object-has-type? list-type tail))
-                   (codec-failure 'wrong-type)
-                   (loop tail
-                         (cons (force
-                                (lazy-apply raw-list-head remaining))
-                               reversed)
-                         (cons remaining seen)))])))))
+                   [tortoise (force value)]
+                   [advance-tortoise? #f]
+                   [reversed '()])
+          (cond
+            [(eq? remaining (force NIL))
+             (reverse reversed)]
+            [else
+             (define tail
+               (force (lazy-apply raw-list-tail remaining)))
+             (cond
+               [(not (object-has-type? list-type tail))
+                (codec-failure 'wrong-type)]
+               [else
+                (define next-tortoise
+                  (if advance-tortoise?
+                      (force (lazy-apply raw-list-tail tortoise))
+                      tortoise))
+                (if (eq? tail next-tortoise)
+                    (codec-failure 'wrong-type)
+                    (loop tail
+                          next-tortoise
+                          (not advance-tortoise?)
+                          (cons (force
+                                 (lazy-apply raw-list-head remaining))
+                                reversed)))])])))))
 
 (define (host-list->object-list values)
   (let loop ([remaining values])
@@ -225,13 +235,30 @@
           (if bit raw-true raw-false))
         bits)))
 
-(define (byte->object-char integer)
+(define (build-object-char integer)
   (lazy-apply raw-make-char
               (integer->raw-bits integer)))
 
-(define (integer->object-byte integer)
+(define (build-object-byte integer)
   (lazy-apply raw-make-byte
               (integer->raw-bits integer)))
+
+;; Only 256 Byte values and 256 Char values exist, and every object is
+;; immutable, so inbound file/TCP decoding reuses one canonical object per
+;; value instead of reconstructing it for every payload byte. The cycle
+;; detection above tracks list cells, never element values, so sharing
+;; elements across positions is sound.
+(define canonical-object-chars
+  (build-vector 256 build-object-char))
+
+(define canonical-object-bytes
+  (build-vector 256 build-object-byte))
+
+(define (byte->object-char integer)
+  (vector-ref canonical-object-chars integer))
+
+(define (integer->object-byte integer)
+  (vector-ref canonical-object-bytes integer))
 
 (define (bytes->object-byte-list value)
   (unless (bytes? value)

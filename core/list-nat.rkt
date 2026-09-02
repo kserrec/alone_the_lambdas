@@ -93,12 +93,15 @@
    ((raw-add-result-frame invalid-count-error)
     take-function-name)))
 
+;; raw-rebuild-list, not raw-list-object: drop can return the rebuilt
+;; object itself, so an empty rebuild must restore the one canonical NIL
+;; the codec's forged-terminator hardening requires.
 (def raw-list-drop-rat-values count list-value =
   (((raw-if
      (raw-rat-is-nonnegative-whole count))
     ((raw-list-drop
       (raw-rat-magnitude-bits count))
-     (raw-list-object list-value)))
+     (raw-rebuild-list list-value)))
    ((raw-add-result-frame invalid-count-error)
     drop-function-name)))
 

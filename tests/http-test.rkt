@@ -260,6 +260,22 @@
   (lazy-apply unwrap-err unsupported-status-result))
  12)
 
+;; A negative or fractional status Rat is the unsupported-status Err, never
+;; its magnitude's supported rendering: the status guard's
+;; nonnegative-whole conjunct is load-bearing because
+;; raw-rat-magnitude-bits drops the sign and denominator.
+(for ([status (in-list '(-200 -404 401/2 200/3 -1/2))])
+  (define negative-status-result
+    (render (exact->object-rat status) #"body"))
+  (check-true (bool->boolean
+               (lazy-apply is-err negative-status-result))
+              (format "status ~s" status))
+  (check-equal?
+   (error-kind-integer
+    (lazy-apply unwrap-err negative-status-result))
+   12
+   (format "status ~s" status)))
+
 ;; Wrong runtime types remain contract Errors, including the exact remaining
 ;; unary absorber after a bad first renderer argument.
 (check-contract-error

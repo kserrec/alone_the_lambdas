@@ -68,9 +68,12 @@
 (def raw-char-list-valid? =
   (raw-fix raw-char-list-valid-step))
 
+;; raw-rebuild-list, not raw-list-object: the checker hands over a bare
+;; payload, and an empty rebuild must restore the one canonical NIL the
+;; codec's forged-terminator hardening requires.
 (def raw-make-checked-string list-payload =
   (lambda-let chars =
-    (raw-list-object list-payload)
+    (raw-rebuild-list list-payload)
     (((raw-if
        (raw-char-list-valid? chars))
       (raw-make-string chars))

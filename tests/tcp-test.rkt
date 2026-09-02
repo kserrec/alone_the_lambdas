@@ -339,6 +339,16 @@
   (check-true (typed-value? error-type bad-request))
   (check-equal? (error-kind-integer bad-request) 15))
 
+;; A well-typed List payload whose element is not a Byte is the documented
+;; INVALID-BYTE contract Error (kind 16) from the request constructor
+;; itself, before any request value exists.
+(define non-byte-tcp-write
+  (apply-arguments make-tcp-write-request
+                   (list connection-handle
+                         (apply2 typed-cons FALSE NIL))))
+(check-true (typed-value? error-type non-byte-tcp-write))
+(check-equal? (error-kind-integer non-byte-tcp-write) 16)
+
 ;; Valid Rat wrappers dispatch exactly the documented requests; the host is
 ;; never applied for an invalid numeric field, and the Error bubbles.
 (define rat-calls 0)
