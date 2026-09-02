@@ -19,41 +19,18 @@
          "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  integer->host-bits
+                  whole-rat-object))
 
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (integer->host-bits integer)
-  (for/list ([character
-              (in-string
-               (number->string integer 2))])
-    (char=? character #\1)))
-
-(define (integer->nat integer)
-  (apply2 raw-make-object
-          rat-type
-          (lazy-apply
-           raw-whole-rat
-           (host-bits->raw
-            (integer->host-bits integer)))))
-
-(define ZERO (integer->nat 0))
-(define ONE (integer->nat 1))
-(define THREE (integer->nat 3))
-(define SEVEN (integer->nat 7))
-(define TEN (integer->nat 10))
+(define ZERO (whole-rat-object 0))
+(define ONE (whole-rat-object 1))
+(define THREE (whole-rat-object 3))
+(define SEVEN (whole-rat-object 7))
+(define TEN (whole-rat-object 10))
 
 (define DIV typed-rat-div)
 (define SUCC typed-rat-succ)
@@ -320,8 +297,8 @@
   (define divisor (second case))
   (define result
     (apply2 DIV
-            (integer->nat dividend)
-            (integer->nat divisor)))
+            (whole-rat-object dividend)
+            (whole-rat-object divisor)))
   (check-result-case #t result)
   (define quotient-value
     (lazy-apply unwrap-ok result))
@@ -335,7 +312,7 @@
 (for ([dividend (in-list '(0 1 999 65535))])
   (define result
     (apply2 typed-rat-div
-            (integer->nat dividend)
+            (whole-rat-object dividend)
             ZERO))
   (check-result-case #f result)
   (define failure

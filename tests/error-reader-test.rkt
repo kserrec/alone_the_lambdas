@@ -28,41 +28,13 @@
          "../readers/raw-boolean.rkt"
          "../readers/string.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (apply3 function first second third)
-  (lazy-apply
-   (apply2 function first second)
-   third))
-
-(define (typed-value? type value)
-  (raw-boolean->boolean
-   (apply2 raw-is-type type value)))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (whole-rat-object integer)
-  (apply2 raw-make-object
-          rat-type
-          (lazy-apply
-           raw-whole-rat
-           (host-bits->raw
-            (for/list ([character
-                        (in-string
-                         (number->string integer 2))])
-              (char=? character #\1))))))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  apply3
+                  typed-value?
+                  host-bits->raw
+                  whole-rat-object))
 
 (define ONE (whole-rat-object 1))
 (define FOUR (whole-rat-object 4))

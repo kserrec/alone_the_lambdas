@@ -19,34 +19,12 @@
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (integer->host-bits integer)
-  (for/list ([character
-              (in-string
-               (number->string integer 2))])
-    (char=? character #\1)))
-
-(define (integer->nat integer)
-  (apply2 raw-make-object
-          rat-type
-          (lazy-apply raw-whole-rat
-                      (host-bits->raw
-                       (integer->host-bits integer)))))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  integer->host-bits
+                  whole-rat-object))
 
 (define (typed-value? type value)
   (raw-boolean->boolean
@@ -211,35 +189,35 @@
   (check-char
    code
    (lazy-apply MAKE-CHAR
-               (integer->nat code))))
+               (whole-rat-object code))))
 
 (check-equal?
  (char-value->string
-  (lazy-apply MAKE-CHAR (integer->nat 0)))
+  (lazy-apply MAKE-CHAR (whole-rat-object 0)))
  "char:0")
 
 (check-equal?
  (char-value->string
   (lazy-apply MAKE-CHAR
-              (integer->nat 127)))
+              (whole-rat-object 127)))
  "char:127")
 
 (check-equal?
  (char-value->string
   (lazy-apply MAKE-CHAR
-              (integer->nat 173)))
+              (whole-rat-object 173)))
  "char:173")
 
 (check-equal?
  (char-value->string
   (lazy-apply MAKE-CHAR
-              (integer->nat 255)))
+              (whole-rat-object 255)))
  "char:255")
 
 (for ([code (in-list '(256 257 511 65535))])
   (define failure
     (lazy-apply MAKE-CHAR
-                (integer->nat code)))
+                (whole-rat-object code)))
   (check-true
    (typed-value? error-type failure))
   (check-true
@@ -300,9 +278,9 @@
    (list DIGIT-0 DIGIT-9)
    (list RIGHT-BRACE RIGHT-BRACE)
    (list
-    (lazy-apply MAKE-CHAR (integer->nat 0))
+    (lazy-apply MAKE-CHAR (whole-rat-object 0))
     (lazy-apply MAKE-CHAR
-                (integer->nat 255)))))
+                (whole-rat-object 255)))))
 
 (for* ([case (in-list comparison-cases)]
        [operation (in-list comparison-operations)])

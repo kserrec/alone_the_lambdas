@@ -20,7 +20,6 @@
 (provide raw-list-length
          raw-list-take
          raw-list-drop
-         raw-list-object
          typed-len-rat
          typed-take-rat
          typed-drop-rat)
@@ -71,9 +70,6 @@
   (((raw-fix raw-list-drop-step)
     count)
    list))
-
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
 
 ;; The public counting surface is Rat-based since the Step 35.5 switch.
 ;; Counting and indexing stay on private binary Nat; the Rat layer only

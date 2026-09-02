@@ -12,31 +12,12 @@
          "../core/tags.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (integer->host-bits integer)
-  (for/list ([character
-              (in-string
-               (number->string integer 2))])
-    (char=? character #\1)))
-
-(define (integer->raw-bits integer)
-  (host-bits->raw
-   (integer->host-bits integer)))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  integer->host-bits
+                  integer->raw-bits))
 
 (define (raw-bits->host-bits bits)
   (list->host-list bits raw-boolean->boolean))

@@ -7,9 +7,9 @@
                   raw-add-result-frame
                   invalid-count-error
                   invalid-byte-error)
-         (only-in "../core/lists.rkt" raw-cons raw-list-is-nil)
+         (only-in "../core/lists.rkt" raw-cons raw-rebuild-list)
          (only-in "../core/logic.rkt" raw-if raw-and)
-         (only-in "../core/objects.rkt" raw-is-type raw-make-object)
+         (only-in "../core/objects.rkt" raw-make-object)
          (only-in "../core/rat.rkt" raw-rat-is-nonnegative-whole)
          "../core/strings.rkt"
          "../core/tags.rkt"
@@ -55,13 +55,6 @@
 (def rat-and-list-signature =
   ((raw-cons rat-type)
    ((raw-cons list-type) NIL)))
-
-(def raw-rebuild-list payload =
-  (lambda-let rebuilt = ((raw-make-object list-type) payload)
-    (((raw-if
-       (raw-list-is-nil rebuilt))
-      NIL)
-     rebuilt)))
 
 (def raw-rat-field payload =
   ((raw-make-object rat-type) payload))
@@ -181,12 +174,6 @@
      tcp-close-function-name)
     rat-signature)
    raw-keep-return))
-
-(def raw-dispatch-or-bubble host request =
-  (((raw-if
-     ((raw-is-type error-type) request))
-    request)
-   (host request)))
 
 (def raw-call-tcp-connect host remote-payload port-payload =
   ((raw-dispatch-or-bubble host)

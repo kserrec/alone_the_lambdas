@@ -21,8 +21,10 @@
          "fix.rkt"
          "function-names.rkt"
          (only-in "lists.rkt"
+                  list-unary-signature
                   raw-list-head
                   raw-list-is-nil
+                  raw-list-object
                   raw-list-tail
                   raw-map)
          "logic.rkt"
@@ -59,21 +61,6 @@
                      [typed-byte-greater-equal BYTE-GTE]
                      [typed-string-to-bytes STRING-TO-BYTES]
                      [typed-bytes-to-string BYTES-TO-STRING]))
-
-(def raw-two-bits =
-  (raw-nat-succ raw-one-bits))
-
-(def raw-four-bits =
-  ((raw-nat-add raw-two-bits) raw-two-bits))
-
-(def raw-sixteen-bits =
-  ((raw-nat-mult raw-four-bits) raw-four-bits))
-
-(def raw-byte-max-bits =
-  ((raw-nat-sub
-    ((raw-nat-mult raw-sixteen-bits)
-     raw-sixteen-bits))
-   raw-one-bits))
 
 (def raw-make-byte bits =
   ((raw-make-object byte-type)
@@ -162,9 +149,6 @@
 (def raw-chars-to-bytes chars =
   ((raw-map raw-char-to-byte) chars))
 
-(def raw-string-to-bytes chars =
-  (raw-chars-to-bytes chars))
-
 (def raw-bytes-to-chars bytes =
   ((raw-map raw-byte-to-char) bytes))
 
@@ -186,9 +170,6 @@
 (def raw-byte-list-valid? =
   (raw-fix raw-byte-list-valid-step))
 
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
-
 (def raw-bytes-to-string list-payload =
   (lambda-let bytes =
     (raw-list-object list-payload)
@@ -202,11 +183,8 @@
 (def string-unary-signature =
   ((raw-cons string-type) NIL))
 
-(def list-unary-signature =
-  ((raw-cons list-type) NIL))
-
 (def typed-string-to-bytes =
-  ((((make-typed-function raw-string-to-bytes)
+  ((((make-typed-function raw-chars-to-bytes)
      string-to-bytes-function-name)
     string-unary-signature)
    raw-keep-return))

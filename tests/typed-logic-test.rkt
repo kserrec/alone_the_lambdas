@@ -28,42 +28,17 @@
          "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
-
-(define (apply3 function first second third)
-  (lazy-apply
-   (apply2 function first second)
-   third))
-
-(define (whole-rat-object integer)
-  (lazy-apply
-   (lazy-apply raw-make-object rat-type)
-   (lazy-apply raw-whole-rat
-               (foldr
-                (lambda (bit tail)
-                  (lazy-apply (lazy-apply raw-cons bit) tail))
-                NIL
-                (for/list ([character
-                            (in-string
-                             (number->string integer 2))])
-                  (if (char=? character #\1) raw-true raw-false))))))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  apply3
+                  typed-value?
+                  whole-rat-object
+                  rat-object->number))
 
 (define ZERO (whole-rat-object 0))
 (define ONE (whole-rat-object 1))
 (define TWO (whole-rat-object 2))
-
-(define (rat-object->number value)
-  (rat->number
-   (lazy-apply raw-object-value value)))
-
-(define (typed-value? type value)
-  (raw-boolean->boolean
-   (apply2 raw-is-type type value)))
 
 (define (error-kind=? error kind)
   (raw-boolean->boolean

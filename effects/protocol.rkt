@@ -12,6 +12,7 @@
                   raw-append
                   raw-list-head
                   raw-list-is-nil
+                  raw-list-object
                   raw-list-tail)
          "../core/logic.rkt"
          "../core/objects.rkt"
@@ -62,7 +63,8 @@
          io-failure-code
          make-invalid-host-request
          make-host-failure
-         make-host-bridge)
+         make-host-bridge
+         raw-dispatch-or-bubble)
 
 ;; Error kinds 0 through 6 are owned by the completed core. Host protocol
 ;; failures extend only the approved tiny metadata namespace; they do not add
@@ -135,9 +137,6 @@
   (((raw-make-host-protocol-error host-failure-kind)
     operation)
    code))
-
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
 
 (def host-list-signature =
   ((raw-cons list-type) NIL))
@@ -551,6 +550,12 @@
 (def raw-host-function dispatcher request-payload =
   ((raw-validate-host-request dispatcher)
    (raw-list-object request-payload)))
+
+(def raw-dispatch-or-bubble host request =
+  (((raw-if
+     ((raw-is-type error-type) request))
+    request)
+   (host request)))
 
 ;; The resulting value is the sole unary object-language boundary. Validation
 ;; above is ordinary lambda computation; only a schema-valid request reaches

@@ -41,30 +41,6 @@
          LEFT-BRACKET RIGHT-BRACKET
          LEFT-BRACE RIGHT-BRACE)
 
-(def raw-two-bits =
-  (raw-nat-succ raw-one-bits))
-
-(def raw-four-bits =
-  ((raw-nat-add raw-two-bits) raw-two-bits))
-
-(def raw-eight-bits =
-  ((raw-nat-add raw-four-bits) raw-four-bits))
-
-(def raw-nine-bits =
-  (raw-nat-succ raw-eight-bits))
-
-(def raw-ten-bits =
-  (raw-nat-succ raw-nine-bits))
-
-(def raw-sixteen-bits =
-  ((raw-nat-add raw-eight-bits) raw-eight-bits))
-
-(def raw-char-max-bits =
-  ((raw-nat-sub
-    ((raw-nat-mult raw-sixteen-bits)
-     raw-sixteen-bits))
-   raw-one-bits))
-
 (def raw-make-char bits =
   ((raw-make-object char-type)
    (raw-normalize-nat bits)))
@@ -77,7 +53,7 @@
     (raw-normalize-nat bits)
     (((raw-if
        ((raw-nat-less-equal normalized)
-        raw-char-max-bits))
+        raw-byte-max-bits))
       (raw-make-char normalized))
      ((raw-add-result-frame invalid-char-error)
       make-char-function-name))))

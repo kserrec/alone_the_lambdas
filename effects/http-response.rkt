@@ -137,18 +137,6 @@
                      ((raw-cons o)
                       ((raw-cons r) NIL))))))))))))))))))))))
 
-(def raw-two-bits =
-  (raw-nat-succ raw-one-bits))
-
-(def raw-four-bits =
-  ((raw-nat-add raw-two-bits) raw-two-bits))
-
-(def raw-five-bits =
-  (raw-nat-succ raw-four-bits))
-
-(def raw-ten-bits =
-  ((raw-nat-mult raw-two-bits) raw-five-bits))
-
 (def raw-hundred-bits =
   ((raw-nat-mult raw-ten-bits) raw-ten-bits))
 

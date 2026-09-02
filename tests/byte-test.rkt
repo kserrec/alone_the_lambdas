@@ -19,47 +19,13 @@
          "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first-argument second-argument)
-  (lazy-apply
-   (lazy-apply function first-argument)
-   second-argument))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (exact->typed-rat exact)
-  (apply2 raw-make-object
-          rat-type
-          (apply2 raw-make-rat
-                  (apply2 raw-make-int
-                          (if (negative? exact) raw-false raw-true)
-                          (host-bits->raw
-                           (for/list ([character
-                                       (in-string
-                                        (number->string
-                                         (abs (numerator exact)) 2))])
-                             (char=? character #\1))))
-                  (host-bits->raw
-                   (for/list ([character
-                               (in-string
-                                (number->string (denominator exact) 2))])
-                     (char=? character #\1))))))
-
-(define (typed-value? type value)
-  (raw-boolean->boolean
-   (apply2 raw-is-type type value)))
-
-(define (object-tag value)
-  (type-tag->integer
-   (lazy-apply raw-object-type value)))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  exact->typed-rat
+                  typed-value?
+                  object-tag))
 
 ;; Every value 0 through 255 constructs, reads back, and converts to the
 ;; same whole Rat; no other value constructs.

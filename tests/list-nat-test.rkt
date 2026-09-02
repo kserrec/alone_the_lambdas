@@ -14,12 +14,12 @@
          "../readers/list.rkt"
          "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first second)
-  (lazy-apply
-   (lazy-apply function first)
-   second))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  whole-rat-object
+                  rat-object->number))
 
 (define (prepend value tail)
   (apply2 typed-cons value tail))
@@ -68,36 +68,12 @@
 (define (read-list list)
   (list->host-list list read-bool-object))
 
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (whole-rat-object integer)
-  (apply2 raw-make-object
-          rat-type
-          (lazy-apply
-           raw-whole-rat
-           (host-bits->raw
-            (for/list ([character
-                        (in-string
-                         (number->string integer 2))])
-              (char=? character #\1))))))
-
 (define ZERO (whole-rat-object 0))
 (define ONE (whole-rat-object 1))
 (define TWO (whole-rat-object 2))
 (define THREE (whole-rat-object 3))
 (define FOUR (whole-rat-object 4))
 (define TEN (whole-rat-object 10))
-
-(define (rat-object->number value)
-  (rat->number
-   (lazy-apply raw-object-value value)))
 
 (define (raw-length->integer list)
   (for/fold ([total 0])

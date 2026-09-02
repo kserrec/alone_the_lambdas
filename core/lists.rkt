@@ -16,6 +16,8 @@
          raw-list-head
          raw-list-tail
          raw-list-is-nil
+         raw-list-object
+         raw-rebuild-list
          typed-cons
          typed-head
          typed-tail
@@ -35,6 +37,19 @@
 (def raw-list-is-nil list =
   ((raw-is-type error-type)
    (raw-list-tail list)))
+
+(def raw-list-object payload =
+  ((raw-make-object list-type) payload))
+
+;; Rebuilding a List object from a checker-unwrapped payload must restore
+;; the one canonical NIL for the empty case: the codec deliberately
+;; rejects any other terminator as forged.
+(def raw-rebuild-list payload =
+  (lambda-let rebuilt = (raw-list-object payload)
+    (((raw-if
+       (raw-list-is-nil rebuilt))
+      NIL)
+     rebuilt)))
 
 (def list-unary-signature =
   ((raw-cons list-type) NIL))

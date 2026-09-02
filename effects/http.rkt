@@ -211,11 +211,6 @@
                    ((raw-cons UNDERSCORE)
                     ((raw-cons raw-tilde-char) NIL))))))))))))))))))))
 
-(def raw-four-bits =
-  (raw-nat-succ
-   (raw-nat-succ
-    (raw-nat-succ raw-one-bits))))
-
 (def raw-high-byte-start-bits =
   ((raw-nat-mult
     (raw-char-value SPACE))

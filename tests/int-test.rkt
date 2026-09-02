@@ -9,36 +9,17 @@
          "../core/logic.rkt"
          "../readers/int.rkt"
          "../readers/raw-boolean.rkt"
-         "helpers/lazy.rkt")
-
-(define (apply2 function first-argument second-argument)
-  (lazy-apply
-   (lazy-apply function first-argument)
-   second-argument))
-
-(define (host-bits->raw bits)
-  (foldr
-   (lambda (bit tail)
-     (apply2 raw-cons
-             (if bit raw-true raw-false)
-             tail))
-   NIL
-   bits))
-
-(define (integer->raw-bits integer)
-  (host-bits->raw
-   (for/list ([character
-               (in-string
-                (number->string integer 2))])
-     (char=? character #\1))))
+         "helpers/lazy.rkt"
+         (only-in "helpers/values.rkt"
+                  apply2
+                  host-bits->raw
+                  integer->raw-bits
+                  integer->int))
 
 (define (make-int negative? magnitude)
   (apply2 raw-make-int
           (if negative? raw-false raw-true)
           (integer->raw-bits magnitude)))
-
-(define (integer->int integer)
-  (make-int (negative? integer) (abs integer)))
 
 (define (int-sign-nonnegative? value)
   (raw-boolean->boolean

@@ -6,9 +6,8 @@
                   NIL
                   raw-add-result-frame
                   invalid-byte-error)
-         (only-in "../core/lists.rkt" raw-cons raw-list-is-nil)
+         (only-in "../core/lists.rkt" raw-cons raw-rebuild-list)
          (only-in "../core/logic.rkt" raw-if)
-         (only-in "../core/objects.rkt" raw-is-type raw-make-object)
          "../core/strings.rkt"
          "../core/tags.rkt"
          "../core/typecheck.rkt"
@@ -31,19 +30,6 @@
    ((raw-cons
      (raw-make-string path-payload))
     NIL)))
-
-(def raw-list-object payload =
-  ((raw-make-object list-type) payload))
-
-;; Rebuilding a List object from a checker-unwrapped payload must restore
-;; the one canonical NIL for the empty case: the codec deliberately
-;; rejects any other terminator as forged.
-(def raw-rebuild-list payload =
-  (lambda-let rebuilt = (raw-list-object payload)
-    (((raw-if
-       (raw-list-is-nil rebuilt))
-      NIL)
-     rebuilt)))
 
 ;; The byte List is validated in pure lambda computation before any
 ;; request value exists, so a non-Byte element never reaches the host.
@@ -74,12 +60,6 @@
 (def raw-call-read-file host path-payload =
   (host
    (raw-make-read-file-request path-payload)))
-
-(def raw-dispatch-or-bubble host request =
-  (((raw-if
-     ((raw-is-type error-type) request))
-    request)
-   (host request)))
 
 (def raw-call-write-file host path-payload list-payload =
   ((raw-dispatch-or-bubble host)

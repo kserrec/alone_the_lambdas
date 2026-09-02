@@ -8,6 +8,14 @@
 
 (provide raw-zero-bits
          raw-one-bits
+         raw-two-bits
+         raw-four-bits
+         raw-five-bits
+         raw-eight-bits
+         raw-nine-bits
+         raw-ten-bits
+         raw-sixteen-bits
+         raw-byte-max-bits
          raw-normalize-nat
          raw-nat-is-zero
          raw-nat-succ
@@ -34,6 +42,33 @@
 
 (def raw-one-bits =
   ((raw-cons raw-true) NIL))
+
+(def raw-two-bits =
+  (raw-nat-succ raw-one-bits))
+
+(def raw-four-bits =
+  ((raw-nat-add raw-two-bits) raw-two-bits))
+
+(def raw-five-bits =
+  (raw-nat-succ raw-four-bits))
+
+(def raw-eight-bits =
+  ((raw-nat-add raw-four-bits) raw-four-bits))
+
+(def raw-nine-bits =
+  (raw-nat-succ raw-eight-bits))
+
+(def raw-ten-bits =
+  (raw-nat-succ raw-nine-bits))
+
+(def raw-sixteen-bits =
+  ((raw-nat-add raw-eight-bits) raw-eight-bits))
+
+(def raw-byte-max-bits =
+  ((raw-nat-sub
+    ((raw-nat-mult raw-sixteen-bits)
+     raw-sixteen-bits))
+   raw-one-bits))
 
 (def raw-normalize-nat-step recur bits =
   (((raw-if
