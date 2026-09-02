@@ -397,21 +397,27 @@ objects, not arbitrary untyped lambda terms.
 
 ### Tiny discriminants
 
-The seven runtime type tags use Church numerals:
+The runtime type tags use Church numerals:
 
 | Tag | Type |
 | ---: | --- |
 | 0 | Error |
 | 1 | Bool |
 | 2 | List |
-| 3 | Nat |
+| 3 | retired (was Nat; never reassigned) |
 | 4 | Result |
 | 5 | Char |
 | 6 | String |
+| 7 | Rat |
+| 8 | Unit |
+| 9 | Byte |
+| 10 | Option |
+| 11 | Map |
 
 Tags are closed discriminants, not public arithmetic values. Structured Error
 kinds and argument positions also reuse tiny Church values as explicitly
-permitted metadata. Ordinary numeric computation always uses binary Nat.
+permitted metadata. Ordinary numeric computation always uses Rat, backed by
+private binary Nat machinery.
 
 ### Objects
 
@@ -467,12 +473,14 @@ while dropping beyond the end returns `NIL`. The strict wrappers now use the
 generalized checker. They accept tagged Nat and List values, bubble incoming
 Errors, and preserve the one remaining application after a bad first argument.
 
-### Natural numbers
+### Natural numbers (private machinery)
 
-Public Nat values are normalized binary digit lists in most-significant-bit
-first order. Zero has exactly one representation, `[0]`; positive values have
-no leading zeroes. Each digit is a raw lambda Boolean inside the same proper
-List structure used elsewhere; the outer Nat object supplies the runtime type.
+Binary Nat values are private machinery since Milestone 4: no public Nat type
+or tag exists, and the boundary gate scans against any reintroduced Nat
+surface. Rat's numerator magnitude and denominator are normalized binary
+digit lists in most-significant-bit first order. Zero has exactly one
+representation, `[0]`; positive values have no leading zeroes. Each digit is
+a raw lambda Boolean inside the same proper List structure used elsewhere.
 
 `core/binary-nat.rkt` normalizes empty or all-zero internal inputs to `[0]` and
 removes every unnecessary leading zero. It implements raw zero testing,
@@ -560,8 +568,13 @@ when it creates or propagates an Error.
 Every Error is an Error-tagged object whose payload pairs one immutable root
 with a proper List of propagation frames. Root kinds are the small Church
 discriminants TypeMismatch, EmptyList, InvalidNat, DivideByZero, InvalidChar,
-InvalidString for a List that violates the String element invariant, and
-WrongResultVariant for unwrapping the variant a Result does not hold. A TypeMismatch root additionally stores its argument position,
+InvalidString for a List that violates the String element invariant,
+WrongResultVariant for unwrapping the variant a Result does not hold,
+NonWholeExponent for EXP with a fractional exponent, InvalidCount for a
+count-valued Rat that is not a nonnegative whole within bounds, and
+InvalidByte for a Byte construction outside 0 through 255; the host protocol
+and HTTP layers extend the same kind space with their own discriminants. A
+TypeMismatch root additionally stores its argument position,
 expected runtime type, and actual runtime type. The other current roots need
 no extra details.
 
@@ -798,7 +811,7 @@ metadata, the `NIL`/empty-Error knot, frame order, result frames, nested root
 preservation, unframed Error-as-data pass-through, canonical function-name
 Strings, List failures, currying, and lazy field access. The Error reader
 suite exercises all 43 named strict boundaries, every raw-failure boundary's
-result frame, all seven rendered type tags, every current root kind, and
+result frame, every rendered type tag, every current root kind, and
 nested causal output.
 The generalized
 checker suite covers lambda List signatures and zero-, one-, two-, three-, and
