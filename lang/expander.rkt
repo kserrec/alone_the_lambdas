@@ -59,7 +59,10 @@
                   MAKE-MAP
                   MAP-EMPTY?
                   MAP-SIZE
-                  MAP-LOOKUP)
+                  MAP-LOOKUP
+                  MAP-CONTAINS?
+                  MAP-SET
+                  MAP-REMOVE)
          (only-in "../core/option.rkt"
                   NONE
                   SOME
@@ -164,6 +167,7 @@
          STRING-TO-BYTES BYTES-TO-STRING
          SOME NONE IS-SOME IS-NONE OPTION-CASE
          MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP
+         MAP-CONTAINS? MAP-SET MAP-REMOVE
          make-ok make-err is-ok is-err unwrap-ok unwrap-err
          MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
          A B C D E F G H I J K L M

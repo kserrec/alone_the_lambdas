@@ -30,7 +30,8 @@
          "objects.rkt"
          (only-in "option.rkt"
                   NONE
-                  raw-make-some)
+                  raw-make-some
+                  raw-option-is-some)
          "pair.rkt"
          (only-in "rat.rkt"
                   raw-whole-rat)
@@ -43,10 +44,16 @@
          typed-map-empty?
          typed-map-size
          typed-map-lookup
+         typed-map-contains?
+         typed-map-set
+         typed-map-remove
          (rename-out [typed-make-map MAKE-MAP]
                      [typed-map-empty? MAP-EMPTY?]
                      [typed-map-size MAP-SIZE]
-                     [typed-map-lookup MAP-LOOKUP]))
+                     [typed-map-lookup MAP-LOOKUP]
+                     [typed-map-contains? MAP-CONTAINS?]
+                     [typed-map-set MAP-SET]
+                     [typed-map-remove MAP-REMOVE]))
 
 (def raw-make-map equality entries =
   ((raw-make-object map-type)
@@ -86,13 +93,12 @@
       argument-position-one)
      bool-type))))
 
-;; MAKE-MAP accepts the pure equality function as-is; an Error argument
-;; bubbles rather than becoming a Map component.
+;; MAKE-MAP accepts the pure equality function exactly as supplied: the
+;; strict layer is a closed convention, and probing an arbitrary function
+;; with a tag check is undefined, so no check runs here. The function's
+;; Bool contract is enforced at every comparison instead.
 (def typed-make-map equality =
-  (((raw-if
-     ((raw-is-type error-type) equality))
-    equality)
-   ((raw-make-map equality) NIL)))
+  ((raw-make-map equality) NIL))
 
 (def map-unary-signature =
   ((raw-cons map-type) NIL))
@@ -173,3 +179,127 @@
          map-lookup-function-name)
         key)
        (raw-map-entries validated))))))
+
+(def typed-map-contains? map key =
+  (((raw-if
+     ((raw-is-type error-type) key))
+    ((raw-add-result-frame key) map-contains-function-name))
+   (((raw-with-map map) map-contains-function-name)
+    (lambda (validated)
+      (lambda-let found =
+        ((((raw-map-find
+            (raw-map-equality validated))
+           map-contains-function-name)
+          key)
+         (raw-map-entries validated))
+        (((raw-if
+           ((raw-is-type error-type) found))
+          found)
+         ((raw-make-object bool-type)
+          (raw-option-is-some
+           (raw-object-value found)))))))))
+
+;; Persistent update: a matched key is replaced in place with no duplicate
+;; entry; an absent key prepends. A comparison failure mid-walk propagates
+;; as the whole answer instead of hiding inside a rebuilt List.
+(def raw-map-set-step recur equality operation-name key value entries =
+  (((raw-if
+     (raw-list-is-nil entries))
+    ((raw-cons
+      ((raw-pair key) value))
+     NIL))
+   (((raw-comparison-boolean
+      ((equality key)
+       (raw-entry-key
+        (raw-list-head entries))))
+     operation-name)
+    (lambda (matched)
+      (((raw-if matched)
+        ((raw-cons
+          ((raw-pair key) value))
+         (raw-list-tail entries)))
+       (lambda-let rest =
+         (((((recur equality)
+             operation-name)
+            key)
+           value)
+          (raw-list-tail entries))
+         (((raw-if
+            ((raw-is-type error-type) rest))
+           rest)
+          ((raw-cons
+            (raw-list-head entries))
+           rest))))))))
+
+(def raw-map-set =
+  (raw-fix raw-map-set-step))
+
+(def typed-map-set map key value =
+  (((raw-if
+     ((raw-is-type error-type) key))
+    ((raw-add-result-frame key) map-set-function-name))
+   (((raw-if
+      ((raw-is-type error-type) value))
+     ((raw-add-result-frame value) map-set-function-name))
+    (((raw-with-map map) map-set-function-name)
+     (lambda (validated)
+       (lambda-let updated =
+         (((((raw-map-set
+              (raw-map-equality validated))
+             map-set-function-name)
+            key)
+           value)
+          (raw-map-entries validated))
+         (((raw-if
+            ((raw-is-type error-type) updated))
+           updated)
+          ((raw-make-map
+            (raw-map-equality validated))
+           updated))))))))
+
+;; Persistent removal: removing an absent key returns an equivalent Map.
+(def raw-map-remove-step recur equality operation-name key entries =
+  (((raw-if
+     (raw-list-is-nil entries))
+    NIL)
+   (((raw-comparison-boolean
+      ((equality key)
+       (raw-entry-key
+        (raw-list-head entries))))
+     operation-name)
+    (lambda (matched)
+      (((raw-if matched)
+        (raw-list-tail entries))
+       (lambda-let rest =
+         ((((recur equality)
+            operation-name)
+           key)
+          (raw-list-tail entries))
+         (((raw-if
+            ((raw-is-type error-type) rest))
+           rest)
+          ((raw-cons
+            (raw-list-head entries))
+           rest))))))))
+
+(def raw-map-remove =
+  (raw-fix raw-map-remove-step))
+
+(def typed-map-remove map key =
+  (((raw-if
+     ((raw-is-type error-type) key))
+    ((raw-add-result-frame key) map-remove-function-name))
+   (((raw-with-map map) map-remove-function-name)
+    (lambda (validated)
+      (lambda-let updated =
+        ((((raw-map-remove
+            (raw-map-equality validated))
+           map-remove-function-name)
+          key)
+         (raw-map-entries validated))
+        (((raw-if
+           ((raw-is-type error-type) updated))
+          updated)
+         ((raw-make-map
+           (raw-map-equality validated))
+          updated)))))))

@@ -400,7 +400,8 @@
    '(MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
      STRING-TO-BYTES BYTES-TO-STRING)
    '(SOME NONE IS-SOME IS-NONE OPTION-CASE)
-   '(MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP)
+   '(MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP
+     MAP-CONTAINS? MAP-SET MAP-REMOVE)
    '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
    character-public-bindings
    string-public-bindings
@@ -442,7 +443,9 @@
               (typed-is-nil IS-NIL))
      (only-in "../core/logic.rkt" raw-false raw-true)
      (only-in "../core/objects.rkt" raw-make-object)
-     (only-in "../core/map.rkt" MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP)
+     (only-in "../core/map.rkt"
+              MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP
+              MAP-CONTAINS? MAP-SET MAP-REMOVE)
      (only-in "../core/option.rkt" NONE SOME IS-SOME IS-NONE OPTION-CASE)
      (only-in "../core/pair.rkt" raw-pair)
      (only-in "../core/result.rkt"

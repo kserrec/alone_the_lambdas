@@ -178,9 +178,16 @@ without evaluating the other, exactly as `IF` treats its branches.
 `core/map.rkt` defines persistent public Map (tag 11): a user-supplied pure
 key-equality function paired with a private object-language List of
 key/value Pairs — never a Racket collection or Racket equality. `MAKE-MAP`
-fixes the equality function (an Error argument bubbles); `MAP-LOOKUP`
+fixes the equality function exactly as supplied — probing an arbitrary
+function with a tag check is undefined under the closed strict convention,
+so the Bool contract is enforced at every comparison instead. `MAP-LOOKUP`
 returns Option with NONE for expected absence; `MAP-EMPTY?` and `MAP-SIZE`
-(a whole Rat) use the checker directly. The equality contract is
+(a whole Rat) use the checker directly; `MAP-CONTAINS?` answers Bool;
+`MAP-SET` replaces a matched key in place with no duplicate entry or
+prepends an absent one; `MAP-REMOVE` of an absent key is an equivalent
+Map; and every update returns a new Map while the old one keeps its old
+answers. A comparison failure mid-walk becomes the whole answer rather
+than hiding inside a rebuilt List. The equality contract is
 `key -> key -> Bool`: an Error answer bubbles with the operation's frame,
 and any other non-Bool answer is a structured mismatch expecting BOOL.
 Mixed-strictness operations validate their Map argument manually, exactly

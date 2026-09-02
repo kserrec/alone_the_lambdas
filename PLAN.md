@@ -1964,21 +1964,39 @@ across all 38 test files with the zero-finding boundary inventory.
 
 ### Step 39.2 — Add Map updates and queries
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add pure set, remove, contains, empty, and size operations.
-- Replace an existing key without creating a duplicate entry.
-- Return size as a whole-valued Rat.
-- Accept arbitrary non-Error keys and values without adding an `Any` tag or
+- [x] Add pure set, remove, contains, empty, and size operations.
+- [x] Replace an existing key without creating a duplicate entry.
+- [x] Return size as a whole-valued Rat.
+- [x] Accept arbitrary non-Error keys and values without adding an `Any` tag or
   changing the generalized checker.
-- Prove that an older Map still returns its older answers after a new Map is
+- [x] Prove that an older Map still returns its older answers after a new Map is
   produced from it.
-- Test Rat, String, Char, and Byte equality functions, collisions under a
+- [x] Test Rat, String, Char, and Byte equality functions, collisions under a
   custom equality function, missing keys, replacement, removal, size, Error
   propagation, partial application, and laziness.
 
 Acceptance: Map is useful, immutable, and entirely lambda-built; Unit values
 can represent set membership without adding a Set type.
+
+Completion evidence: `MAP-SET` replaces a matched key in place (no
+duplicate entry) or prepends an absent one, `MAP-REMOVE` of an absent key
+returns an equivalent Map, and `MAP-CONTAINS?` answers Bool — all built on
+the shared find/walk machinery whose mid-walk comparison failure becomes
+the whole answer instead of hiding inside a rebuilt List. Error keys and
+values bubble with the operation's frame. During this step MAKE-MAP's
+former Error-bubbling probe was removed as unsound: applying a tag check
+to an arbitrary supplied function is undefined under the closed strict
+convention, so the constructor accepts the function as-is and the Bool
+contract is enforced at every comparison. Tests build a three-entry Rat
+map through replacement and removal while proving every older Map keeps
+its older answers, drive String/Char/Byte equality functions, prove
+deliberate collisions under an always-true equality collapse to one
+entry, and cover contains, Error propagation, wrong-Map mismatches,
+mid-walk failure, unary partial application, and update laziness. The
+full suite passed 11,970 assertions across all 38 test files with the
+22-module purity proof and zero-finding boundary inventory.
 
 ## Phase 40 — Milestone acceptance
 
