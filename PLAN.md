@@ -1027,3 +1027,48 @@ later separate plan and Kyle's explicit approval. `docs/ACCEPTANCE.md`
 carries the Milestone 4 criterion map and honest performance limits
 (gcd-reducing interpreted arithmetic, linear Map walks, the documented
 HTTP re-parse bound).
+
+# Release 0.3.0 — AttaLambda's second public release
+
+Status: in progress (2026-09-02)
+
+Kyle approved the full release train on 2026-09-02: Linux x86-64 is the only
+binary target (no Windows machine; no paid Apple signing). Publication
+approval for 0.3.0 was given explicitly ("let's commit our work and push and
+go for it").
+
+## Step R.1 — Merge the milestone
+
+- [ ] Merge `milestone-4-rationals` into `main` with a no-fast-forward merge
+  commit and push `main`.
+
+## Step R.2 — Finalize version 0.3.0
+
+- [ ] `VERSION` becomes exactly `0.3.0` + LF; `info.rkt` package version
+  becomes `0.3`; the runner's accepted-version pattern gains `0.3.0`; the
+  boundary gate's product-version projection table and its test copy gain
+  `0.3.0 -> 0.3`; the three build scripts and the macOS test harness accept
+  `0.3.0`; `runner-test.rkt` expects `AttaLambda 0.3.0`.
+- [ ] Full suite, purity, and boundary gates green on `main` at the release
+  commit.
+
+## Step R.3 — Build and independently verify the Linux artifact
+
+- [ ] Build `attalambda-0.3.0-linux-x86_64.tar.gz` and `SHA256SUMS` under the
+  pinned Racket CS 9.3 toolchain in Docker from a clean clone of the exact
+  release commit.
+- [ ] Consumer acceptance in a fresh no-Racket Ubuntu 24.04 container using
+  only the transferred archive and manifest.
+
+## Step R.4 — Tag and publish
+
+- [ ] Annotated tag `v0.3.0` on the release commit, pushed.
+- [ ] GitHub Release `AttaLambda 0.3.0` with the Linux archive and
+  `SHA256SUMS`, Linux x86-64 named as the sole supported target.
+- [ ] Public download URLs verified live and checksum-verified after upload.
+
+## Step R.5 — Record the publication
+
+- [ ] README's download section, `docs/design/standalone-distribution.md`,
+  `docs/ACCEPTANCE.md`, `HANDOFF.md`, and this plan record the published
+  artifact's exact bytes and SHA-256.
