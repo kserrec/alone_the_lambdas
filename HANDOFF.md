@@ -28,6 +28,19 @@ Release changes.
   consumer acceptance of the exact published archive
   (`consumer_acceptance=passed`, 362 ms first startup).
 
+## Post-release CI repairs (2026-09-02, after publication)
+
+Two CI-scaffolding commits landed on `main` after the tag; neither touches a
+production or shipped file, so the published artifact is unaffected and no
+rebuild or re-release is needed. `a1a81bc` taught
+`tooling/test-windows-distribution.ps1`'s archive-filename check the 0.3.x
+version forms (its 0.2.0-only pattern had failed the internal Windows
+consumer job on every 0.3.x push), and `cb3e226` raised the suite job's
+workflow cap from 10 to 20 minutes (the grown 12,298-assertion suite was
+being canceled mid-run by the cap, not failing; the pre-milestone Aug 30–31
+red runs died the same way). The `tests` workflow is fully green on `main`
+tip `cb3e226` (run 33674071955; suite 11m54s).
+
 ## Work remaining
 
 - Nothing is in flight. The plan's release phase is complete; a future
