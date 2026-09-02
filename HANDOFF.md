@@ -1,49 +1,37 @@
 # Session handoff
 
-Status recorded: 2026-09-02, during pre-release preparation for AttaLambda
-0.3.0 on branch `milestone-4-rationals`.
+Status recorded: 2026-09-02, immediately after the AttaLambda 0.3.0 public
+release.
 
-This handoff becomes stale when `milestone-4-rationals` merges to `main` or
-a 0.3.0 tag/Release is created.
+This handoff becomes stale if `main`, tag `v0.3.0`, or the `v0.3.0` GitHub
+Release changes.
 
-## Current state
+## Exact current public state
 
-- The public release remains **0.2.0** (Linux x86-64 only). Its complete
-  publication and withdrawal history — tag and Release identity, asset
-  hashes, the withdrawn macOS/Windows assets, and the outsider verification —
-  is recorded durably in
-  [docs/design/standalone-distribution.md](docs/design/standalone-distribution.md),
-  [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md), and [PLAN.md](PLAN.md). Do not
-  re-upload a withdrawn asset, replace the immutable `SHA256SUMS`, or alter
-  `v0.2.0` without new explicit authorization.
-- **Milestone 4** (Rat as the sole public number type, plus Unit, Byte,
-  Option, and Map) is complete and closed on `milestone-4-rationals`; every
-  step in [PLAN.md](PLAN.md) is checked off with evidence, and version is
-  `0.3.0-dev`.
-- After the milestone closed, a full-branch adversarial review ran; all ten
-  confirmed findings were fixed and independently cold-review-verified
-  (see the pre-release addendum in [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)).
-  In the same pass the error-kind space was renumbered collision-free
-  (14/15/16 for the new kinds) and the expanded purity proof was extended to
-  the effects layer.
-- Current verification on the branch: `./run-all-tests.sh` passes all 38
-  test files with 12,297 assertions, the expanded purity proof over all 29
-  core and effects modules, and the zero-finding boundary inventory.
+- The released source is commit `1b51603671e87bcc524e2413491c94ad1ea7d763`
+  on `main`, carrying root `VERSION` `0.3.0`, `info.rkt` version `0.3`, and
+  runner output `AttaLambda 0.3.0`. The annotated tag `v0.3.0` peels to that
+  commit.
+- The public Release `AttaLambda 0.3.0` at
+  <https://github.com/kserrec/attalambda/releases/tag/v0.3.0> carries two
+  assets: `attalambda-0.3.0-linux-x86_64.tar.gz` (13,938,743 bytes, SHA-256
+  `7adc7343720b0a1d6ed86af47059f031f571ab93649a314303c56d6b8a3d7870`) and its
+  single-entry `SHA256SUMS` (103 bytes). Both URLs were re-downloaded fresh
+  after publication and checksum-verified.
+- Linux x86-64 is the sole supported binary target, per Kyle's standing
+  decision (no Windows machine; no paid Apple signing). The 0.2.0 Release
+  and its withdrawal history remain untouched; do not re-upload a withdrawn
+  0.2.0 asset or alter `v0.2.0` without new explicit authorization.
+- Verification at the release commit: 12,298 assertions across all 38 test
+  files, the expanded purity proof over all 29 core and effects modules, the
+  zero-finding boundary inventory, and an independent no-Racket Ubuntu 24.04
+  consumer acceptance of the exact published archive
+  (`consumer_acceptance=passed`, 362 ms first startup).
 
-## Work remaining before 0.3.0
+## Work remaining
 
-Kyle approved this sequence (Linux x86-64 remains the only binary target —
-no Windows machine, no paid macOS signing):
-
-1. Documentation currency pass and repository prune (in progress in the
-   session recording this handoff).
-2. Merge `milestone-4-rationals` to `main`.
-3. Finalize version `0.3.0` in its five pinned locations (`VERSION`,
-   `info.rkt`, the runner's accepted-version pattern, the boundary gate's
-   version table, the build scripts).
-4. Fresh Docker build of the Linux archive from the final commit, consumer
-   acceptance on the new archive, new SHA-256 recorded.
-5. Tag `v0.3.0` and publish the GitHub Release, Linux x86-64 only.
-
-Merging, tagging, and publishing require Kyle's explicit go at each
-irreversible step.
+- Nothing is in flight. The plan's release phase is complete; a future
+  milestone needs a new plan before any code work starts.
+- `VERSION` stays `0.3.0` on `main` until the next milestone begins (the
+  0.2.0 precedent: the dev version arrives with the next milestone's
+  branch).

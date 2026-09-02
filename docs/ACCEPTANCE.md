@@ -394,3 +394,13 @@ reuses 256 canonical Byte/Char objects; and the expanded purity proof now
 covers the effects layer. Current verification: 12,297 assertions across all
 38 test files, the 29-module expanded purity proof, and the zero-finding
 boundary inventory.
+
+### 0.3.0 publication (2026-09-02)
+
+Release commit `1b51603` (tag `v0.3.0`) was built clean in pinned Docker
+Racket CS 9.3 and published as
+<https://github.com/kserrec/attalambda/releases/tag/v0.3.0>. The exact
+published archive (SHA-256 `7adc7343…d870`, 13,938,743 bytes) passed the
+independent no-Racket consumer acceptance before upload and re-verified
+byte-identical from the public URLs after upload. Full detail in the
+[standalone-distribution history](design/standalone-distribution.md).

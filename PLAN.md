@@ -1030,7 +1030,7 @@ HTTP re-parse bound).
 
 # Release 0.3.0 — AttaLambda's second public release
 
-Status: in progress (2026-09-02)
+Status: complete (2026-09-02)
 
 Kyle approved the full release train on 2026-09-02: Linux x86-64 is the only
 binary target (no Windows machine; no paid Apple signing). Publication
@@ -1056,21 +1056,27 @@ go for it").
 
 ## Step R.3 — Build and independently verify the Linux artifact
 
-- [ ] Build `attalambda-0.3.0-linux-x86_64.tar.gz` and `SHA256SUMS` under the
-  pinned Racket CS 9.3 toolchain in Docker from a clean clone of the exact
-  release commit.
-- [ ] Consumer acceptance in a fresh no-Racket Ubuntu 24.04 container using
-  only the transferred archive and manifest.
+- [x] Built `attalambda-0.3.0-linux-x86_64.tar.gz` and `SHA256SUMS` under the
+  pinned Racket CS 9.3 toolchain in Docker from a clean clone of release
+  commit `1b51603`: SHA-256
+  `7adc7343720b0a1d6ed86af47059f031f571ab93649a314303c56d6b8a3d7870`,
+  13,938,743 compressed bytes, 59,742,960 unpacked bytes, 11 files.
+- [x] Consumer acceptance passed in a fresh no-Racket Ubuntu 24.04 container
+  using only the transferred archive and manifest: checksum OK, complete
+  guide workflow, relocation, loopback-only network, 362 ms first startup
+  (`consumer_acceptance=passed`, 2026-09-02).
 
 ## Step R.4 — Tag and publish
 
-- [ ] Annotated tag `v0.3.0` on the release commit, pushed.
-- [ ] GitHub Release `AttaLambda 0.3.0` with the Linux archive and
-  `SHA256SUMS`, Linux x86-64 named as the sole supported target.
-- [ ] Public download URLs verified live and checksum-verified after upload.
+- [x] Annotated tag `v0.3.0` on release commit `1b51603`, pushed.
+- [x] GitHub Release `AttaLambda 0.3.0` published at
+  <https://github.com/kserrec/attalambda/releases/tag/v0.3.0> with the Linux
+  archive and `SHA256SUMS`, Linux x86-64 named as the sole supported target.
+- [x] Both public download URLs re-downloaded fresh; byte counts exact and
+  `sha256sum -c SHA256SUMS` printed OK (2026-09-02).
 
 ## Step R.5 — Record the publication
 
-- [ ] README's download section, `docs/design/standalone-distribution.md`,
+- [x] README's download section, `docs/design/standalone-distribution.md`,
   `docs/ACCEPTANCE.md`, `HANDOFF.md`, and this plan record the published
   artifact's exact bytes and SHA-256.

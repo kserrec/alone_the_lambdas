@@ -19,19 +19,19 @@ This is a complete AttaLambda program:
 
 ## Try it on Linux
 
-AttaLambda 0.2.0 is available as a self-contained Linux x86-64 archive. It
+AttaLambda 0.3.0 is available as a self-contained Linux x86-64 archive. It
 includes its own runtime, so you do not need to install Racket.
 
-Release page: <https://github.com/kserrec/attalambda/releases/tag/v0.2.0>
+Release page: <https://github.com/kserrec/attalambda/releases/tag/v0.3.0>
 
 Download, verify, extract, and run it:
 
 ```sh
-curl -LO https://github.com/kserrec/attalambda/releases/download/v0.2.0/attalambda-0.2.0-linux-x86_64.tar.gz
-curl -LO https://github.com/kserrec/attalambda/releases/download/v0.2.0/SHA256SUMS
-awk '$2 == "attalambda-0.2.0-linux-x86_64.tar.gz" { print }' SHA256SUMS | sha256sum -c -
-tar -xzf attalambda-0.2.0-linux-x86_64.tar.gz
-cd attalambda-0.2.0-linux-x86_64
+curl -LO https://github.com/kserrec/attalambda/releases/download/v0.3.0/attalambda-0.3.0-linux-x86_64.tar.gz
+curl -LO https://github.com/kserrec/attalambda/releases/download/v0.3.0/SHA256SUMS
+sha256sum -c SHA256SUMS
+tar -xzf attalambda-0.3.0-linux-x86_64.tar.gz
+cd attalambda-0.3.0-linux-x86_64
 ./bin/attalambda --version
 ./bin/attalambda examples/hello.attl
 ```
@@ -39,13 +39,11 @@ cd attalambda-0.2.0-linux-x86_64
 You should see:
 
 ```text
-AttaLambda 0.2.0
+AttaLambda 0.3.0
 Hello from AttaLambda.
 ```
 
-Linux x86-64 is currently the only supported binary target. The checksum file
-also retains historical entries for withdrawn macOS and Windows builds; the
-command above checks only the current Linux archive. Users should not have to
+Linux x86-64 is the only supported binary target. Users should not have to
 bypass operating-system security protections to try the language, so macOS
 builds without Apple signing and notarization and Windows builds without
 Authenticode signing are not distributed.
@@ -124,11 +122,12 @@ running them. In particular, `file-round-trip.attl` creates or truncates
 
 ## Project status
 
-Version 0.2.0 is the first independently runnable release. The pure core,
-explicit effects boundary, standalone language, examples, and Linux x86-64
-distribution are implemented and tested. [`PLAN.md`](PLAN.md) holds the full
-phase history and current roadmap; this README intentionally does not repeat
-it.
+Version 0.3.0 is the second public release. It delivers Milestone 4: Rat as
+the only public number type with exact literal arithmetic, plus Unit, Byte,
+Option, and Map, with file and TCP payloads crossing the host boundary as
+bytes. [`PLAN.md`](PLAN.md) holds the current roadmap and
+[`PLAN-ARCHIVE.md`](PLAN-ARCHIVE.md) the completed phase history; this README
+intentionally repeats neither.
 
 ## Repository guide
 

@@ -1352,3 +1352,24 @@ and conditional rollback. It prohibited the listed signing, notarization,
 paid, purchase, and Actions operations and withheld authority to delete the
 tag. The publication record above confirms that this authority was exercised
 without invoking either rollback path.
+
+## AttaLambda 0.3.0 publication (2026-09-02)
+
+The second public release was built under the pinned Racket CS 9.3 toolchain
+in Docker (`racket/racket:9.3-full`) from a clean clone of release commit
+`1b51603671e87bcc524e2413491c94ad1ea7d763` (tag `v0.3.0`, annotated). The
+independent consumer harness passed in a fresh no-Racket Ubuntu 24.04
+container using only the transferred archive and manifest: checksum
+verification, the complete getting-started workflow, relocation, and
+loopback-only networking, with a 362 ms first startup. Linux x86-64 is the
+sole supported binary target, continuing the Phase 30 decision; no macOS or
+Windows asset was built for publication.
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `attalambda-0.3.0-linux-x86_64.tar.gz` | `13,938,743` | `7adc7343720b0a1d6ed86af47059f031f571ab93649a314303c56d6b8a3d7870` |
+| `SHA256SUMS` | `103` | (single-entry manifest for the Linux archive) |
+
+Both public download URLs were re-downloaded fresh after publication; byte
+counts matched exactly and `sha256sum -c SHA256SUMS` printed OK. The archive
+holds 11 files totaling 59,742,960 unpacked bytes with 2 runtime files.
