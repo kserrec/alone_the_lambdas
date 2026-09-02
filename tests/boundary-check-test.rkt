@@ -156,7 +156,8 @@
       (for ([name (in-list '("hello.attl"
                              "stdout.attl"
                              "file-round-trip.attl"
-                             "http-server.attl"))])
+                             "http-server.attl"
+                             "foundations.attl"))])
         (copy-file (build-path project-root "examples" name)
                    (build-path root "examples" name)))
       (write-datum
@@ -224,7 +225,7 @@
           (eq? (source-classification-class classification)
                'application))
         project-classifications)
- 4)
+ 5)
 
 (check-equal?
  (count (lambda (classification)

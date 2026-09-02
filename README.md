@@ -76,8 +76,10 @@ To run the complete test and structural-purity suite:
 
 - Every ordinary function is built from nested one-argument lambdas. Partial
   application follows naturally from that representation.
-- Bool, List, Rat, Error, Result, Char, and String are all lambda-encoded
-  values. Operations check their type tags at runtime.
+- Bool, List, Rat, Unit, Byte, Option, Map, Error, Result, Char, and String
+  are all lambda-encoded values. Operations check their type tags at
+  runtime. Rat is the only number type: arithmetic is exact, and fractions
+  like `-7/3` are ordinary literals.
 - The one public number type is Rat: exact rationals stored as a reduced
   signed numerator over a positive denominator, with normalized binary digit
   Lists underneath instead of Church numerals, so arithmetic is exact and

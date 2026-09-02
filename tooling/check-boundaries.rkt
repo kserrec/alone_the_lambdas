@@ -1725,7 +1725,8 @@
   '("hello.attl"
     "stdout.attl"
     "file-round-trip.attl"
-    "http-server.attl"))
+    "http-server.attl"
+    "foundations.attl"))
 
 (define (application-inventory-violations project-root)
   (define directory

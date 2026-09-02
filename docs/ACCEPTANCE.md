@@ -353,3 +353,28 @@ HTTP framework. The minimal HTTP parser/server supports only the documented
 blocking HTTP/1.1 subset and one sequential connection at a time. These are
 explicit current limits, not new object-language capabilities implied by the
 runner.
+
+## Milestone 4 — Exact rational numbers and foundational values (2026-09-01)
+
+The Step 40.1 criterion map for the amended specifications
+([Milestone 4 Amendments](specifications/README.md)):
+
+| Criterion | Evidence |
+| --- | --- |
+| Rat is the only public number type; no public Nat or Int type, literal, function, reader, tag, or export remains. | The facade exports exactly the eighteen Rat operations; tag 3 is retired and renders `TYPE:3`; [`check-boundaries.rkt`](../tooling/check-boundaries.rkt) fails on any production source mentioning a retired Nat spelling (`reintroduced-nat-surface`); [`language-test.rkt`](../tests/language-test.rkt) proves retired names fail to resolve. |
+| Exact integer and fraction literals lower to canonical Rats; inexact numbers are rejected. | [`language-test.rkt`](../tests/language-test.rkt) recovers `0 1 255 1/2 -7/3 65536` exactly through the codec and proves `1.0`, `1e3`, infinities, NaN, and complex literals fail expansion. |
+| Rational arithmetic is exact, reduced, single-zero, and pure. | [`rat-test.rkt`](../tests/rat-test.rkt) matches Racket's exact rationals across the 16×16 operand matrix with stored-part verification; [`typed-rat-test.rkt`](../tests/typed-rat-test.rkt) covers the strict layer; the expanded purity scan covers all 22 core modules. |
+| Division, reciprocal, and powers fail explicitly. | Kind‑3 DivideByZero and kind‑13 NonWholeExponent Results in [`rat-test.rkt`](../tests/rat-test.rkt), including rejected fractional exponents whose powers would have been rational. |
+| Whole-number consumers ride Rat. | LEN/TAKE/DROP/MAKE-CHAR/STRING-LENGTH in [`rat-test.rkt`](../tests/rat-test.rkt) and [`errors-test.rkt`](../tests/errors-test.rkt); ports, backlogs, limits, and handles in [`tcp-test.rkt`](../tests/tcp-test.rkt) and [`tcp-host-test.rkt`](../tests/tcp-host-test.rkt) with INVALID-COUNT (kind 14) rejection before any host call. |
+| Unit carries successful no-value results; NIL means only an empty List. | [`unit-test.rkt`](../tests/unit-test.rkt) plus tag‑8 acknowledgement checks in the stdout, files, host, TCP, and HTTP-server suites. |
+| Byte is data with exactly 256 values; byte sequences are `List Byte`; file and TCP payloads cross as bytes. | [`byte-test.rkt`](../tests/byte-test.rkt); byte-exact binary round trips in [`file-host-test.rkt`](../tests/file-host-test.rkt) and [`tcp-host-test.rkt`](../tests/tcp-host-test.rkt); the HTTP server converts one-to-one at the TCP boundary ([`http-server-test.rkt`](../tests/http-server-test.rkt)). |
+| Option means expected absence; Map is persistent, lambda-built, and host-free. | [`option-test.rkt`](../tests/option-test.rkt) and [`map-test.rkt`](../tests/map-test.rkt), including persistence of older Maps and deliberate collisions under a custom equality. |
+| The complete language runs end to end. | [`examples/foundations.attl`](../examples/foundations.attl) prints nine deterministic `ok` lines through the real runner in [`milestone-two-acceptance-test.rkt`](../tests/milestone-two-acceptance-test.rkt); the file and HTTP examples exercise Unit and binary boundaries. |
+| Host authority is unchanged and the sole bridge holds. | The unchanged boundary gate: sole host class, pinned codec/host surfaces, closed vocabularies, and the amended [host-boundary design](design/host-boundary.md). |
+
+Honest performance limits: AttaLambda remains an interpreted lazy-lambda
+tower. Every Rat operation reduces through binary gcd, so arithmetic is
+orders of magnitude slower than host numbers; Map lookup is a linear walk
+calling a lambda-encoded equality per entry; and HTTP serving retains the
+documented O(cap²) re-parse bound within its 8192-byte request cap. These
+are accepted properties of the experiment, not defects.

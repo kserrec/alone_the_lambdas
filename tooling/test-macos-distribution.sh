@@ -183,6 +183,7 @@ for required_path in \
   examples/stdout.attl \
   examples/file-round-trip.attl \
   examples/http-server.attl \
+  examples/foundations.attl \
   GETTING_STARTED.md \
   BUILD-MANIFEST.txt \
   LICENSE \
@@ -227,7 +228,7 @@ find "$first_root/examples" -mindepth 1 -maxdepth 1 \
   \( "${dotenv_name_expression[@]}" \) -prune -o \
   -exec basename {} \; |
   sort > "$actual_examples"
-printf '%s\n' file-round-trip.attl hello.attl http-server.attl stdout.attl \
+printf '%s\n' file-round-trip.attl foundations.attl hello.attl http-server.attl stdout.attl \
   > "$scratch_root/expected-examples.txt"
 cmp -s "$actual_examples" "$scratch_root/expected-examples.txt" ||
   die "artifact examples/ inventory differs from the contract"

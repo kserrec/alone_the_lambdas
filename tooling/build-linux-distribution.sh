@@ -267,7 +267,7 @@ done < <(
   die "raco distribute did not produce lib/"
 
 mkdir -p -- "$artifact_root/examples"
-for example_name in hello.attl stdout.attl file-round-trip.attl http-server.attl; do
+for example_name in hello.attl stdout.attl file-round-trip.attl http-server.attl foundations.attl; do
   example_source="$project_root/examples/$example_name"
   [[ -f "$example_source" && ! -L "$example_source" ]] ||
     die "canonical example is unavailable or symlinked: $example_name"

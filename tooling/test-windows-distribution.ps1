@@ -566,6 +566,7 @@ try {
         'bin/attalambda.exe',
         'examples/hello.attl', 'examples/stdout.attl',
         'examples/file-round-trip.attl', 'examples/http-server.attl',
+        'examples/foundations.attl',
         'GETTING_STARTED.md', 'BUILD-MANIFEST.txt',
         'LICENSE', 'THIRD_PARTY_NOTICES.md'
     )
@@ -590,7 +591,7 @@ try {
     $binInventory = @($artifactEntries | Where-Object { $_.RelativePath.StartsWith('bin/', [StringComparison]::Ordinal) -and -not $_.IsDirectory } | ForEach-Object { $_.RelativePath.Substring(4) } | Sort-Object -CaseSensitive)
     Assert-ExactSequence $binInventory @('attalambda.exe') 'artifact bin/ inventory'
     $exampleInventory = @($artifactEntries | Where-Object { $_.RelativePath.StartsWith('examples/', [StringComparison]::Ordinal) -and -not $_.IsDirectory } | ForEach-Object { $_.RelativePath.Substring(9) } | Sort-Object -CaseSensitive)
-    Assert-ExactSequence $exampleInventory (@('file-round-trip.attl', 'hello.attl', 'http-server.attl', 'stdout.attl') | Sort-Object -CaseSensitive) 'artifact examples/ inventory'
+    Assert-ExactSequence $exampleInventory (@('file-round-trip.attl', 'foundations.attl', 'hello.attl', 'http-server.attl', 'stdout.attl') | Sort-Object -CaseSensitive) 'artifact examples/ inventory'
 
     $manifestPath = [IO.Path]::Combine($firstRoot, 'BUILD-MANIFEST.txt')
     $manifest = [IO.File]::ReadAllText($manifestPath)

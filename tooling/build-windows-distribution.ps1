@@ -482,7 +482,7 @@ try {
     [IO.Directory]::CreateDirectory($artifactExamples) | Out-Null
     [IO.File]::Move($rawExecutables[0].FullPath, [IO.Path]::Combine($artifactBin, 'attalambda.exe'))
 
-    foreach ($exampleName in @('hello.attl', 'stdout.attl', 'file-round-trip.attl', 'http-server.attl')) {
+    foreach ($exampleName in @('hello.attl', 'stdout.attl', 'file-round-trip.attl', 'http-server.attl', 'foundations.attl')) {
         Copy-RegularFile ([IO.Path]::Combine($ProjectRoot, 'examples', $exampleName)) ([IO.Path]::Combine($artifactExamples, $exampleName)) "canonical example $exampleName"
     }
     foreach ($assetName in @('GETTING_STARTED.md.in', 'THIRD_PARTY_NOTICES.md.in')) {

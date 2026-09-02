@@ -43,7 +43,9 @@ Hello from AttaLambda.
 AttaLambda source is UTF-8 text with the lowercase `.attl` extension. The
 first line must be exactly `#lang attalambda`. The language currently uses
 Racket-style Lisp parentheses; no Racket installation is involved at run
-time.
+time. Numbers are exact rationals (`Rat`): integer and fraction literals
+such as `3`, `-7/3`, and `1/2` are ordinary values, arithmetic never
+rounds, and inexact literals like `1.5` are rejected at load time.
 
 Save this as `my-program.attl` in the extracted archive root:
 
