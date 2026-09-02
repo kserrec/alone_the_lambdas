@@ -1137,7 +1137,7 @@ binary, tag, or version behavior changes.
 
 # Milestone 4 — Exact rational numbers and foundational values
 
-Status: approved (2026-09-01); Step 31.1 complete (2026-09-01)
+Status: complete (2026-09-01)
 
 Kyle directed (2026-09-01) that the entire Milestone 4 update lands on the
 single branch `milestone-4-rationals`. Every Milestone 4 `$next` unit commits
@@ -2002,24 +2002,24 @@ full suite passed 11,970 assertions across all 38 test files with the
 
 ### Step 40.1 — Prove the complete language together
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Add end-to-end standalone examples covering negative fractions, exact
+- [x] Add end-to-end standalone examples covering negative fractions, exact
   division, powers, Unit effect results, binary file and TCP data, Option, and
   Map.
-- Re-run the complete structural purity proof and boundary inventory so every
+- [x] Re-run the complete structural purity proof and boundary inventory so every
   new production file is classified and checked.
-- Verify mechanically that every production object-language computation
+- [x] Verify mechanically that every production object-language computation
   expands to variables, unary `lambda`, and application only.
-- Verify that no public Nat or Int type, literal, function, reader, tag, or
+- [x] Verify that no public Nat or Int type, literal, function, reader, tag, or
   export remains.
-- Verify that no Racket arithmetic, conditional, collection, mutation, or
+- [x] Verify that no Racket arithmetic, conditional, collection, mutation, or
   equality operation decides an Int, Rat, Unit, Byte, Option, or Map result.
-- Run the complete source suite, supported Linux distribution build, and
+- [x] Run the complete source suite, supported Linux distribution build, and
   no-Racket Linux consumer test.
-- Update current documentation and examples, distinguish observed behavior
+- [x] Update current documentation and examples, distinguish observed behavior
   from future possibilities, and record honest performance limits.
-- Leave the version at `0.3.0-dev`; release preparation, signing, artifact
+- [x] Leave the version at `0.3.0-dev`; release preparation, signing, artifact
   publication, tagging, and public claims require a later separate plan and
   explicit approval.
 
@@ -2028,3 +2028,33 @@ Option, and Map; all underlying definitions and computation remain pure
 untyped lambda calculus; Racket remains confined to the same narrow mechanical
 and external-world seams; and the complete source and supported-distribution
 verification passes.
+
+Completion evidence: `examples/foundations.attl` prints nine deterministic
+`ok` lines through the real runner — negative fractions, exact division,
+whole powers with negative exponents, floor, a Unit stdout acknowledgement,
+byte/text crossing, Option over a Map lookup, and Map persistence — and is
+threaded through the boundary inventory, every build script, and every
+platform consumer contract; the existing file and HTTP examples cover the
+binary file and TCP boundaries. The full suite passed 11,974 assertions
+across all 38 test files with the 22-module expanded purity proof (unary
+lambda and forbidden-form verification over every production module) and
+the zero-finding boundary inventory including the `reintroduced-nat-surface`
+scan; retired spellings fail to resolve in the fresh-install language
+tests. The supported Linux distribution built from a clean clone of commit
+`a1f125b` under the pinned Racket CS 9.3 toolchain in a container:
+`attalambda-0.3.0-dev-linux-x86_64.tar.gz`, SHA-256
+`0261fcc7e05807f220e5c96ea32feea972c4ca895cd02a32bed947de3ce7c860`,
+13,939,568 compressed bytes, 59,742,222 unpacked regular-file bytes, 11
+files, 2 runtime files, with only the ELF loader, `libc`, `libdl`, `libm`,
+`libpthread`, and `librt` as system-library assumptions. The independent
+no-Racket consumer script verified the external checksum, confirmed absent
+`racket`/`raco` commands and loopback-only network, ran the complete
+end-user guide workflow, and passed relocation, reporting
+`consumer_acceptance=passed` with 298 ms first startup and 280 ms after
+relocation. These are internal development observations of an unpublished
+artifact, not a release; `VERSION` remains `0.3.0-dev`, and release
+preparation, tagging, signing, publication, and public claims require a
+later separate plan and Kyle's explicit approval. `docs/ACCEPTANCE.md`
+carries the Milestone 4 criterion map and honest performance limits
+(gcd-reducing interpreted arithmetic, linear Map walks, the documented
+HTTP re-parse bound).
