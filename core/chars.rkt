@@ -11,21 +11,17 @@
          "typecheck.rkt"
          (only-in "rat.rkt"
                   raw-rat-is-nonnegative-whole
-                  raw-rat-magnitude-bits)
-         (only-in "typed-nat.rkt"
-                  raw-nat-value
-                  ONE FOUR EIGHT NINE TEN))
+                  raw-rat-magnitude-bits))
 
 (provide raw-make-char
          raw-char-value
-         typed-make-char
          typed-make-char-rat
          typed-char-equal
          typed-char-less
          typed-char-less-equal
          typed-char-greater
          typed-char-greater-equal
-         (rename-out [typed-make-char MAKE-CHAR]
+         (rename-out [typed-make-char-rat MAKE-CHAR]
                      [typed-char-equal CHAR-EQ]
                      [typed-char-less CHAR-LT]
                      [typed-char-less-equal CHAR-LTE]
@@ -45,16 +41,29 @@
          LEFT-BRACKET RIGHT-BRACKET
          LEFT-BRACE RIGHT-BRACE)
 
+(def raw-two-bits =
+  (raw-nat-succ raw-one-bits))
+
+(def raw-four-bits =
+  ((raw-nat-add raw-two-bits) raw-two-bits))
+
+(def raw-eight-bits =
+  ((raw-nat-add raw-four-bits) raw-four-bits))
+
+(def raw-nine-bits =
+  (raw-nat-succ raw-eight-bits))
+
+(def raw-ten-bits =
+  (raw-nat-succ raw-nine-bits))
+
 (def raw-sixteen-bits =
-  ((raw-nat-add
-    (raw-nat-value EIGHT))
-   (raw-nat-value EIGHT)))
+  ((raw-nat-add raw-eight-bits) raw-eight-bits))
 
 (def raw-char-max-bits =
   ((raw-nat-sub
     ((raw-nat-mult raw-sixteen-bits)
      raw-sixteen-bits))
-   (raw-nat-value ONE)))
+   raw-one-bits))
 
 (def raw-make-char bits =
   ((raw-make-object char-type)
@@ -73,20 +82,11 @@
      ((raw-add-result-frame invalid-char-error)
       make-char-function-name))))
 
-(def char-constructor-signature =
-  ((raw-cons nat-type) NIL))
-
 (def char-binary-signature =
   ((raw-cons char-type)
    ((raw-cons char-type) NIL)))
 
-(def typed-make-char =
-  ((((make-typed-function raw-make-checked-char)
-     make-char-function-name)
-    char-constructor-signature)
-   raw-keep-return))
-
-;; Prepared Rat-based constructor for the Step 35.5 public switch. The Rat
+;; The public constructor accepts a Rat since the Step 35.5 switch. The Rat
 ;; must be a nonnegative whole number; range checking stays on private
 ;; binary Nat bits.
 (def raw-make-checked-char-rat rat =
@@ -142,12 +142,10 @@
     (raw-char-value char))))
 
 (def TAB =
-  (raw-make-char
-   (raw-nat-value NINE)))
+  (raw-make-char raw-nine-bits))
 
 (def LF =
-  (raw-make-char
-   (raw-nat-value TEN)))
+  (raw-make-char raw-ten-bits))
 
 (def CR =
   (raw-char-succ
@@ -156,9 +154,8 @@
 
 (def SPACE =
   (raw-make-char
-   ((raw-nat-mult
-     (raw-nat-value FOUR))
-    (raw-nat-value EIGHT))))
+   ((raw-nat-mult raw-four-bits)
+    raw-eight-bits)))
 
 (def HASH =
   (raw-char-succ

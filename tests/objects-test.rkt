@@ -13,10 +13,10 @@
   (vector error-type
           bool-type
           list-type
-          nat-type
           result-type
           char-type
-          string-type))
+          string-type
+          rat-type))
 
 (define payloads
   (vector raw-true
@@ -50,7 +50,7 @@
                  (lazy-force payload))))
 
 (for ([object (in-vector objects)]
-      [expected-type (in-range 7)]
+      [expected-type (in-list '(0 1 2 4 5 6 7))]
       [expected-payload (in-vector expected-payloads)])
   (check-equal?
    (type-tag->integer

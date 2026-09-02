@@ -3,9 +3,6 @@
 (require "../macros/macros.rkt"
          "../core/binary-nat.rkt"
          "../core/chars.rkt"
-         (only-in "../core/typed-nat.rkt"
-                  raw-nat-value
-                  FOUR)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-root-error)
@@ -214,10 +211,15 @@
                    ((raw-cons UNDERSCORE)
                     ((raw-cons raw-tilde-char) NIL))))))))))))))))))))
 
+(def raw-four-bits =
+  (raw-nat-succ
+   (raw-nat-succ
+    (raw-nat-succ raw-one-bits))))
+
 (def raw-high-byte-start-bits =
   ((raw-nat-mult
     (raw-char-value SPACE))
-   (raw-nat-value FOUR)))
+   raw-four-bits))
 
 ;; --------------------------------------------------------------------------
 ;; Request parsing

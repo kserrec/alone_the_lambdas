@@ -76,10 +76,12 @@ To run the complete test and structural-purity suite:
 
 - Every ordinary function is built from nested one-argument lambdas. Partial
   application follows naturally from that representation.
-- Bool, List, Nat, Error, Result, Char, and String are all lambda-encoded
+- Bool, List, Rat, Error, Result, Char, and String are all lambda-encoded
   values. Operations check their type tags at runtime.
-- Natural numbers use normalized binary digit Lists instead of Church
-  numerals, so ordinary arithmetic does not grow with a unary encoding.
+- The one public number type is Rat: exact rationals stored as a reduced
+  signed numerator over a positive denominator, with normalized binary digit
+  Lists underneath instead of Church numerals, so arithmetic is exact and
+  does not grow with a unary encoding.
 - Errors are ordinary structured values. Expected computational failures use
   `Result`; contract and representation failures use `Error`.
 - Output, files, and blocking TCP are available through one explicit host

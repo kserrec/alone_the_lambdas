@@ -119,11 +119,12 @@ PROGRAM
      #<<PROGRAM
 #lang attalambda
 
-(def nat-zero = 0)
-(def nat-one = 1)
-(def nat-byte = 255)
-(def nat-next-byte = 256)
-(def nat-large = 65536)
+(def rat-zero = 0)
+(def rat-one = 1)
+(def rat-byte = 255)
+(def rat-half = 1/2)
+(def rat-negative = -7/3)
+(def rat-large = 65536)
 (def string-value = "λ🙂")
 (def saved-host = host)
 PROGRAM
@@ -150,9 +151,9 @@ PROGRAM
     (eval name)))
 
 (write
- (map object-nat->integer
+ (map object-rat->exact
       (map target-value
-           '(nat-zero nat-one nat-byte nat-next-byte nat-large))))
+           '(rat-zero rat-one rat-byte rat-half rat-negative rat-large))))
 (newline)
 (void
  (write-bytes
@@ -167,21 +168,22 @@ PROBE
                         (path->string representation-program))
                   20)
      (bytes-append
-      #"(0 1 255 256 65536)\n"
+      #"(0 1 255 1/2 -7/3 65536)\n"
       (string->bytes/utf-8 "λ🙂")))
 
     (for ([case
            (in-list
-            '(("#t" #rx"only nonnegative Nat and String literals are supported")
-              ("#f" #rx"only nonnegative Nat and String literals are supported")
-              ("-1" #rx"only nonnegative Nat and String literals are supported")
-              ("1/2" #rx"only nonnegative Nat and String literals are supported")
-              ("1.0" #rx"only nonnegative Nat and String literals are supported")
-              ("1+2i" #rx"only nonnegative Nat and String literals are supported")
-              ("#\\a" #rx"only nonnegative Nat and String literals are supported")
-              ("#\"bytes\"" #rx"only nonnegative Nat and String literals are supported")
+            '(("#t" #rx"only exact Rat and String literals are supported")
+              ("#f" #rx"only exact Rat and String literals are supported")
+              ("1.0" #rx"only exact Rat and String literals are supported")
+              ("1e3" #rx"only exact Rat and String literals are supported")
+              ("+inf.0" #rx"only exact Rat and String literals are supported")
+              ("+nan.0" #rx"only exact Rat and String literals are supported")
+              ("1+2i" #rx"only exact Rat and String literals are supported")
+              ("#\\a" #rx"only exact Rat and String literals are supported")
+              ("#\"bytes\"" #rx"only exact Rat and String literals are supported")
               ("#:keyword" #rx"missing argument expression after keyword")
-              ("#(1)" #rx"only nonnegative Nat and String literals are supported")))]
+              ("#(1)" #rx"only exact Rat and String literals are supported")))]
           [index (in-naturals)])
       (define literal (car case))
       (define expected-message (cadr case))

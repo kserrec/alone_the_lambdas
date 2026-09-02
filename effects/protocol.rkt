@@ -2,8 +2,6 @@
 
 (require "../macros/macros.rkt"
          "../core/binary-nat.rkt"
-         (only-in "../core/typed-nat.rkt"
-                  raw-nat-value)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-error
@@ -190,36 +188,36 @@
    (raw-list-is-nil
     (raw-string-value value))))
 
-(def raw-nonzero-nat-argument value =
+(def raw-nonzero-count-argument value =
   (raw-not
    (raw-nat-is-zero
-    (raw-nat-value value))))
+    (raw-rat-field-magnitude value))))
 
 (def raw-port-argument value =
   ((raw-and
-    (raw-nonzero-nat-argument value))
+    (raw-nonzero-count-argument value))
    ((raw-nat-less-equal
-     (raw-nat-value value))
+     (raw-rat-field-magnitude value))
     raw-port-maximum-bits)))
 
 (def raw-listen-port-argument value =
   ((raw-nat-less-equal
-    (raw-nat-value value))
+    (raw-rat-field-magnitude value))
    raw-port-maximum-bits))
 
 (def raw-read-maximum-argument value =
   ((raw-and
-    (raw-nonzero-nat-argument value))
+    (raw-nonzero-count-argument value))
    ((raw-nat-less-equal
-     (raw-nat-value value))
+     (raw-rat-field-magnitude value))
     raw-read-maximum-bits)))
 
 (def raw-bit-representation-valid bit =
   (lambda-let selected =
-    ((bit list-type) nat-type)
+    ((bit list-type) char-type)
     ((raw-or
       ((raw-tag-equal list-type) selected))
-     ((raw-tag-equal nat-type) selected))))
+     ((raw-tag-equal char-type) selected))))
 
 (def raw-proper-bit-list-step recur value =
   (((raw-if
@@ -287,9 +285,42 @@
     raw-char-representation-valid)
    (raw-string-value value)))
 
-(def raw-nat-representation-valid value =
-  (raw-proper-bit-list
-   (raw-nat-value value)))
+(def raw-rat-field-magnitude value =
+  (raw-second
+   (raw-first
+    (raw-object-value value))))
+
+(def raw-rat-field-denominator value =
+  (raw-second
+   (raw-object-value value)))
+
+;; A numeric request field is a canonical nonnegative whole Rat: positive
+;; sign bit, proper normalized magnitude bits, and denominator exactly one.
+(def raw-whole-rat-representation-valid value =
+  (lambda-let sign =
+    (raw-first
+     (raw-first
+      (raw-object-value value)))
+    (((raw-if
+       (raw-bit-representation-valid sign))
+      (((raw-if sign)
+        ((raw-and
+          ((raw-and
+            (raw-proper-bit-list
+             (raw-rat-field-magnitude value)))
+           (raw-normalized-bit-list
+            (raw-rat-field-magnitude value))))
+         ((raw-and
+           ((raw-and
+             (raw-proper-bit-list
+              (raw-rat-field-denominator value)))
+            (raw-list-is-nil
+             (raw-list-tail
+              (raw-rat-field-denominator value)))))
+          (raw-list-head
+           (raw-rat-field-denominator value)))))
+       raw-false))
+     raw-false)))
 
 (def raw-make-argument-rule expected-type representation-valid constraint =
   ((raw-pair expected-type)
@@ -306,23 +337,23 @@
    raw-nonempty-string-argument))
 
 (def raw-handle-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
-   raw-nonzero-nat-argument))
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
+   raw-nonzero-count-argument))
 
 (def raw-port-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
    raw-port-argument))
 
 (def raw-listen-port-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
    raw-listen-port-argument))
 
 (def raw-read-maximum-rule =
-  (((raw-make-argument-rule nat-type)
-    raw-nat-representation-valid)
+  (((raw-make-argument-rule rat-type)
+    raw-whole-rat-representation-valid)
    raw-read-maximum-argument))
 
 (def raw-one-string-schema =

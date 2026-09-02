@@ -204,10 +204,10 @@
 ;; The renderer owns both status text and framing headers, so caller-provided
 ;; data cannot inject a status line or header. String length counts protocol
 ;; bytes because each String element is one byte-valued Char.
-(check-equal? (object-nat->integer HTTP-STATUS-OK) 200)
-(check-equal? (object-nat->integer HTTP-STATUS-BAD-REQUEST) 400)
-(check-equal? (object-nat->integer HTTP-STATUS-NOT-FOUND) 404)
-(check-equal? (object-nat->integer
+(check-equal? (object-rat->exact HTTP-STATUS-OK) 200)
+(check-equal? (object-rat->exact HTTP-STATUS-BAD-REQUEST) 400)
+(check-equal? (object-rat->exact HTTP-STATUS-NOT-FOUND) 404)
+(check-equal? (object-rat->exact
                HTTP-STATUS-INTERNAL-SERVER-ERROR)
               500)
 
@@ -252,7 +252,7 @@
  (rendered-bytes HTTP-STATUS-NOT-FOUND #"same"))
 
 (define unsupported-status-result
-  (render (integer->object-nat 201) #"created"))
+  (render (exact->object-rat 201) #"created"))
 (check-true (bool->boolean
              (lazy-apply is-err unsupported-status-result)))
 (check-equal?
@@ -281,7 +281,7 @@
            "forced body after first renderer mismatch")))
  #"render-http-response"
  1
- 3)
+ 7)
 
 (check-contract-error
  (apply2 render-http-response

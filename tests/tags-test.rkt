@@ -6,14 +6,18 @@
          "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
 
+;; Tag 3 is permanently retired (formerly NAT) and never reassigned.
 (define tags
   (vector error-type
           bool-type
           list-type
-          nat-type
           result-type
           char-type
-          string-type))
+          string-type
+          rat-type))
+
+(define tag-numbers
+  (vector 0 1 2 4 5 6 7))
 
 (define (tag-equal? left right)
   (raw-boolean->boolean
@@ -23,7 +27,7 @@
     (lazy-force right))))
 
 (for ([tag (in-vector tags)]
-      [expected (in-range 7)])
+      [expected (in-vector tag-numbers)])
   (check-equal? (type-tag->integer tag)
                 expected)
   (check-equal? (procedure-arity

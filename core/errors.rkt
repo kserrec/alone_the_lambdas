@@ -60,8 +60,17 @@
 (def invalid-char-kind = church-four)
 (def invalid-string-kind = church-five)
 (def wrong-result-variant-kind = church-six)
-(def non-whole-exponent-kind = church-seven)
-(def invalid-count-kind = church-eight)
+;; Kinds 7 and 8 belong to the host protocol and 9 through 12 to the pure
+;; HTTP layer; new core kinds continue after the complete assigned space.
+(def non-whole-exponent-kind =
+  (church-succ
+   (church-succ
+    (church-succ
+     (church-succ
+      (church-succ church-eight))))))
+
+(def invalid-count-kind =
+  (church-succ non-whole-exponent-kind))
 
 (def result-position = church-zero)
 (def argument-position-one = church-one)

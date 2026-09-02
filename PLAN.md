@@ -1519,8 +1519,8 @@ Rat produced by pure lambdas.
 Completion evidence: `raw-rat-recip` and `raw-rat-div` guard zero and return
 raw Result values whose expected failure is the canonical DivideByZero
 Error; `raw-rat-exp` rejects every non-whole exponent with the new
-NonWholeExponent kind (church-seven, added to tags, errors, and the error
-reader without renumbering), powers magnitudes through the private squaring
+NonWholeExponent kind (13, numbered after the host-protocol and HTTP
+kinds, added to errors and the error reader without renumbering), powers magnitudes through the private squaring
 exponentiation, flips for negative whole exponents, keeps `0^0 = 1`, and
 maps zero to a negative exponent to DivideByZero. The 16×16 division grid
 and reciprocal sweep match Racket's exact division with kind-3 failures on
@@ -1630,8 +1630,8 @@ counter to a whole Rat through the new `raw-whole-rat` helper; counts and
 character codes validate `IS-NONNEGATIVE-WHOLE` in pure lambda computation
 and then reuse the unchanged raw binary take/drop/range machinery through
 `raw-rat-magnitude-bits`. A negative or fractional count is the new
-INVALID-COUNT contract Error (kind church-eight, added to tags, errors, and
-the error reader), rendered as `INVALID-COUNT\n  -> TAKE(result)` style
+INVALID-COUNT contract Error (kind 14, added to errors and the error
+reader), rendered as `INVALID-COUNT\n  -> TAKE(result)` style
 frames; an out-of-range code above 255 remains INVALID-CHAR. Focused tests
 cover whole-Rat lengths for Lists and Strings, take/drop across zero,
 partial, full, and beyond-length counts, all rejection paths, and unchanged
@@ -1673,22 +1673,51 @@ calls, and ordinary strict RAT mismatches, passing 266 assertions. The full suit
 
 ### Step 35.5 — Perform the public switch
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Change every accepted exact number literal to construct Rat.
-- Export the Rat operations through `#lang attalambda`.
-- Switch the prepared List, String, Char, effect, codec, and host paths to Rat.
-- Remove public Nat constants, typed functions, type tag, reader, language
+- [x] Change every accepted exact number literal to construct Rat.
+- [x] Export the Rat operations through `#lang attalambda`.
+- [x] Switch the prepared List, String, Char, effect, codec, and host paths to Rat.
+- [x] Remove public Nat constants, typed functions, type tag, reader, language
   exports, and obsolete tests.
-- Retain and test only the private raw binary Nat machinery.
-- Update all current examples and documentation together without rewriting
+- [x] Retain and test only the private raw binary Nat machinery.
+- [x] Update all current examples and documentation together without rewriting
   completed historical records.
-- Add a repository-wide check that fails if a public or production typed Nat
+- [x] Add a repository-wide check that fails if a public or production typed Nat
   surface is reintroduced.
 
 Acceptance: users see exactly one number type, Rat; every existing numeric
 consumer has its defined Rat behavior; and private Nat remains pure internal
 machinery rather than a second public number system.
+
+Completion evidence: the expander lowers every exact integer and fraction
+datum (including negatives) to the canonical stored Rat representation and
+rejects inexact and non-real datums with "only exact Rat and String literals
+are supported"; the facade exports the eighteen Rat operations and no Nat
+name. `core/typed-nat.rkt`, `readers/nat.rkt`, and `tests/typed-nat-test.rkt`
+are deleted; tag 3 is retired from `core/tags.rkt` and renders as `TYPE:3`;
+`ZERO` through `TEN` are gone (chars, list-nat, and the HTTP modules build
+their private magnitudes from raw bits). The prepared paths switched
+together: LEN/TAKE/DROP/MAKE-CHAR/STRING-LENGTH are the Rat variants, the
+six TCP wrappers are the Rat versions carrying tagged Rat request fields,
+`effects/protocol.rkt` validates canonical nonnegative-whole Rat fields
+purely, HTTP statuses are whole Rats with a Rat renderer signature, the
+codec dropped its Nat conversions, and the host decodes bounded counts with
+`object-rat->exact` and returns handles via `exact->object-rat`. During the
+switch a latent kind collision was found and fixed: the Step 34.3/35.3 kinds
+had reused Church 7 and 8, which already belong to the host protocol, so
+NON-WHOLE-EXPONENT and INVALID-COUNT are now kinds 13 and 14, numbered after
+the host and HTTP kinds. The boundary gate gained
+`reintroduced-nat-surface`, a repository-wide scan that fails if any
+production source mentions a retired Nat spelling, and its pinned expander
+forms, codec provide, and codec/host/reader/expander vocabularies moved with
+the switch. `examples/http-server.attl` now floors its decimal-digit
+quotients under exact division. Twenty-two test files were updated
+(canonical literal representation, `expected RAT` frames, tag 7
+expectations, exact-division semantics, forged-Rat host defenses); the full
+suite passed 11,705 assertions across all 34 test files with the 18-module
+purity proof and the zero-finding boundary inventory including the new
+reintroduction check.
 
 ## Phase 36 — Add Unit
 

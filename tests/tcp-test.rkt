@@ -78,17 +78,17 @@
 (define payload
   (bytes->object-string #"A\0\200\377"))
 (define port
-  (integer->object-nat 8080))
+  (exact->object-rat 8080))
 (define listen-port
-  (integer->object-nat 0))
+  (exact->object-rat 0))
 (define backlog
-  (integer->object-nat 16))
+  (exact->object-rat 16))
 (define listener-handle
-  (integer->object-nat 1))
+  (exact->object-rat 1))
 (define connection-handle
-  (integer->object-nat 2))
+  (exact->object-rat 2))
 (define maximum
-  (integer->object-nat 65536))
+  (exact->object-rat 65536))
 
 (define (decode-request request decoders)
   (define parts
@@ -101,34 +101,34 @@
        parts))
 
 (define string-decoder object-string->bytes)
-(define nat-decoder object-nat->integer)
+(define rat-field-decoder object-rat->exact)
 
 ;; Each request is a proper typed List containing only canonical object values.
 (define request-cases
   (list
    (list make-tcp-connect-request
          (list remote port)
-         (list string-decoder string-decoder nat-decoder)
+         (list string-decoder string-decoder rat-field-decoder)
          (list #"tcp-connect" #"127.0.0.1" 8080))
    (list make-tcp-listen-request
          (list local listen-port backlog)
-         (list string-decoder string-decoder nat-decoder nat-decoder)
+         (list string-decoder string-decoder rat-field-decoder rat-field-decoder)
          (list #"tcp-listen" #"" 0 16))
    (list make-tcp-accept-request
          (list listener-handle)
-         (list string-decoder nat-decoder)
+         (list string-decoder rat-field-decoder)
          (list #"tcp-accept" 1))
    (list make-tcp-read-request
          (list connection-handle maximum)
-         (list string-decoder nat-decoder nat-decoder)
+         (list string-decoder rat-field-decoder rat-field-decoder)
          (list #"tcp-read" 2 65536))
    (list make-tcp-write-request
          (list connection-handle payload)
-         (list string-decoder nat-decoder string-decoder)
+         (list string-decoder rat-field-decoder string-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
    (list make-tcp-close-request
          (list connection-handle)
-         (list string-decoder nat-decoder)
+         (list string-decoder rat-field-decoder)
          (list #"tcp-close" 2))))
 
 (for ([case (in-list request-cases)])
@@ -150,29 +150,29 @@
 ;; request decoders, and the exact decoded request.
 (define wrapper-cases
   (list
-   (list make-tcp-connect #"tcp-connect" '(6 3)
+   (list make-tcp-connect #"tcp-connect" '(6 7)
          (list remote port)
-         (list string-decoder string-decoder nat-decoder)
+         (list string-decoder string-decoder rat-field-decoder)
          (list #"tcp-connect" #"127.0.0.1" 8080))
-   (list make-tcp-listen #"tcp-listen" '(6 3 3)
+   (list make-tcp-listen #"tcp-listen" '(6 7 7)
          (list local listen-port backlog)
-         (list string-decoder string-decoder nat-decoder nat-decoder)
+         (list string-decoder string-decoder rat-field-decoder rat-field-decoder)
          (list #"tcp-listen" #"" 0 16))
-   (list make-tcp-accept #"tcp-accept" '(3)
+   (list make-tcp-accept #"tcp-accept" '(7)
          (list listener-handle)
-         (list string-decoder nat-decoder)
+         (list string-decoder rat-field-decoder)
          (list #"tcp-accept" 1))
-   (list make-tcp-read #"tcp-read" '(3 3)
+   (list make-tcp-read #"tcp-read" '(7 7)
          (list connection-handle maximum)
-         (list string-decoder nat-decoder nat-decoder)
+         (list string-decoder rat-field-decoder rat-field-decoder)
          (list #"tcp-read" 2 65536))
-   (list make-tcp-write #"tcp-write" '(3 6)
+   (list make-tcp-write #"tcp-write" '(7 6)
          (list connection-handle payload)
-         (list string-decoder nat-decoder string-decoder)
+         (list string-decoder rat-field-decoder string-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
-   (list make-tcp-close #"tcp-close" '(3)
+   (list make-tcp-close #"tcp-close" '(7)
          (list connection-handle)
-         (list string-decoder nat-decoder)
+         (list string-decoder rat-field-decoder)
          (list #"tcp-close" 2))))
 
 (define pending-results
@@ -272,36 +272,36 @@
 
 (define rat-decoder object-rat->exact)
 
-(define rat-port (exact->object-rat 8080))
-(define rat-listen-port (exact->object-rat 0))
-(define rat-backlog (exact->object-rat 16))
-(define rat-listener-handle (exact->object-rat 1))
-(define rat-connection-handle (exact->object-rat 2))
-(define rat-maximum (exact->object-rat 65536))
+(define rat-port port)
+(define rat-listen-port listen-port)
+(define rat-backlog backlog)
+(define rat-listener-handle listener-handle)
+(define rat-connection-handle connection-handle)
+(define rat-maximum maximum)
 
 (define rat-request-cases
   (list
-   (list make-tcp-connect-request-rat
+   (list make-tcp-connect-request
          (list remote rat-port)
          (list string-decoder string-decoder rat-decoder)
          (list #"tcp-connect" #"127.0.0.1" 8080))
-   (list make-tcp-listen-request-rat
+   (list make-tcp-listen-request
          (list local rat-listen-port rat-backlog)
          (list string-decoder string-decoder rat-decoder rat-decoder)
          (list #"tcp-listen" #"" 0 16))
-   (list make-tcp-accept-request-rat
+   (list make-tcp-accept-request
          (list rat-listener-handle)
          (list string-decoder rat-decoder)
          (list #"tcp-accept" 1))
-   (list make-tcp-read-request-rat
+   (list make-tcp-read-request
          (list rat-connection-handle rat-maximum)
          (list string-decoder rat-decoder rat-decoder)
          (list #"tcp-read" 2 65536))
-   (list make-tcp-write-request-rat
+   (list make-tcp-write-request
          (list rat-connection-handle payload)
          (list string-decoder rat-decoder string-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
-   (list make-tcp-close-request-rat
+   (list make-tcp-close-request
          (list rat-connection-handle)
          (list string-decoder rat-decoder)
          (list #"tcp-close" 2))))
@@ -313,27 +313,27 @@
   (check-equal? (decode-request request (caddr case))
                 (cadddr case)))
 
-;; Negative and fractional numeric fields are INVALID-COUNT Errors (kind 8)
-;; from the request constructor itself.
+;; Negative and fractional numeric fields are INVALID-COUNT Errors
+;; (kind 14) from the request constructor itself.
 (define negative-rat (exact->object-rat -1))
 (define fractional-rat (exact->object-rat 3/2))
 
 (for ([bad-request
        (in-list
-        (list (apply-arguments make-tcp-connect-request-rat
+        (list (apply-arguments make-tcp-connect-request
                                (list remote negative-rat))
-              (apply-arguments make-tcp-listen-request-rat
+              (apply-arguments make-tcp-listen-request
                                (list local rat-listen-port fractional-rat))
-              (apply-arguments make-tcp-accept-request-rat
+              (apply-arguments make-tcp-accept-request
                                (list negative-rat))
-              (apply-arguments make-tcp-read-request-rat
+              (apply-arguments make-tcp-read-request
                                (list rat-connection-handle fractional-rat))
-              (apply-arguments make-tcp-write-request-rat
+              (apply-arguments make-tcp-write-request
                                (list negative-rat payload))
-              (apply-arguments make-tcp-close-request-rat
+              (apply-arguments make-tcp-close-request
                                (list fractional-rat))))])
   (check-true (typed-value? error-type bad-request))
-  (check-equal? (error-kind-integer bad-request) 8))
+  (check-equal? (error-kind-integer bad-request) 14))
 
 ;; Valid Rat wrappers dispatch exactly the documented requests; the host is
 ;; never applied for an invalid numeric field, and the Error bubbles.
@@ -347,27 +347,27 @@
 
 (define rat-wrapper-cases
   (list
-   (list make-tcp-connect-rat
+   (list make-tcp-connect
          (list remote rat-port)
          (list string-decoder string-decoder rat-decoder)
          (list #"tcp-connect" #"127.0.0.1" 8080))
-   (list make-tcp-listen-rat
+   (list make-tcp-listen
          (list local rat-listen-port rat-backlog)
          (list string-decoder string-decoder rat-decoder rat-decoder)
          (list #"tcp-listen" #"" 0 16))
-   (list make-tcp-accept-rat
+   (list make-tcp-accept
          (list rat-listener-handle)
          (list string-decoder rat-decoder)
          (list #"tcp-accept" 1))
-   (list make-tcp-read-rat
+   (list make-tcp-read
          (list rat-connection-handle rat-maximum)
          (list string-decoder rat-decoder rat-decoder)
          (list #"tcp-read" 2 65536))
-   (list make-tcp-write-rat
+   (list make-tcp-write
          (list rat-connection-handle payload)
          (list string-decoder rat-decoder string-decoder)
          (list #"tcp-write" 2 #"A\0\200\377"))
-   (list make-tcp-close-rat
+   (list make-tcp-close
          (list rat-connection-handle)
          (list string-decoder rat-decoder)
          (list #"tcp-close" 2))))
@@ -395,23 +395,23 @@
 (define invalid-field-calls rat-calls)
 (for ([bad-value
        (in-list
-        (list (apply2 (lazy-apply make-tcp-connect-rat rat-fake-host)
+        (list (apply2 (lazy-apply make-tcp-connect rat-fake-host)
                       remote
                       negative-rat)
-              (apply2 (lazy-apply make-tcp-read-rat rat-fake-host)
+              (apply2 (lazy-apply make-tcp-read rat-fake-host)
                       rat-connection-handle
                       fractional-rat)
-              (lazy-apply (lazy-apply make-tcp-close-rat rat-fake-host)
+              (lazy-apply (lazy-apply make-tcp-close rat-fake-host)
                           negative-rat)))])
   (check-true (typed-value? error-type bad-value))
-  (check-equal? (error-kind-integer bad-value) 8))
+  (check-equal? (error-kind-integer bad-value) 14))
 (check-equal? rat-calls invalid-field-calls)
 
 ;; Wrong argument types remain ordinary strict mismatches expecting RAT.
 (check-contract-frame
- (apply2 (lazy-apply make-tcp-connect-rat rat-fake-host)
+ (apply2 (lazy-apply make-tcp-connect rat-fake-host)
          remote
-         port)
+         FALSE)
  #"tcp-connect"
  2
  7)

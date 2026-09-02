@@ -76,8 +76,8 @@
                (lazy-apply is-ok value)))
   (define payload
     (lazy-apply unwrap-ok value))
-  (check-true (typed-value? nat-type payload))
-  (object-nat->integer payload))
+  (check-true (typed-value? rat-type payload))
+  (object-rat->exact payload))
 
 (define (ok-list value)
   (check-true (typed-value? result-type value))
@@ -122,31 +122,31 @@
 (define (connect remote port)
   (apply2 tcp-connect-with-host
           remote
-          (integer->object-nat port)))
+          (exact->object-rat port)))
 
 (define (listen local port backlog)
   (apply3 tcp-listen-with-host
           local
-          (integer->object-nat port)
-          (integer->object-nat backlog)))
+          (exact->object-rat port)
+          (exact->object-rat backlog)))
 
 (define (accept listener)
   (lazy-apply tcp-accept-with-host
-              (integer->object-nat listener)))
+              (exact->object-rat listener)))
 
 (define (read-some connection maximum)
   (apply2 tcp-read-with-host
-          (integer->object-nat connection)
-          (integer->object-nat maximum)))
+          (exact->object-rat connection)
+          (exact->object-rat maximum)))
 
 (define (write-all connection payload)
   (apply2 tcp-write-with-host
-          (integer->object-nat connection)
+          (exact->object-rat connection)
           (bytes->object-string payload)))
 
 (define (close-handle connection)
   (lazy-apply tcp-close-with-host
-              (integer->object-nat connection)))
+              (exact->object-rat connection)))
 
 (define (network-errno-guard errno)
   (make-security-guard
@@ -214,13 +214,13 @@
 (check-invalid-request
  (host-call
   (object-request
-   (list tcp-connect-operation TRUE (integer->object-nat 80))))
+   (list tcp-connect-operation TRUE (exact->object-rat 80))))
  #"tcp-connect"
  #"wrong-type")
 (check-invalid-request
  (apply2 tcp-connect-with-host
          empty-string
-         (integer->object-nat 80))
+         (exact->object-rat 80))
  #"tcp-connect"
  #"out-of-range")
 (check-invalid-request
@@ -259,29 +259,34 @@
  (host-call
   (object-request
    (list tcp-close-operation
-         (integer->object-nat 1)
+         (exact->object-rat 1)
          TRUE)))
  #"tcp-close"
  #"wrong-arity")
 
-;; A proper but nonnormalized Nat reaches the defensive codec and is rejected
-;; there. Malformed Nat/String containers are rejected earlier by the pure
-;; representation predicate. Neither path can dispatch an operating-system
-;; call.
-(define leading-zero-nat
+;; Forged noncanonical Rat fields are rejected by the pure representation
+;; predicate before any operating-system call can dispatch.
+(define (forged-rat-field numerator-bits denominator-bits)
   (apply2 raw-make-object
-          nat-type
-          (host-list->object-list
-           (list raw-false raw-true))))
+          rat-type
+          (apply2 raw-pair
+                  (apply2 raw-pair
+                          raw-true
+                          (host-list->object-list numerator-bits))
+                  (host-list->object-list denominator-bits))))
+
+(define leading-zero-nat
+  (forged-rat-field (list raw-false raw-true)
+                    (list raw-true)))
 (check-invalid-request
  (host-call
   (object-request
    (list tcp-connect-operation loopback leading-zero-nat)))
  #"tcp-connect"
- #"out-of-range")
+ #"wrong-type")
 
 (define malformed-nat
-  (apply2 raw-make-object nat-type TRUE))
+  (apply2 raw-make-object rat-type TRUE))
 (check-invalid-request
  (host-call
   (object-request
@@ -290,9 +295,8 @@
  #"wrong-type")
 
 (define malformed-bit-nat
-  (apply2 raw-make-object
-          nat-type
-          (host-list->object-list (list TRUE))))
+  (forged-rat-field (list TRUE)
+                    (list raw-true)))
 (check-invalid-request
  (host-call
   (object-request
@@ -307,7 +311,7 @@
   (object-request
    (list tcp-connect-operation
          malformed-string
-         (integer->object-nat 80))))
+         (exact->object-rat 80))))
  #"tcp-connect"
  #"wrong-type")
 (check-invalid-request
@@ -315,7 +319,7 @@
   (object-request
    (list malformed-string
          loopback
-         (integer->object-nat 80))))
+         (exact->object-rat 80))))
  #""
  #"wrong-type")
 
@@ -386,9 +390,9 @@
       (ok-list (listen loopback 0 8)))
     (check-equal? (length listener-result) 2)
     (define listener
-      (track! (object-nat->integer (car listener-result))))
+      (track! (object-rat->exact (car listener-result))))
     (define bound-port
-      (object-nat->integer (cadr listener-result)))
+      (object-rat->exact (cadr listener-result)))
     (check-equal? listener 1)
     (check-true (and (exact-positive-integer? bound-port)
                      (<= bound-port 65535)))
@@ -498,7 +502,7 @@
     (define second-listener-result
       (ok-list (listen loopback 0 1)))
     (define second-listener
-      (track! (object-nat->integer
+      (track! (object-rat->exact
                (car second-listener-result))))
     (check-equal? second-listener 4)
     (close-tracked! second-listener)
@@ -511,7 +515,7 @@
       (parameterize ([current-custodian socket-custodian])
         (ok-list (listen loopback 0 1))))
     (define custodian-listener
-      (track! (object-nat->integer
+      (track! (object-rat->exact
                (car custodian-listener-result))))
     (check-equal? custodian-listener 5)
     (custodian-shutdown-all socket-custodian)

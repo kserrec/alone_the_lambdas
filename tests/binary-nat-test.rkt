@@ -10,10 +10,8 @@
          "../core/objects.rkt"
          "../core/pair.rkt"
          "../core/tags.rkt"
-         "../core/typed-nat.rkt"
-         "../readers/nat.rkt"
+         "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
-         "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
 
 (define (apply2 function first second)
@@ -40,16 +38,14 @@
   (host-bits->raw
    (integer->host-bits integer)))
 
-(define (raw-bits->nat bits)
-  (apply2 raw-make-object nat-type bits))
+(define (raw-bits->host-bits bits)
+  (list->host-list bits raw-boolean->boolean))
 
 (define (raw-bits->integer bits)
-  (nat->integer
-   (raw-bits->nat bits)))
-
-(define (raw-bits->host-bits bits)
-  (nat->host-bits
-   (raw-bits->nat bits)))
+  (for/fold ([total 0])
+            ([bit (in-list (raw-bits->host-bits bits))])
+    (+ (* total 2)
+       (if bit 1 0))))
 
 (define (check-canonical expected actual)
   (check-equal? (raw-bits->integer actual)
@@ -76,39 +72,6 @@
 (check-canonical 2
                  (lazy-apply raw-normalize-nat
                              leading-zero-two))
-
-(define normalized-empty-nat
-  (lazy-apply raw-make-nat NIL))
-
-(define normalized-two-nat
-  (lazy-apply raw-make-nat leading-zero-two))
-
-(check-equal?
- (type-tag->integer
-  (lazy-apply raw-object-type
-              normalized-empty-nat))
- 3)
-(check-equal? (nat->host-bits normalized-empty-nat)
-              '(#f))
-(check-equal? (nat->integer normalized-two-nat)
-              2)
-(check-equal? (nat->host-bits normalized-two-nat)
-              '(#t #f))
-
-(define constants
-  (list ZERO ONE TWO THREE FOUR FIVE
-        SIX SEVEN EIGHT NINE TEN))
-
-(for ([constant (in-list constants)]
-      [expected (in-naturals)])
-  (check-equal?
-   (type-tag->integer
-    (lazy-apply raw-object-type constant))
-   3)
-  (check-equal? (nat->integer constant)
-                expected)
-  (check-equal? (nat->host-bits constant)
-                (integer->host-bits expected)))
 
 (check-true
  (raw-boolean->boolean
@@ -298,9 +261,7 @@
 (for ([function (in-list
                  (list raw-normalize-nat
                        raw-nat-is-zero
-                       raw-nat-succ
-                       raw-make-nat
-                       raw-nat-value))])
+                       raw-nat-succ))])
   (check-equal?
    (procedure-arity
     (lazy-force function))

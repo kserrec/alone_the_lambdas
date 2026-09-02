@@ -3,8 +3,6 @@
 (require "../macros/macros.rkt"
          (only-in "../core/binary-nat.rkt"
                   raw-nat-less)
-         (only-in "../core/typed-nat.rkt"
-                  raw-make-nat)
          (only-in "../core/list-nat.rkt"
                   raw-list-length)
          (only-in "../core/errors.rkt"
@@ -56,21 +54,24 @@
 
 (def http-path-handler-signature =
   ((raw-cons string-type)
-   ((raw-cons nat-type)
+   ((raw-cons rat-type)
     ((raw-cons string-type)
-     ((raw-cons nat-type)
+     ((raw-cons rat-type)
       ((raw-cons string-type)
        ((raw-cons string-type) NIL)))))))
 
-(def two-nats-signature =
-  ((raw-cons nat-type)
-   ((raw-cons nat-type) NIL)))
+(def two-rats-signature =
+  ((raw-cons rat-type)
+   ((raw-cons rat-type) NIL)))
 
 ;; Applying the first five arguments yields the ordinary unary request
 ;; handler. Only the selected status/body branch reaches the pure renderer.
+(def raw-rat-object payload =
+  ((raw-make-object rat-type) payload))
+
 (def raw-render-selected-http-response status-payload body-payload =
   ((render-http-response
-    (raw-make-nat status-payload))
+    (raw-rat-object status-payload))
    (raw-make-string body-payload)))
 
 (def raw-make-http-path-handler expected-target-payload
@@ -263,18 +264,18 @@
 (def raw-http-serve-one host handler listener-payload maximum-payload =
   ((raw-bind-result
     ((make-tcp-accept host)
-     (raw-make-nat listener-payload)))
+     (raw-rat-object listener-payload)))
    (lambda (connection)
      ((((raw-handle-http-connection host)
         handler)
        connection)
-      (raw-make-nat maximum-payload)))))
+      (raw-rat-object maximum-payload)))))
 
 (def make-http-serve-one host handler =
   ((((make-typed-function
       ((raw-http-serve-one host) handler))
      http-serve-one-function-name)
-    two-nats-signature)
+    two-rats-signature)
    raw-keep-return))
 
 ;; Successful connections are processed one at a time. The first accept,
@@ -299,5 +300,5 @@
   ((((make-typed-function
       ((raw-http-server host) handler))
      http-server-function-name)
-    two-nats-signature)
+    two-rats-signature)
    raw-keep-return))

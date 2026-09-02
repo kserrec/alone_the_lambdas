@@ -9,7 +9,7 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
-         "../core/typed-nat.rkt"
+         "../core/rat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE
                   FALSE
@@ -25,7 +25,7 @@
                   [if public-if])
          "../readers/bool.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
@@ -39,6 +39,27 @@
   (lazy-apply
    (apply2 function first second)
    third))
+
+(define (whole-rat-object integer)
+  (lazy-apply
+   (lazy-apply raw-make-object rat-type)
+   (lazy-apply raw-whole-rat
+               (foldr
+                (lambda (bit tail)
+                  (lazy-apply (lazy-apply raw-cons bit) tail))
+                NIL
+                (for/list ([character
+                            (in-string
+                             (number->string integer 2))])
+                  (if (char=? character #\1) raw-true raw-false))))))
+
+(define ZERO (whole-rat-object 0))
+(define ONE (whole-rat-object 1))
+(define TWO (whole-rat-object 2))
+
+(define (rat-object->number value)
+  (rat->number
+   (lazy-apply raw-object-value value)))
 
 (define (typed-value? type value)
   (raw-boolean->boolean
@@ -103,7 +124,7 @@
     (lazy-apply
      raw-type-mismatch-actual-type
      details))
-   3)
+   7)
   (check-equal? (error-frames->host error)
                 (list
                  (list position 1))))
@@ -256,11 +277,11 @@
 (check-bool #f nonempty-result)
 
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3 typed-if TRUE ONE TWO))
  1)
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3 typed-if FALSE ONE TWO))
  2)
 (check-true
@@ -268,12 +289,12 @@
   list-type
   (apply3 typed-if TRUE NIL ONE)))
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3 public-if FALSE ONE TWO))
  2)
 
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3
    typed-if
    TRUE
@@ -284,7 +305,7 @@
  1)
 
 (check-equal?
- (nat->integer
+ (rat-object->number
   (apply3
    typed-if
    FALSE

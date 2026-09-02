@@ -3,10 +3,10 @@
 (require "../macros/macros.rkt"
          "../core/binary-nat.rkt"
          "../core/chars.rkt"
-         (only-in "../core/typed-nat.rkt"
-                  raw-make-nat
-                  raw-nat-value
-                  TWO FOUR FIVE TEN)
+         (only-in "../core/rat.rkt"
+                  raw-rat-is-nonnegative-whole
+                  raw-rat-magnitude-bits
+                  raw-whole-rat)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-make-root-error)
@@ -137,41 +137,55 @@
                      ((raw-cons o)
                       ((raw-cons r) NIL))))))))))))))))))))))
 
+(def raw-two-bits =
+  (raw-nat-succ raw-one-bits))
+
+(def raw-four-bits =
+  ((raw-nat-add raw-two-bits) raw-two-bits))
+
+(def raw-five-bits =
+  (raw-nat-succ raw-four-bits))
+
+(def raw-ten-bits =
+  ((raw-nat-mult raw-two-bits) raw-five-bits))
+
 (def raw-hundred-bits =
-  ((raw-nat-mult
-    (raw-nat-value TEN))
-   (raw-nat-value TEN)))
+  ((raw-nat-mult raw-ten-bits) raw-ten-bits))
 
 (def raw-status-ok-bits =
   ((raw-nat-mult
-    (raw-nat-value TWO))
+    raw-two-bits)
    raw-hundred-bits))
 
 (def raw-status-bad-request-bits =
   ((raw-nat-mult
-    (raw-nat-value FOUR))
+    raw-four-bits)
    raw-hundred-bits))
 
 (def raw-status-not-found-bits =
   ((raw-nat-add raw-status-bad-request-bits)
-   (raw-nat-value FOUR)))
+   raw-four-bits))
 
 (def raw-status-internal-server-error-bits =
   ((raw-nat-mult
-    (raw-nat-value FIVE))
+    raw-five-bits)
    raw-hundred-bits))
 
+(def raw-make-status status-bits =
+  ((raw-make-object rat-type)
+   (raw-whole-rat status-bits)))
+
 (def HTTP-STATUS-OK =
-  (raw-make-nat raw-status-ok-bits))
+  (raw-make-status raw-status-ok-bits))
 
 (def HTTP-STATUS-BAD-REQUEST =
-  (raw-make-nat raw-status-bad-request-bits))
+  (raw-make-status raw-status-bad-request-bits))
 
 (def HTTP-STATUS-NOT-FOUND =
-  (raw-make-nat raw-status-not-found-bits))
+  (raw-make-status raw-status-not-found-bits))
 
 (def HTTP-STATUS-INTERNAL-SERVER-ERROR =
-  (raw-make-nat raw-status-internal-server-error-bits))
+  (raw-make-status raw-status-internal-server-error-bits))
 
 (def raw-status-supported? status =
   ((raw-or
@@ -210,17 +224,17 @@
 (def raw-nat-decimal-chars-step recur value =
   (((raw-if
      ((raw-nat-less value)
-      (raw-nat-value TEN)))
+      raw-ten-bits))
     ((raw-cons
       (raw-decimal-char value))
      NIL))
    (lambda-let quotient =
      ((raw-nat-div value)
-      (raw-nat-value TEN))
+      raw-ten-bits)
      (lambda-let remainder =
        ((raw-nat-sub value)
         ((raw-nat-mult quotient)
-         (raw-nat-value TEN)))
+         raw-ten-bits))
        ((raw-append
          (recur quotient))
         ((raw-cons
@@ -261,13 +275,17 @@
 
 (def raw-render-http-response status body =
   (((raw-if
-     (raw-status-supported? status))
-    ((raw-render-supported-http-response status)
+     ((raw-and
+       (raw-rat-is-nonnegative-whole status))
+      (raw-status-supported?
+       (raw-rat-magnitude-bits status))))
+    ((raw-render-supported-http-response
+      (raw-rat-magnitude-bits status))
      body))
    raw-unsupported-http-status-result))
 
 (def http-response-signature =
-  ((raw-cons nat-type)
+  ((raw-cons rat-type)
    ((raw-cons string-type) NIL)))
 
 (def render-http-response =

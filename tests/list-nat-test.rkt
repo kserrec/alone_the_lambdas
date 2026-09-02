@@ -9,10 +9,10 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
-         "../core/typed-nat.rkt"
+         "../core/rat.rkt"
          "../readers/bool.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "helpers/lazy.rkt")
 
@@ -34,7 +34,7 @@
 
 (define (nat-value? value)
   (raw-boolean->boolean
-   (apply2 raw-is-type nat-type value)))
+   (apply2 raw-is-type rat-type value)))
 
 (define (error-value? value)
   (raw-boolean->boolean
@@ -68,66 +68,103 @@
 (define (read-list list)
   (list->host-list list read-bool-object))
 
+(define (host-bits->raw bits)
+  (foldr
+   (lambda (bit tail)
+     (apply2 raw-cons
+             (if bit raw-true raw-false)
+             tail))
+   NIL
+   bits))
+
+(define (whole-rat-object integer)
+  (apply2 raw-make-object
+          rat-type
+          (lazy-apply
+           raw-whole-rat
+           (host-bits->raw
+            (for/list ([character
+                        (in-string
+                         (number->string integer 2))])
+              (char=? character #\1))))))
+
+(define ZERO (whole-rat-object 0))
+(define ONE (whole-rat-object 1))
+(define TWO (whole-rat-object 2))
+(define THREE (whole-rat-object 3))
+(define FOUR (whole-rat-object 4))
+(define TEN (whole-rat-object 10))
+
+(define (rat-object->number value)
+  (rat->number
+   (lazy-apply raw-object-value value)))
+
 (define (raw-length->integer list)
-  (nat->integer
-   (lazy-apply
-    raw-make-nat
-    (lazy-apply raw-list-length list))))
+  (for/fold ([total 0])
+            ([bit (in-list
+                   (list->host-list
+                    (lazy-apply raw-list-length list)
+                    raw-boolean->boolean))])
+    (+ (* total 2)
+       (if bit 1 0))))
 
 (check-equal? (raw-length->integer NIL) 0)
 (check-equal? (raw-length->integer sample) 4)
 
 (define empty-length
-  (lazy-apply typed-len NIL))
+  (lazy-apply typed-len-rat NIL))
 
 (define sample-length
-  (lazy-apply typed-len sample))
+  (lazy-apply typed-len-rat sample))
 
 (check-true (nat-value? empty-length))
 (check-true (nat-value? sample-length))
-(check-equal? (nat->integer empty-length) 0)
-(check-equal? (nat->integer sample-length) 4)
-(check-equal? (nat->host-bits sample-length)
+(check-equal? (rat-object->number empty-length) 0)
+(check-equal? (rat-object->number sample-length) 4)
+(check-equal? (list->host-list
+               (lazy-apply raw-rat-magnitude-bits
+                           (lazy-apply raw-object-value sample-length))
+               raw-boolean->boolean)
               '(#t #f #f))
 
 (check-equal? (read-list
-               (apply2 typed-take ZERO sample))
+               (apply2 typed-take-rat ZERO sample))
               '())
 (check-equal? (read-list
-               (apply2 typed-take ONE sample))
+               (apply2 typed-take-rat ONE sample))
               '(#t))
 (check-equal? (read-list
-               (apply2 typed-take TWO sample))
+               (apply2 typed-take-rat TWO sample))
               '(#t #f))
 (check-equal? (read-list
-               (apply2 typed-take FOUR sample))
+               (apply2 typed-take-rat FOUR sample))
               '(#t #f #t #f))
 (check-equal? (read-list
-               (apply2 typed-take TEN sample))
+               (apply2 typed-take-rat TEN sample))
               '(#t #f #t #f))
 
 (check-equal? (read-list
-               (apply2 typed-drop ZERO sample))
+               (apply2 typed-drop-rat ZERO sample))
               '(#t #f #t #f))
 (check-equal? (read-list
-               (apply2 typed-drop ONE sample))
+               (apply2 typed-drop-rat ONE sample))
               '(#f #t #f))
 (check-equal? (read-list
-               (apply2 typed-drop TWO sample))
+               (apply2 typed-drop-rat TWO sample))
               '(#t #f))
 (check-true
  (nil-value?
-  (apply2 typed-drop FOUR sample)))
+  (apply2 typed-drop-rat FOUR sample)))
 (check-true
  (nil-value?
-  (apply2 typed-drop TEN sample)))
+  (apply2 typed-drop-rat TEN sample)))
 
 (check-true
  (nil-value?
-  (apply2 typed-take TEN NIL)))
+  (apply2 typed-take-rat TEN NIL)))
 (check-true
  (nil-value?
-  (apply2 typed-drop TEN NIL)))
+  (apply2 typed-drop-rat TEN NIL)))
 
 (define (every-tail-is-list? list)
   (and (list-value? list)
@@ -137,10 +174,10 @@
 
 (check-true
  (every-tail-is-list?
-  (apply2 typed-take THREE sample)))
+  (apply2 typed-take-rat THREE sample)))
 (check-true
  (every-tail-is-list?
-  (apply2 typed-drop ONE sample)))
+  (apply2 typed-drop-rat ONE sample)))
 
 (define incoming-error
   invalid-nat-error)
@@ -155,20 +192,20 @@
 
 (check-true
  (error-value?
-  (lazy-apply typed-len true-object)))
+  (lazy-apply typed-len-rat true-object)))
 (check-true
  (error-value?
-  (lazy-apply typed-len rejected-bool-object)))
+  (lazy-apply typed-len-rat rejected-bool-object)))
 
 (define bubbled-length
-  (lazy-apply typed-len incoming-error))
+  (lazy-apply typed-len-rat incoming-error))
 
 (check-true (error-value? bubbled-length))
 (check-true
  (error-kind=? bubbled-length
                invalid-nat-kind))
 
-(for ([function (in-list (list typed-take typed-drop))])
+(for ([function (in-list (list typed-take-rat typed-drop-rat))])
   (define bubbled-count
     (apply2
      function
@@ -204,14 +241,14 @@
    (error-value?
     (apply2 function TWO true-object))))
 
-(define raw-zero-bits
-  (lazy-apply raw-nat-value ZERO))
+
 
 (check-true
  (nil-value?
   (apply2
    raw-list-take
-   raw-zero-bits
+   (lazy-apply raw-rat-magnitude-bits
+               (lazy-apply raw-object-value ZERO))
    (delay
      (error 'raw-list-take
             "forced list while taking zero")))))
@@ -234,10 +271,10 @@
 
 (check-equal?
  (procedure-arity
-  (lazy-force typed-len))
+  (lazy-force typed-len-rat))
  1)
 
-(for ([function (in-list (list typed-take typed-drop))])
+(for ([function (in-list (list typed-take-rat typed-drop-rat))])
   (check-equal?
    (procedure-arity
     (lazy-force function))

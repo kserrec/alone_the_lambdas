@@ -4,9 +4,6 @@
 ;; operating-system effect and is imported in production only by host.rkt.
 
 (require racket/promise
-         (only-in "../core/typed-nat.rkt"
-                  raw-make-nat
-                  raw-nat-value)
          (only-in "../core/chars.rkt"
                   raw-char-value
                   raw-make-char)
@@ -40,7 +37,6 @@
          (only-in "../core/tags.rkt"
                   char-type
                   list-type
-                  nat-type
                   rat-type
                   string-type))
 
@@ -49,8 +45,6 @@
          host-list->object-list
          object-string->bytes
          bytes->object-string
-         object-nat->integer
-         integer->object-nat
          exact->object-rat
          object-rat->exact
          object-ok
@@ -185,13 +179,6 @@
                     (bytes->immutable-bytes
                      (apply bytes decoded)))))))))
 
-(define (object-nat->integer value)
-  (with-handlers ([exn:fail? malformed-value-failure])
-    (if (object-has-type? nat-type value)
-        (raw-bits->integer
-         (lazy-apply raw-nat-value value))
-        (codec-failure 'wrong-type))))
-
 (define (integer->raw-bits integer)
   (define bits
     (if (zero? integer)
@@ -219,14 +206,6 @@
    (host-list->object-list
     (for/list ([integer (in-bytes value)])
               (byte->object-char integer)))))
-
-(define (integer->object-nat integer)
-  (unless (exact-nonnegative-integer? integer)
-    (raise-argument-error 'integer->object-nat
-                          "exact-nonnegative-integer?"
-                          integer))
-  (lazy-apply raw-make-nat
-              (integer->raw-bits integer)))
 
 ;; Racket exact rationals are canonical by construction — reduced, with a
 ;; positive denominator — so translation builds the stored representation

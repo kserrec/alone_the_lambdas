@@ -16,7 +16,6 @@
          error-type
          bool-type
          list-type
-         nat-type
          result-type
          char-type
          string-type
@@ -56,7 +55,6 @@
 (def error-type = church-zero)
 (def bool-type = church-one)
 (def list-type = church-two)
-(def nat-type = church-three)
 (def result-type = church-four)
 (def char-type = church-five)
 (def string-type = church-six)

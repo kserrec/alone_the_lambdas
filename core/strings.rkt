@@ -29,7 +29,6 @@
          raw-string-contains?
          typed-make-string
          typed-string-empty?
-         typed-string-length
          typed-string-equal
          typed-string-append
          typed-string-head
@@ -38,7 +37,7 @@
          typed-string-contains?
          (rename-out [typed-make-string MAKE-STRING]
                      [typed-string-empty? STRING-EMPTY?]
-                     [typed-string-length STRING-LENGTH]
+                     [typed-string-length-rat STRING-LENGTH]
                      [typed-string-equal STRING-EQ]
                      [typed-string-append STRING-APPEND]
                      [typed-string-head STRING-HEAD]
@@ -182,13 +181,7 @@
     string-unary-signature)
    (raw-wrap-return bool-type)))
 
-(def typed-string-length =
-  ((((make-typed-function raw-string-length)
-     string-length-function-name)
-    string-unary-signature)
-   (raw-wrap-return nat-type)))
-
-;; Prepared Rat-based length for the Step 35.5 public switch; counting
+;; The public length is Rat-based since the Step 35.5 switch; counting
 ;; stays on the raw binary List counter.
 (def raw-string-length-rat chars =
   (raw-whole-rat

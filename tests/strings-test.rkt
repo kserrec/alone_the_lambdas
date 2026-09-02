@@ -11,13 +11,13 @@
          "../core/objects.rkt"
          "../core/strings.rkt"
          "../core/tags.rkt"
-         "../core/typed-nat.rkt"
+         "../core/rat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE)
          "../readers/bool.rkt"
          "../readers/char.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/string.rkt"
          "../readers/type-tag.rkt"
@@ -91,10 +91,14 @@
   (check-equal? (bool->boolean value)
                 expected))
 
-(define (check-nat expected value)
+(define rat-zero-object
+  (apply2 raw-make-object rat-type raw-rat-zero))
+
+(define (check-whole-rat expected value)
   (check-true
-   (typed-value? nat-type value))
-  (check-equal? (nat->integer value)
+   (typed-value? rat-type value))
+  (check-equal? (rat->number
+                 (lazy-apply raw-object-value value))
                 expected))
 
 (define (check-mismatch error position expected actual)
@@ -211,11 +215,10 @@
  6)
 
 (check-equal?
- (nat->integer
-  (lazy-apply
-   raw-make-nat
-   (lazy-apply raw-string-length hi-chars)))
- 2)
+ (list->host-list
+  (lazy-apply raw-string-length hi-chars)
+  raw-boolean->boolean)
+ '(#t #f))
 (check-true
  (raw-boolean->boolean
   (apply2 raw-string-equal
@@ -242,8 +245,8 @@
 (for ([invalid-chars
        (in-list
         (list
-         (list ZERO h)
-         (list h ZERO i)
+         (list rat-zero-object h)
+         (list h rat-zero-object i)
          (list h i TRUE)))])
   (define failure
     (lazy-apply MAKE-STRING
@@ -322,9 +325,12 @@
   (define length-value
     (lazy-apply STRING-LENGTH
                 (first case)))
-  (check-nat (second case)
-             length-value)
-  (check-equal? (nat->host-bits length-value)
+  (check-whole-rat (second case)
+                   length-value)
+  (check-equal? (list->host-list
+                 (lazy-apply raw-rat-magnitude-bits
+                             (lazy-apply raw-object-value length-value))
+                 raw-boolean->boolean)
                 (third case)))
 
 (for ([case (in-list
@@ -407,7 +413,7 @@
 
 (define unary-string-operations
   (list typed-string-empty?
-        typed-string-length
+        typed-string-length-rat
         typed-string-head
         typed-string-tail
         STRING-EMPTY?
@@ -517,7 +523,7 @@
               raw-string-tail
               typed-make-string
               typed-string-empty?
-              typed-string-length
+              typed-string-length-rat
               typed-string-head
               typed-string-tail
               MAKE-STRING

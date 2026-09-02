@@ -27,7 +27,7 @@
 (def nat-to-decimal value =
   (if (LT value 10)
       (MAKE-STRING (cons (decimal-digit value) NIL))
-      (let quotient = (unwrap-ok (DIV value 10))
+      (let quotient = (FLOOR (unwrap-ok (DIV value 10)))
         (let remainder = (SUB value (MULT quotient 10))
           (STRING-APPEND
            (nat-to-decimal quotient)

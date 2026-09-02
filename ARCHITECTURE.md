@@ -102,7 +102,7 @@ become an object-language representation.
 | Mechanical syntax | `def`, lambda-based `let`, and other expansion-only sugar |
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
-| Public data | List, Nat, Error, Result, Char, and String |
+| Public data | List, Rat, Error, Result, Char, and String |
 | Pure effects | Lambda request validation, protocol computation, and wrappers over an injected unary host |
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
@@ -131,13 +131,15 @@ representation instead of importing `core/lists.rkt`; this lets the ordinary
 typed List operations depend on the checker without a cycle. Typed logic sits
 above raw logic, objects, Lists, and the checker; this keeps its List-encoded
 signatures and strict wrappers out of the raw Boolean layer.
-`core/typed-nat.rkt` similarly sits above binary Nat, Lists, tags, objects,
-and the checker. It owns the public strict Nat surface, tagged Nat
-construction, and the typed constants, while leaving every binary algorithm
-in `core/binary-nat.rkt` raw and reusable.
-`core/result.rkt` sits above Errors, Lists, objects, and the checker. Typed Nat
-depends on Result only for safe `DIV`, so Result itself remains independent of
-Nat and available to later data types.
+`core/typed-rat.rkt` similarly sits above the private rationals, Lists,
+tags, objects, and the checker. It owns the entire public strict number
+surface while leaving every binary algorithm in `core/binary-nat.rkt` and
+every signed and rational algorithm in `core/int.rkt` and `core/rat.rkt` raw
+and reusable.
+`core/result.rkt` sits above Errors, Lists, objects, and the checker. The
+strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
+Result itself remains independent of the number surface and available to
+later data types.
 `core/chars.rkt` sits above raw binary Nat, the tagged Nat layer, Errors,
 Lists, objects, and the checker. Its reader depends on Char and Nat
 observation, while no production module depends on that reader. `core/strings.rkt` sits above Char, List, raw
@@ -469,7 +471,8 @@ result routes back through the canonical constructor. Reciprocal and
 division guard a zero operand and return raw Result values: the expected
 failure is the canonical DivideByZero Error inside Err, never an exception
 or a sentinel. Exponentiation accepts only whole Rat exponents — a
-fractional exponent is the expected NonWholeExponent failure (error kind 7)
+fractional exponent is the expected NonWholeExponent failure (error kind 13,
+numbered after the host-protocol and HTTP kinds)
 even when that power would happen to be rational — computes magnitudes with
 the private squaring exponentiation, takes reciprocals for negative
 exponents, keeps `0^0 = 1`, and turns zero raised to a negative exponent
@@ -482,25 +485,17 @@ over the private rationals, built entirely on the unchanged generalized
 exact-tag checker: `SUCC`, `ADD`, `SUB`, `MULT`, `NEG`, `ABS`, and `FLOOR`
 wrap Rat returns; the comparisons and the zero/whole/nonnegative-whole
 checks wrap Bool returns; `DIV`, `EXP`, and `RECIP` keep their
-already-typed Result, re-wrapping a successful raw payload as a tagged Rat
-exactly as safe Nat division wraps its quotient. It stays outside the
-`#lang attalambda` exports until the Step 35.5 public switch.
-
-`core/typed-nat.rkt` owns the tagged Nat layer: `raw-make-nat`,
-`raw-nat-value`, and the canonical typed constants `ZERO` through `TEN` moved
-here from the raw module as temporary compatibility code until Phase 35
-replaces the public Nat surface with Rat. It routes every public Nat
-operation through the generalized checker. `SUCC`, `ADD`, `SUB`, and `MULT` return tagged Nat values; `EQ`, `LT`,
-`LTE`, `GT`, `GTE`, and `IS-ZERO` return tagged Bool values. `DIV` uses the
-same two-Nat signature but keeps its already-typed Result return. Valid
-division by a nonzero value returns Ok containing a canonical Nat; valid
-division by zero returns Err containing the canonical DivideByZero Error.
-Unary operations use one Nat signature entry, and binary operations use two,
-so partial application, wrong-type failures, incoming-Error bubbling, and
-remaining-arity absorption all have the same behavior as other strict typed
-functions. Every Nat boundary records its canonical function-name String,
-argument position, and expected Nat type when it creates or propagates an
-Error.
+already-typed Result, re-wrapping a successful raw payload as a tagged Rat.
+Since the Step 35.5 public switch this is the language's entire number
+surface: `core/typed-nat.rkt` is deleted, the Nat tag (3) is permanently
+retired, the constants `ZERO` through `TEN` are replaced by exact literals,
+and the boundary gate fails if any production source reintroduces a retired
+Nat spelling. Unary operations use one Rat signature entry, and binary
+operations use two, so partial application, wrong-type failures,
+incoming-Error bubbling, and remaining-arity absorption all behave exactly
+as with every other strict typed function; every boundary records its
+canonical function-name String, argument position, and expected Rat type
+when it creates or propagates an Error.
 
 ### Errors and results
 
@@ -658,7 +653,6 @@ core/
   typed-rat.rkt
   result.rkt
   chars.rkt
-  typed-nat.rkt
   list-nat.rkt
   typecheck.rkt
   typed-logic.rkt

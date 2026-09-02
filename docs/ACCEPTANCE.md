@@ -7,6 +7,15 @@ evidence in the repository. The authoritative requirements remain the three
 [standalone-distribution design](design/standalone-distribution.md); this is
 their verification index, not a replacement.
 
+> **Milestone 4 note (2026-09-01).** The Step 35.5 public switch replaced the
+> public Nat surface with Rat: Rat is now the only public number type, exact
+> integer and fraction literals lower to canonical Rats, tag 3 is permanently
+> retired, and numeric effect fields are nonnegative whole Rats. Rows below
+> that describe public Nat behavior are the literal evidence map for the
+> milestones as completed; the Phase 40 milestone acceptance will re-map the
+> current criteria. The current suite covering the switched surface is green
+> (`./run-all-tests.sh`).
+
 Verified on 2026-08-26 with:
 
 ```sh

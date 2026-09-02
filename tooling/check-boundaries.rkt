@@ -208,15 +208,14 @@
     frame->string frames function function-name if in-list int->integer
     integer->char kind
     kind-number lambda lazy-apply let let* list list->host-list loop map memv
-    module nat
-    nat->host-bits nat->integer null? or position provide quote racket/base
+    module null? or position provide quote racket/base
     racket/list racket/promise racket/string raw-boolean raw-boolean->boolean
     rat->number raw-char-value raw-error-frame-argument-position
     raw-int-magnitude raw-int-sign
     raw-rat-denominator raw-rat-numerator
     raw-error-frame-expected-type raw-error-frame-function-name
     raw-error-frames raw-error-root raw-error-root-details raw-error-root-kind
-    raw-make-nat raw-nat-value raw-object-value raw-string-value
+    raw-object-value raw-string-value
     raw-type-mismatch-actual-type raw-type-mismatch-argument-position
     raw-type-mismatch-expected-type read-value remaining require reverse root
     string string-append string-join string-value->string tag-number
@@ -245,13 +244,13 @@
     exact-nonnegative-integer? exn:fail? expected
     failure false-marker first
     first-codec-failure for/fold for/list force function gcd
-    host-list->object-list if in-bytes in-list integer integer->object-nat
+    host-list->object-list if in-bytes in-list integer
     integer->raw-bits
     lambda lazy-apply lazy-apply2 length let list list-type loop magnitude
     malformed-value-failure map memq
-    module nat-type negative? nil? not null? numerator object-char->byte
+    module negative? nil? not null? numerator object-char->byte
     object-err
-    object-has-type? object-list->host-list object-nat->integer object-ok
+    object-has-type? object-list->host-list object-ok
     object-rat->exact
     object-string->bytes odd? only-in or ormap
     out-of-range payload provide quote quotient racket/base racket/promise
@@ -260,8 +259,8 @@
     raw-boolean->boolean raw-char-value raw-cons raw-false raw-int-magnitude
     raw-int-sign raw-is-type
     raw-list-head raw-list-is-nil raw-list-tail raw-make-char raw-make-err
-    raw-make-int raw-make-nat raw-make-object raw-make-ok raw-make-string
-    raw-nat-value raw-object-value raw-pair raw-rat-denominator
+    raw-make-int raw-make-object raw-make-ok raw-make-string
+    raw-object-value raw-pair raw-rat-denominator
     raw-rat-numerator raw-string-value
     raw-true reason remaining require result reverse reversed second seen
     selected sign string-type struct struct-out tail total true-marker unless
@@ -277,7 +276,7 @@
     close-procedure code codec-failure-reason codec-failure? cond connection
     connection-entry connection-entry-input connection-entry-output
     connection-entry? connection-handle connection-refused-code
-    connection-reset-code contract-code current-output-port decode-bounded-nat
+    connection-reset-code contract-code current-output-port decode-bounded-count
     decode-utf8
     decoded decoded-request define define-values discard-entry!
     dispatch-one-string dispatch-request dispatch-tcp-accept dispatch-tcp-close
@@ -289,7 +288,7 @@
     exn:fail:network:errno? exn:fail? exn:fail:out-of-memory? expected? failure
     file->bytes file-failure filesystem-failure-code first flush-output force
     function gai handle handle-registry hash-ref hash-remove! hash-set! host
-    host-failure host-list->object-list if input integer->object-nat
+    host-failure host-list->object-list if input exact->object-rat
     invalid-codec-request invalid-handle-code invalid-path-code invalid-request
     invalid-text-code io-failure-code lambda lazy-apply lazy-apply2 length let
     let-values list listener listener-entry listener-entry-listener
@@ -298,7 +297,7 @@
     make-invalid-host-request maximum memv minimum module
     name-resolution-failed-code network-failure network-failure-code
     network-unreachable-code next-handle not not-found-code null? numbers
-    object-err object-list->host-list object-nat->integer object-ok
+    object-err object-list->host-list object-rat->exact object-ok
     object-string->bytes only-in operation operation-bytes operation-value or
     out-of-range out-of-range-reason output output-failure pair? path
     path-payload payload perform-read-file perform-stdout perform-tcp-accept
@@ -353,8 +352,6 @@
             host-list->object-list
             object-string->bytes
             bytes->object-string
-            object-nat->integer
-            integer->object-nat
             exact->object-rat
             object-rat->exact
             object-ok
@@ -373,9 +370,9 @@
     PERCENT HASH LEFT-PAREN RIGHT-PAREN LEFT-BRACKET RIGHT-BRACKET
     LEFT-BRACE RIGHT-BRACE))
 
-(define nat-public-bindings
-  '(ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN
-    SUCC ADD SUB MULT DIV EQ LT LTE GT GTE IS-ZERO))
+(define rat-public-bindings
+  '(SUCC ADD SUB MULT DIV EXP RECIP NEG ABS FLOOR
+    EQ LT LTE GT GTE IS-ZERO IS-WHOLE IS-NONNEGATIVE-WHOLE))
 
 (define string-public-bindings
   '(EMPTY-STRING MAKE-STRING STRING-EMPTY? STRING-LENGTH STRING-EQ
@@ -385,7 +382,7 @@
   (append
    '(TRUE FALSE NOT AND OR XOR
      NIL HEAD TAIL IS-NIL LEN TAKE DROP)
-   nat-public-bindings
+   rat-public-bindings
    '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
    character-public-bindings
    string-public-bindings
@@ -409,10 +406,12 @@
      (only-in "../core/chars.rkt"
               raw-make-char
               ,@character-public-bindings)
+     (only-in "../core/int.rkt"
+              raw-make-int)
      (only-in "../core/list-nat.rkt"
-              (typed-len LEN)
-              (typed-take TAKE)
-              (typed-drop DROP))
+              (typed-len-rat LEN)
+              (typed-take-rat TAKE)
+              (typed-drop-rat DROP))
      (only-in "../core/lists.rkt"
               NIL
               raw-cons
@@ -421,6 +420,8 @@
               (typed-tail TAIL)
               (typed-is-nil IS-NIL))
      (only-in "../core/logic.rkt" raw-false raw-true)
+     (only-in "../core/objects.rkt" raw-make-object)
+     (only-in "../core/pair.rkt" raw-pair)
      (only-in "../core/result.rkt"
               make-ok make-err is-ok is-err unwrap-ok unwrap-err)
      (only-in "../core/strings.rkt"
@@ -429,7 +430,26 @@
      (only-in "../core/typed-logic.rkt"
               TRUE FALSE NOT AND OR XOR
               (typed-if language-if))
-     (only-in "../core/typed-nat.rkt" raw-make-nat ,@nat-public-bindings)
+     (only-in "../core/tags.rkt" rat-type)
+     (only-in "../core/typed-rat.rkt"
+              (typed-rat-succ SUCC)
+              (typed-rat-add ADD)
+              (typed-rat-sub SUB)
+              (typed-rat-mult MULT)
+              (typed-rat-div DIV)
+              (typed-rat-exp EXP)
+              (typed-rat-recip RECIP)
+              (typed-rat-negate NEG)
+              (typed-rat-abs ABS)
+              (typed-rat-floor FLOOR)
+              (typed-rat-equal EQ)
+              (typed-rat-less LT)
+              (typed-rat-less-equal LTE)
+              (typed-rat-greater GT)
+              (typed-rat-greater-equal GTE)
+              (typed-rat-is-zero IS-ZERO)
+              (typed-rat-is-whole IS-WHOLE)
+              (typed-rat-is-nonnegative-whole IS-NONNEGATIVE-WHOLE))
      (only-in "../effects/files.rkt"
               (make-read-file language-make-read-file)
               (make-write-file language-make-write-file))
@@ -491,7 +511,8 @@
   '(language-definition-form?
     language-list-expression
     language-bit-expressions
-    language-nat-expression
+    language-magnitude-expression
+    language-rat-expression
     language-char-expression
     language-string-expression))
 
@@ -499,9 +520,10 @@
   (remove-duplicates
    (append
     language-direct-public-bindings
-    '(#%app #%datum #%module-begin #%top ... = _ argument body byte
+    '(#%app #%datum #%module-begin #%top ... = _ and argument body byte
       bytes->list car cdr char=? cond datum def define-for-syntax
-      define-syntax digit elements else exact-nonnegative-integer?
+      define-syntax digit elements else exact? denominator numerator
+      negative? rational? abs
       cons first for-syntax form function host identifier? if lambda
       lambda-let language-application language-bit-expressions
       language-char-expression language-cons language-datum
@@ -512,13 +534,21 @@
       language-make-tcp-connect language-make-tcp-listen
       language-make-tcp-read language-make-tcp-write
       language-make-write-file language-module-begin
-      language-nat-expression language-string-expression let map null?
+      language-magnitude-expression language-rat-expression
+      language-string-expression let map null?
       number->string only-in prepared-form provide quasisyntax
-      racket/base raise-syntax-error raw-cons raw-false raw-make-char
-      raw-make-nat raw-make-string raw-true remaining rename-out require
+      racket/base raise-syntax-error rat-type raw-cons raw-false
+      raw-make-char raw-make-int raw-make-object raw-make-string raw-pair
+      raw-true remaining rename-out require
       second string->bytes/utf-8 string->list string? stx syntax
-      syntax->list syntax-case syntax-e typed-cons typed-drop typed-head
-      typed-if typed-is-nil typed-len typed-tail typed-take unsyntax
+      syntax->list syntax-case syntax-e typed-cons typed-drop-rat
+      typed-head typed-if typed-is-nil typed-len-rat typed-rat-abs
+      typed-rat-add typed-rat-div typed-rat-equal typed-rat-exp
+      typed-rat-floor typed-rat-greater typed-rat-greater-equal
+      typed-rat-is-nonnegative-whole typed-rat-is-whole typed-rat-is-zero
+      typed-rat-less typed-rat-less-equal typed-rat-mult typed-rat-negate
+      typed-rat-recip typed-rat-sub typed-rat-succ typed-tail
+      typed-take-rat unsyntax
       value void with-syntax
       make-read-file make-stdout make-tcp-accept make-tcp-close
       make-tcp-connect make-tcp-listen make-tcp-read make-tcp-write
@@ -1838,6 +1868,40 @@
             (violation source 'unauthorized-host-export form)))))
    files))
 
+;; The public Nat surface was removed by the Step 35.5 switch. Rat is the
+;; only public number type; these retired spellings must never reappear in
+;; any production source.
+(define retired-nat-surface-identifiers
+  '(nat-type raw-make-nat raw-nat-value
+    typed-nat-succ typed-nat-add typed-nat-sub typed-nat-mult
+    typed-nat-div typed-nat-equal typed-nat-less typed-nat-less-equal
+    typed-nat-greater typed-nat-greater-equal typed-nat-is-zero
+    object-nat->integer integer->object-nat decode-bounded-nat
+    ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN))
+
+(define (reintroduced-nat-surface-violations production-files project-root)
+  (append-map
+   (lambda (path)
+     (define source (normalized path))
+     (define root (normalized project-root))
+     (cond
+       [(not (and (safe-source-path? source root)
+                  (file-exists? source)
+                  (regular-file-path? source)))
+        '()]
+       [else
+        (define info
+          (with-handlers ([exn:fail? (lambda (failure) #f)])
+            (read-module-info/unchecked source root)))
+        (if (not info)
+            '()
+            (for/list ([name
+                        (in-list
+                         (remove-duplicates (module-symbols info)))]
+                       #:when (memq name retired-nat-surface-identifiers))
+              (violation source 'reintroduced-nat-surface name)))]))
+   production-files))
+
 (define (project-boundary-violations
          [project-root default-project-root])
   (define root (normalized project-root))
@@ -1953,6 +2017,7 @@
                  #:unless (equal? path runner))
         (violation path 'unclassified-runner-module path))
       (unclassified-require-specs production-files root)
+      (reintroduced-nat-surface-violations production-files root)
       (production-nonproduction-imports production-files root)
       (unauthorized-codec-imports production-files root codec host)
       (unauthorized-host-imports production-files

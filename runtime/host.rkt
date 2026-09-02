@@ -51,8 +51,8 @@
                   codec-failure-reason
                   codec-failure?
                   object-err
-                  integer->object-nat
-                  object-nat->integer
+                  exact->object-rat
+                  object-rat->exact
                   object-list->host-list
                   object-ok
                   object-string->bytes
@@ -322,7 +322,7 @@
                 (register-entry!
                  (connection-entry input output)))
           (object-ok
-           (integer->object-nat handle))))))
+           (exact->object-rat handle))))))
 
 (define (cleanup-new-listener listener handle)
   (when handle
@@ -363,8 +363,8 @@
                    (listener-entry listener)))
             (object-ok
              (host-list->object-list
-              (list (integer->object-nat handle)
-                    (integer->object-nat bound-port)))))))))
+              (list (exact->object-rat handle)
+                    (exact->object-rat bound-port)))))))))
 
 (define (perform-tcp-accept handle)
   (define listener
@@ -394,7 +394,7 @@
                 (register-entry!
                  (connection-entry input output)))
           (object-ok
-           (integer->object-nat connection-handle))))))
+           (exact->object-rat connection-handle))))))
 
 (define (perform-tcp-read handle maximum)
   (define connection
@@ -510,12 +510,14 @@
                   (invalid-codec-request operation second)
                   (performer first second)))))))
 
-(define (decode-bounded-nat operation value minimum maximum)
+(define (decode-bounded-count operation value minimum maximum)
   (define decoded
-    (object-nat->integer value))
+    (object-rat->exact value))
   (cond
     [(codec-failure? decoded)
      (invalid-codec-request operation decoded)]
+    [(not (exact-nonnegative-integer? decoded))
+     (invalid-request operation out-of-range-reason)]
     [(or (< decoded minimum)
          (and maximum (> decoded maximum)))
      (invalid-request operation out-of-range-reason)]
@@ -530,7 +532,7 @@
         (if (codec-failure? remote)
             (invalid-codec-request tcp-connect-operation remote)
             (let ([port
-                   (decode-bounded-nat tcp-connect-operation
+                   (decode-bounded-count tcp-connect-operation
                                        (caddr decoded-request)
                                        1
                                        65535)])
@@ -547,14 +549,14 @@
         (if (codec-failure? local)
             (invalid-codec-request tcp-listen-operation local)
             (let ([port
-                   (decode-bounded-nat tcp-listen-operation
+                   (decode-bounded-count tcp-listen-operation
                                        (caddr decoded-request)
                                        0
                                        65535)])
               (if (not (exact-nonnegative-integer? port))
                   port
                   (let ([backlog
-                         (decode-bounded-nat tcp-listen-operation
+                         (decode-bounded-count tcp-listen-operation
                                              (cadddr decoded-request)
                                              1
                                              65535)])
@@ -566,7 +568,7 @@
   (if (not (= (length decoded-request) 2))
       (invalid-request tcp-accept-operation wrong-arity-reason)
       (let ([handle
-             (decode-bounded-nat tcp-accept-operation
+             (decode-bounded-count tcp-accept-operation
                                  (cadr decoded-request)
                                  1
                                  #f)])
@@ -578,14 +580,14 @@
   (if (not (= (length decoded-request) 3))
       (invalid-request tcp-read-operation wrong-arity-reason)
       (let ([handle
-             (decode-bounded-nat tcp-read-operation
+             (decode-bounded-count tcp-read-operation
                                  (cadr decoded-request)
                                  1
                                  #f)])
         (if (not (exact-nonnegative-integer? handle))
             handle
             (let ([maximum
-                   (decode-bounded-nat tcp-read-operation
+                   (decode-bounded-count tcp-read-operation
                                        (caddr decoded-request)
                                        1
                                        65536)])
@@ -597,7 +599,7 @@
   (if (not (= (length decoded-request) 3))
       (invalid-request tcp-write-operation wrong-arity-reason)
       (let ([handle
-             (decode-bounded-nat tcp-write-operation
+             (decode-bounded-count tcp-write-operation
                                  (cadr decoded-request)
                                  1
                                  #f)])
@@ -614,7 +616,7 @@
   (if (not (= (length decoded-request) 2))
       (invalid-request tcp-close-operation wrong-arity-reason)
       (let ([handle
-             (decode-bounded-nat tcp-close-operation
+             (decode-bounded-count tcp-close-operation
                                  (cadr decoded-request)
                                  1
                                  #f)])

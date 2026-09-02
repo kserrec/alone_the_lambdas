@@ -10,13 +10,13 @@
          "../core/logic.rkt"
          "../core/objects.rkt"
          "../core/tags.rkt"
-         "../core/typed-nat.rkt"
+         "../core/int.rkt"
+         "../core/rat.rkt"
          (only-in "../core/typed-logic.rkt"
                   TRUE)
          "../readers/bool.rkt"
          "../readers/char.rkt"
          "../readers/list.rkt"
-         "../readers/nat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/type-tag.rkt"
          "helpers/lazy.rkt")
@@ -42,10 +42,11 @@
     (char=? character #\1)))
 
 (define (integer->nat integer)
-  (lazy-apply
-   raw-make-nat
-   (host-bits->raw
-    (integer->host-bits integer))))
+  (apply2 raw-make-object
+          rat-type
+          (lazy-apply raw-whole-rat
+                      (host-bits->raw
+                       (integer->host-bits integer)))))
 
 (define (typed-value? type value)
   (raw-boolean->boolean
@@ -81,19 +82,15 @@
    (lazy-apply raw-error-frames error)
    frame->host))
 
-(define (char-value->nat value)
-  (lazy-apply
-   raw-make-nat
-   (lazy-apply raw-char-value value)))
-
 (define (check-char expected value)
   (check-true
    (typed-value? char-type value))
   (check-equal? (char-value->integer value)
                 expected)
   (check-equal?
-   (nat->host-bits
-    (char-value->nat value))
+   (list->host-list
+    (lazy-apply raw-char-value value)
+    raw-boolean->boolean)
    (integer->host-bits expected))
   (check-equal?
    (type-tag->integer
@@ -218,7 +215,7 @@
 
 (check-equal?
  (char-value->string
-  (lazy-apply MAKE-CHAR ZERO))
+  (lazy-apply MAKE-CHAR (integer->nat 0)))
  "char:0")
 
 (check-equal?
@@ -254,7 +251,7 @@
 (check-mismatch
  (lazy-apply MAKE-CHAR TRUE)
  1
- 3)
+ 7)
 
 (define rejected-bool-payload
   (apply2
@@ -268,7 +265,7 @@
  (lazy-apply MAKE-CHAR
              rejected-bool-payload)
  1
- 3)
+ 7)
 
 (define bubbled-error
   (lazy-apply MAKE-CHAR
@@ -278,7 +275,7 @@
  (error-kind=? bubbled-error
                invalid-nat-kind))
 (check-equal? (error-frames->host bubbled-error)
-              '((1 3)))
+              '((1 7)))
 (check-equal? (error-frames->host invalid-nat-error)
               '())
 
@@ -303,7 +300,7 @@
    (list DIGIT-0 DIGIT-9)
    (list RIGHT-BRACE RIGHT-BRACE)
    (list
-    (lazy-apply MAKE-CHAR ZERO)
+    (lazy-apply MAKE-CHAR (integer->nat 0))
     (lazy-apply MAKE-CHAR
                 (integer->nat 255)))))
 
@@ -381,7 +378,7 @@
 (for ([function (in-list
                  (list raw-make-char
                        raw-char-value
-                       typed-make-char
+                       typed-make-char-rat
                        MAKE-CHAR))])
   (check-equal?
    (procedure-arity

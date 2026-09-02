@@ -10,8 +10,10 @@
          "../core/lists.rkt"
          "../core/logic.rkt"
          "../core/objects.rkt"
+         "../core/int.rkt"
+         "../core/pair.rkt"
+         "../core/rat.rkt"
          "../core/tags.rkt"
-         "../core/typed-nat.rkt"
          "../readers/bool.rkt"
          "../readers/list.rkt"
          "../readers/raw-boolean.rkt"
@@ -196,10 +198,10 @@
   (apply3 raw-make-error-frame
           add-function-name
           argument-position-one
-          nat-type))
+          rat-type))
 
 (check-equal? (frame->host first-frame)
-              '(1 3))
+              '(1 7))
 (check-equal? (frame-name->host first-frame)
               "ADD")
 
@@ -208,7 +210,7 @@
           mismatch
           add-function-name
           argument-position-one
-          nat-type))
+          rat-type))
 
 (define twice-bubbled
   (apply4 raw-bubble-error
@@ -224,9 +226,9 @@
 (check-equal? (error-frames->host mismatch)
               '())
 (check-equal? (error-frames->host once-bubbled)
-              '((1 3)))
+              '((1 7)))
 (check-equal? (error-frames->host twice-bubbled)
-              '((2 2) (1 3)))
+              '((2 2) (1 7)))
 (check-equal? (error-frame-names->host mismatch)
               '())
 (check-equal? (error-frame-names->host once-bubbled)
@@ -299,7 +301,7 @@
 
 (define nested-empty-error
   (lazy-apply
-   typed-len
+   typed-len-rat
    (lazy-apply typed-head NIL)))
 
 (check-true (error-kind=? nested-empty-error
@@ -341,10 +343,13 @@
   (lazy-apply typed-head invalid-nat-error))
 
 (define take-count-propagation
-  (apply2 typed-take invalid-nat-error NIL))
+  (apply2 typed-take-rat invalid-nat-error NIL))
+
+(define rat-zero-object
+  (apply2 raw-make-object rat-type raw-rat-zero))
 
 (define take-list-propagation
-  (apply2 typed-take ZERO invalid-nat-error))
+  (apply2 typed-take-rat rat-zero-object invalid-nat-error))
 
 (for ([error (in-list
               (list cons-head-propagation
@@ -362,7 +367,7 @@
 (check-equal? (error-frames->host head-propagation)
               '((1 2)))
 (check-equal? (error-frames->host take-count-propagation)
-              '((1 3)))
+              '((1 7)))
 (check-equal? (error-frames->host take-list-propagation)
               '((2 2)))
 (check-equal? (error-frame-names->host cons-head-propagation)
@@ -410,7 +415,7 @@
    raw-list-head
    (lazy-apply raw-error-frames
                lazy-framed)))
- '(1 3))
+ '(1 7))
 
 (for ([function (in-list
                  (list raw-error-root-kind

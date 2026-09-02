@@ -1,7 +1,6 @@
 #lang s-exp "../macros/lazy-with-macros.rkt"
 
 (require "../macros/macros.rkt"
-         (only-in "../core/typed-nat.rkt" raw-make-nat)
          (only-in "../core/errors.rkt"
                   NIL
                   raw-add-result-frame
@@ -26,197 +25,10 @@
          make-tcp-accept
          make-tcp-read
          make-tcp-write
-         make-tcp-close
-         make-tcp-connect-request-rat
-         make-tcp-listen-request-rat
-         make-tcp-accept-request-rat
-         make-tcp-read-request-rat
-         make-tcp-write-request-rat
-         make-tcp-close-request-rat
-         make-tcp-connect-rat
-         make-tcp-listen-rat
-         make-tcp-accept-rat
-         make-tcp-read-rat
-         make-tcp-write-rat
-         make-tcp-close-rat)
+         make-tcp-close)
 
-(def string-and-nat-signature =
-  ((raw-cons string-type)
-   ((raw-cons nat-type) NIL)))
-
-(def string-and-two-nats-signature =
-  ((raw-cons string-type)
-   ((raw-cons nat-type)
-    ((raw-cons nat-type) NIL))))
-
-(def nat-signature =
-  ((raw-cons nat-type) NIL))
-
-(def two-nats-signature =
-  ((raw-cons nat-type)
-   ((raw-cons nat-type) NIL)))
-
-(def nat-and-string-signature =
-  ((raw-cons nat-type)
-   ((raw-cons string-type) NIL)))
-
-(def raw-make-tcp-connect-request remote-payload port-payload =
-  ((raw-cons tcp-connect-operation)
-   ((raw-cons
-     (raw-make-string remote-payload))
-    ((raw-cons
-      (raw-make-nat port-payload))
-     NIL))))
-
-(def raw-make-tcp-listen-request local-payload port-payload backlog-payload =
-  ((raw-cons tcp-listen-operation)
-   ((raw-cons
-     (raw-make-string local-payload))
-    ((raw-cons
-      (raw-make-nat port-payload))
-     ((raw-cons
-       (raw-make-nat backlog-payload))
-      NIL)))))
-
-(def raw-make-tcp-accept-request listener-payload =
-  ((raw-cons tcp-accept-operation)
-   ((raw-cons
-     (raw-make-nat listener-payload))
-    NIL)))
-
-(def raw-make-tcp-read-request connection-payload maximum-payload =
-  ((raw-cons tcp-read-operation)
-   ((raw-cons
-     (raw-make-nat connection-payload))
-    ((raw-cons
-      (raw-make-nat maximum-payload))
-     NIL))))
-
-(def raw-make-tcp-write-request connection-payload bytes-payload =
-  ((raw-cons tcp-write-operation)
-   ((raw-cons
-     (raw-make-nat connection-payload))
-    ((raw-cons
-      (raw-make-string bytes-payload))
-     NIL))))
-
-(def raw-make-tcp-close-request handle-payload =
-  ((raw-cons tcp-close-operation)
-   ((raw-cons
-     (raw-make-nat handle-payload))
-    NIL)))
-
-(def make-tcp-connect-request =
-  ((((make-typed-function raw-make-tcp-connect-request)
-     tcp-connect-function-name)
-    string-and-nat-signature)
-   raw-keep-return))
-
-(def make-tcp-listen-request =
-  ((((make-typed-function raw-make-tcp-listen-request)
-     tcp-listen-function-name)
-    string-and-two-nats-signature)
-   raw-keep-return))
-
-(def make-tcp-accept-request =
-  ((((make-typed-function raw-make-tcp-accept-request)
-     tcp-accept-function-name)
-    nat-signature)
-   raw-keep-return))
-
-(def make-tcp-read-request =
-  ((((make-typed-function raw-make-tcp-read-request)
-     tcp-read-function-name)
-    two-nats-signature)
-   raw-keep-return))
-
-(def make-tcp-write-request =
-  ((((make-typed-function raw-make-tcp-write-request)
-     tcp-write-function-name)
-    nat-and-string-signature)
-   raw-keep-return))
-
-(def make-tcp-close-request =
-  ((((make-typed-function raw-make-tcp-close-request)
-     tcp-close-function-name)
-    nat-signature)
-   raw-keep-return))
-
-(def raw-call-tcp-connect host remote-payload port-payload =
-  (host
-   ((raw-make-tcp-connect-request remote-payload)
-    port-payload)))
-
-(def raw-call-tcp-listen host local-payload port-payload backlog-payload =
-  (host
-   (((raw-make-tcp-listen-request local-payload)
-     port-payload)
-    backlog-payload)))
-
-(def raw-call-tcp-accept host listener-payload =
-  (host
-   (raw-make-tcp-accept-request listener-payload)))
-
-(def raw-call-tcp-read host connection-payload maximum-payload =
-  (host
-   ((raw-make-tcp-read-request connection-payload)
-    maximum-payload)))
-
-(def raw-call-tcp-write host connection-payload bytes-payload =
-  (host
-   ((raw-make-tcp-write-request connection-payload)
-    bytes-payload)))
-
-(def raw-call-tcp-close host handle-payload =
-  (host
-   (raw-make-tcp-close-request handle-payload)))
-
-;; Each public wrapper remains ordinary lambda computation. The standalone
-;; language will inject the sole real host; tests inject deterministic fakes.
-(def make-tcp-connect host =
-  ((((make-typed-function
-      (raw-call-tcp-connect host))
-     tcp-connect-function-name)
-    string-and-nat-signature)
-   raw-keep-return))
-
-(def make-tcp-listen host =
-  ((((make-typed-function
-      (raw-call-tcp-listen host))
-     tcp-listen-function-name)
-    string-and-two-nats-signature)
-   raw-keep-return))
-
-(def make-tcp-accept host =
-  ((((make-typed-function
-      (raw-call-tcp-accept host))
-     tcp-accept-function-name)
-    nat-signature)
-   raw-keep-return))
-
-(def make-tcp-read host =
-  ((((make-typed-function
-      (raw-call-tcp-read host))
-     tcp-read-function-name)
-    two-nats-signature)
-   raw-keep-return))
-
-(def make-tcp-write host =
-  ((((make-typed-function
-      (raw-call-tcp-write host))
-     tcp-write-function-name)
-    nat-and-string-signature)
-   raw-keep-return))
-
-(def make-tcp-close host =
-  ((((make-typed-function
-      (raw-call-tcp-close host))
-     tcp-close-function-name)
-    nat-signature)
-   raw-keep-return))
-
-;; Prepared Rat-based request constructors and wrappers for the Step 35.5
-;; public switch. Ports, backlog sizes, read limits, and handles arrive as
+;; Rat-based request constructors and wrappers (the Step 35.5 public
+;; switch). Ports, backlog sizes, read limits, and handles arrive as
 ;; Rat objects; pure lambda computation verifies each is a nonnegative
 ;; whole number before any request exists, so an invalid field is an
 ;; INVALID-COUNT Error and the host is never applied. Numeric request
@@ -245,7 +57,7 @@
 (def raw-rat-field payload =
   ((raw-make-object rat-type) payload))
 
-(def raw-make-tcp-connect-request-rat remote-payload port-payload =
+(def raw-make-tcp-connect-request remote-payload port-payload =
   (((raw-if
      (raw-rat-is-nonnegative-whole port-payload))
     ((raw-cons tcp-connect-operation)
@@ -257,7 +69,7 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-connect-function-name)))
 
-(def raw-make-tcp-listen-request-rat local-payload port-payload backlog-payload =
+(def raw-make-tcp-listen-request local-payload port-payload backlog-payload =
   (((raw-if
      ((raw-and
        (raw-rat-is-nonnegative-whole port-payload))
@@ -273,7 +85,7 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-listen-function-name)))
 
-(def raw-make-tcp-accept-request-rat listener-payload =
+(def raw-make-tcp-accept-request listener-payload =
   (((raw-if
      (raw-rat-is-nonnegative-whole listener-payload))
     ((raw-cons tcp-accept-operation)
@@ -283,7 +95,7 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-accept-function-name)))
 
-(def raw-make-tcp-read-request-rat connection-payload maximum-payload =
+(def raw-make-tcp-read-request connection-payload maximum-payload =
   (((raw-if
      ((raw-and
        (raw-rat-is-nonnegative-whole connection-payload))
@@ -297,7 +109,7 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-read-function-name)))
 
-(def raw-make-tcp-write-request-rat connection-payload bytes-payload =
+(def raw-make-tcp-write-request connection-payload bytes-payload =
   (((raw-if
      (raw-rat-is-nonnegative-whole connection-payload))
     ((raw-cons tcp-write-operation)
@@ -309,7 +121,7 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-write-function-name)))
 
-(def raw-make-tcp-close-request-rat handle-payload =
+(def raw-make-tcp-close-request handle-payload =
   (((raw-if
      (raw-rat-is-nonnegative-whole handle-payload))
     ((raw-cons tcp-close-operation)
@@ -319,38 +131,38 @@
    ((raw-add-result-frame invalid-count-error)
     tcp-close-function-name)))
 
-(def make-tcp-connect-request-rat =
-  ((((make-typed-function raw-make-tcp-connect-request-rat)
+(def make-tcp-connect-request =
+  ((((make-typed-function raw-make-tcp-connect-request)
      tcp-connect-function-name)
     string-and-rat-signature)
    raw-keep-return))
 
-(def make-tcp-listen-request-rat =
-  ((((make-typed-function raw-make-tcp-listen-request-rat)
+(def make-tcp-listen-request =
+  ((((make-typed-function raw-make-tcp-listen-request)
      tcp-listen-function-name)
     string-and-two-rats-signature)
    raw-keep-return))
 
-(def make-tcp-accept-request-rat =
-  ((((make-typed-function raw-make-tcp-accept-request-rat)
+(def make-tcp-accept-request =
+  ((((make-typed-function raw-make-tcp-accept-request)
      tcp-accept-function-name)
     rat-signature)
    raw-keep-return))
 
-(def make-tcp-read-request-rat =
-  ((((make-typed-function raw-make-tcp-read-request-rat)
+(def make-tcp-read-request =
+  ((((make-typed-function raw-make-tcp-read-request)
      tcp-read-function-name)
     two-rats-signature)
    raw-keep-return))
 
-(def make-tcp-write-request-rat =
-  ((((make-typed-function raw-make-tcp-write-request-rat)
+(def make-tcp-write-request =
+  ((((make-typed-function raw-make-tcp-write-request)
      tcp-write-function-name)
     rat-and-string-signature)
    raw-keep-return))
 
-(def make-tcp-close-request-rat =
-  ((((make-typed-function raw-make-tcp-close-request-rat)
+(def make-tcp-close-request =
+  ((((make-typed-function raw-make-tcp-close-request)
      tcp-close-function-name)
     rat-signature)
    raw-keep-return))
@@ -361,73 +173,73 @@
     request)
    (host request)))
 
-(def raw-call-tcp-connect-rat host remote-payload port-payload =
+(def raw-call-tcp-connect host remote-payload port-payload =
   ((raw-dispatch-or-bubble host)
-   ((raw-make-tcp-connect-request-rat remote-payload)
+   ((raw-make-tcp-connect-request remote-payload)
     port-payload)))
 
-(def raw-call-tcp-listen-rat host local-payload port-payload backlog-payload =
+(def raw-call-tcp-listen host local-payload port-payload backlog-payload =
   ((raw-dispatch-or-bubble host)
-   (((raw-make-tcp-listen-request-rat local-payload)
+   (((raw-make-tcp-listen-request local-payload)
      port-payload)
     backlog-payload)))
 
-(def raw-call-tcp-accept-rat host listener-payload =
+(def raw-call-tcp-accept host listener-payload =
   ((raw-dispatch-or-bubble host)
-   (raw-make-tcp-accept-request-rat listener-payload)))
+   (raw-make-tcp-accept-request listener-payload)))
 
-(def raw-call-tcp-read-rat host connection-payload maximum-payload =
+(def raw-call-tcp-read host connection-payload maximum-payload =
   ((raw-dispatch-or-bubble host)
-   ((raw-make-tcp-read-request-rat connection-payload)
+   ((raw-make-tcp-read-request connection-payload)
     maximum-payload)))
 
-(def raw-call-tcp-write-rat host connection-payload bytes-payload =
+(def raw-call-tcp-write host connection-payload bytes-payload =
   ((raw-dispatch-or-bubble host)
-   ((raw-make-tcp-write-request-rat connection-payload)
+   ((raw-make-tcp-write-request connection-payload)
     bytes-payload)))
 
-(def raw-call-tcp-close-rat host handle-payload =
+(def raw-call-tcp-close host handle-payload =
   ((raw-dispatch-or-bubble host)
-   (raw-make-tcp-close-request-rat handle-payload)))
+   (raw-make-tcp-close-request handle-payload)))
 
-(def make-tcp-connect-rat host =
+(def make-tcp-connect host =
   ((((make-typed-function
-      (raw-call-tcp-connect-rat host))
+      (raw-call-tcp-connect host))
      tcp-connect-function-name)
     string-and-rat-signature)
    raw-keep-return))
 
-(def make-tcp-listen-rat host =
+(def make-tcp-listen host =
   ((((make-typed-function
-      (raw-call-tcp-listen-rat host))
+      (raw-call-tcp-listen host))
      tcp-listen-function-name)
     string-and-two-rats-signature)
    raw-keep-return))
 
-(def make-tcp-accept-rat host =
+(def make-tcp-accept host =
   ((((make-typed-function
-      (raw-call-tcp-accept-rat host))
+      (raw-call-tcp-accept host))
      tcp-accept-function-name)
     rat-signature)
    raw-keep-return))
 
-(def make-tcp-read-rat host =
+(def make-tcp-read host =
   ((((make-typed-function
-      (raw-call-tcp-read-rat host))
+      (raw-call-tcp-read host))
      tcp-read-function-name)
     two-rats-signature)
    raw-keep-return))
 
-(def make-tcp-write-rat host =
+(def make-tcp-write host =
   ((((make-typed-function
-      (raw-call-tcp-write-rat host))
+      (raw-call-tcp-write host))
      tcp-write-function-name)
     rat-and-string-signature)
    raw-keep-return))
 
-(def make-tcp-close-rat host =
+(def make-tcp-close host =
   ((((make-typed-function
-      (raw-call-tcp-close-rat host))
+      (raw-call-tcp-close host))
      tcp-close-function-name)
     rat-signature)
    raw-keep-return))

@@ -104,11 +104,11 @@
 (define fallback-body
   (bytes->object-string #"missing"))
 (define listener-handle
-  (integer->object-nat 1))
+  (exact->object-rat 1))
 (define connection-handle
-  (integer->object-nat 2))
+  (exact->object-rat 2))
 (define maximum
-  (integer->object-nat 65536))
+  (exact->object-rat 65536))
 
 (define (make-path-handler matched-status fallback-status)
   (apply-arguments
@@ -138,7 +138,7 @@
 ;; the renderer's expected Result Err instead of introducing a host failure.
 (define lazy-branch-handler
   (make-path-handler HTTP-STATUS-OK
-                     (integer->object-nat 201)))
+                     (exact->object-rat 201)))
 (check-response-bytes
  (lazy-apply lazy-branch-handler route-target)
  #"HTTP/1.1 200 OK\r\nContent-Length: 17\r\nConnection: close\r\n\r\nlambda says hello")
@@ -209,18 +209,18 @@
   (cond
     [(bytes=? operation #"tcp-accept")
      (list operation
-           (object-nat->integer (cadr parts)))]
+           (object-rat->exact (cadr parts)))]
     [(bytes=? operation #"tcp-read")
      (list operation
-           (object-nat->integer (cadr parts))
-           (object-nat->integer (caddr parts)))]
+           (object-rat->exact (cadr parts))
+           (object-rat->exact (caddr parts)))]
     [(bytes=? operation #"tcp-write")
      (list operation
-           (object-nat->integer (cadr parts))
+           (object-rat->exact (cadr parts))
            (object-string->bytes (caddr parts)))]
     [(bytes=? operation #"tcp-close")
      (list operation
-           (object-nat->integer (cadr parts)))]
+           (object-rat->exact (cadr parts)))]
     [else
      (error 'decode-tcp-request
             "unexpected operation: ~s"
@@ -414,7 +414,7 @@
 ;; Handler Results and contract Errors never reach tcp-write. A wrong tagged
 ;; handler return becomes the dedicated invariant Error after close.
 (define unsupported-handler
-  (make-path-handler (integer->object-nat 201)
+  (make-path-handler (exact->object-rat 201)
                      HTTP-STATUS-NOT-FOUND))
 (define-values (handler-err-host handler-err-traces handler-err-calls
                                  handler-err-remaining)
@@ -515,12 +515,12 @@
  (lazy-apply wrong-listener-partial maximum)
  #"http-serve-one"
  1
- 3)
+ 7)
 (check-contract-error
  (apply2 contract-serve-one listener-handle TRUE)
  #"http-serve-one"
  2
- 3)
+ 7)
 (define incoming-server-error
   (apply2 contract-serve-one invalid-nat-error maximum))
 (check-true (typed-value? error-type incoming-server-error))
@@ -533,7 +533,7 @@
 ;; permits two successes, then ends the otherwise nonterminating loop with an
 ;; expected accept Err. Each new accept follows the prior connection close.
 (define second-connection-handle
-  (integer->object-nat 3))
+  (exact->object-rat 3))
 (define second-request
   (bytes->object-string
    #"GET /missing HTTP/1.1\r\nHost: localhost\r\n\r\n"))
@@ -582,8 +582,8 @@
 (define listener-result
   (apply3 real-listen
           (bytes->object-string #"127.0.0.1")
-          (integer->object-nat 0)
-          (integer->object-nat 4)))
+          (exact->object-rat 0)
+          (exact->object-rat 4)))
 (check-true (bool->boolean
              (lazy-apply is-ok listener-result)))
 (define listener-parts
@@ -592,7 +592,7 @@
 (define real-listener
   (car listener-parts))
 (define bound-port
-  (object-nat->integer (cadr listener-parts)))
+  (object-rat->exact (cadr listener-parts)))
 (check-true (and (exact-positive-integer? bound-port)
                  (<= bound-port 65535)))
 

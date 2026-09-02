@@ -15,11 +15,15 @@
                   FALSE
                   TRUE
                   typed-if)
-         "../core/typed-nat.rkt"
+         "../core/binary-nat.rkt"
+         "../core/logic.rkt"
+         "../core/rat.rkt"
+         "../core/typed-rat.rkt"
          "../readers/bool.rkt"
          "../readers/char.rkt"
          "../readers/error.rkt"
-         "../readers/nat.rkt"
+         "../readers/list.rkt"
+         "../readers/rat.rkt"
          "../readers/raw-boolean.rkt"
          "../readers/string.rkt"
          "../readers/type-tag.rkt"
@@ -39,6 +43,40 @@
 (define (object-type-name value)
   (type-tag->string
    (lazy-apply raw-object-type value)))
+
+(define (host-bits->raw bits)
+  (foldr
+   (lambda (bit tail)
+     (apply2 raw-cons
+             (if bit raw-true raw-false)
+             tail))
+   NIL
+   bits))
+
+(define (whole-rat-object integer)
+  (apply2 raw-make-object
+          rat-type
+          (lazy-apply
+           raw-whole-rat
+           (host-bits->raw
+            (for/list ([character
+                        (in-string
+                         (number->string integer 2))])
+              (char=? character #\1))))))
+
+(define ZERO (whole-rat-object 0))
+(define ONE (whole-rat-object 1))
+(define TWO (whole-rat-object 2))
+(define EIGHT (whole-rat-object 8))
+(define TEN (whole-rat-object 10))
+
+(define ADD typed-rat-add)
+(define MULT typed-rat-mult)
+(define DIV typed-rat-div)
+
+(define (rat-object->number value)
+  (rat->number
+   (lazy-apply raw-object-value value)))
 
 (define hi
   (lazy-apply
@@ -72,7 +110,7 @@
 
 (check-equal? (object-type-name TRUE) "BOOL")
 (check-equal? (object-type-name FALSE) "BOOL")
-(check-equal? (object-type-name ZERO) "NAT")
+(check-equal? (object-type-name ZERO) "RAT")
 (check-equal? (object-type-name NIL) "LIST")
 (check-equal? (object-type-name A) "CHAR")
 (check-equal? (object-type-name greeting) "STRING")
@@ -85,16 +123,19 @@
 (check-equal? (char-value->string
                (lazy-apply STRING-HEAD greeting))
               "h")
-(check-equal? (nat->integer
+(check-equal? (rat-object->number
                (lazy-apply STRING-LENGTH greeting))
               8)
 
 (define one-hundred
   (apply2 MULT TEN TEN))
 
-(check-equal? (nat->integer one-hundred)
+(check-equal? (rat-object->number one-hundred)
               100)
-(check-equal? (nat->host-bits one-hundred)
+(check-equal? (list->host-list
+               (lazy-apply raw-rat-magnitude-bits
+                           (lazy-apply raw-object-value one-hundred))
+               raw-boolean->boolean)
               '(#t #t #f #f #t #f #f))
 
 (define division-success
@@ -106,7 +147,7 @@
               "RESULT")
 (check-true (bool->boolean
              (lazy-apply is-ok division-success)))
-(check-equal? (nat->integer
+(check-equal? (rat-object->number
                (lazy-apply unwrap-ok division-success))
               4)
 (check-true (bool->boolean
@@ -121,7 +162,7 @@
 (check-equal? (object-type-name contract-failure)
               "ERROR")
 (check-equal? (error-value->string contract-failure)
-              "ADD(arg1 expected NAT got BOOL)")
+              "ADD(arg1 expected RAT got BOOL)")
 
 (define-runtime-path core-directory
   "../core")
@@ -131,6 +172,6 @@
    (production-files-under core-directory)))
 
 (check-equal? (length production-results)
-              19)
+              18)
 (check-equal? (append-map cdr production-results)
               '())

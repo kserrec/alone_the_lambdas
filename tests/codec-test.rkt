@@ -3,8 +3,6 @@
 (require rackunit
          (only-in racket/list range)
          racket/promise
-         (only-in "../core/typed-nat.rkt"
-                  raw-nat-value)
          "../core/chars.rkt"
          "../core/errors.rkt"
          "../core/lists.rkt"
@@ -158,8 +156,9 @@
                (object-string->bytes out-of-range-string))
               'out-of-range)
 
-;; Nat conversion is exact in both directions, including the protocol bounds
-;; and values larger than any current host request needs.
+;; Whole-number boundary values ride the Rat conversions since the Step
+;; 35.5 switch, including the protocol bounds and values larger than any
+;; current host request needs.
 (for ([sample (in-list (list 0
                              1
                              255
@@ -167,61 +166,10 @@
                              65535
                              65536
                              (expt 2 80)))])
-  (define encoded (integer->object-nat sample))
-  (check-true (typed-value? nat-type encoded))
-  (check-equal? (object-nat->integer encoded)
+  (define encoded (exact->object-rat sample))
+  (check-true (typed-value? rat-type encoded))
+  (check-equal? (object-rat->exact encoded)
                 sample))
-
-(define (object-nat-bits value)
-  (map raw-boolean->boolean
-       (object-list->host-list
-        (lazy-apply raw-nat-value value))))
-
-(check-equal? (object-nat-bits (integer->object-nat 0))
-              '(#f))
-(check-equal? (object-nat-bits (integer->object-nat 1))
-              '(#t))
-(check-equal? (object-nat-bits (integer->object-nat 256))
-              '(#t #f #f #f #f #f #f #f #f))
-
-(check-equal? (failure-reason (object-nat->integer TRUE))
-              'wrong-type)
-(check-equal?
- (failure-reason
-  (object-nat->integer
-   (apply2 raw-make-object nat-type NIL)))
- 'out-of-range)
-(check-equal?
- (failure-reason
-  (object-nat->integer
-   (apply2 raw-make-object
-           nat-type
-           (bits->raw '(#f #t)))))
- 'out-of-range)
-(check-equal?
- (failure-reason
-  (object-nat->integer
-   (apply2 raw-make-object
-           nat-type
-           (host-list->object-list (list TRUE)))))
- 'wrong-type)
-
-(define improper-bit-list
-  (apply2 raw-make-object
-          list-type
-          (apply2 raw-pair raw-true TRUE)))
-(check-equal?
- (failure-reason
-  (object-nat->integer
-   (apply2 raw-make-object nat-type improper-bit-list)))
- 'wrong-type)
-
-(check-exn exn:fail:contract?
-           (lambda ()
-             (integer->object-nat -1)))
-(check-exn exn:fail:contract?
-           (lambda ()
-             (integer->object-nat 1/2)))
 
 (define ok-nil (object-ok NIL))
 (check-true (typed-value? result-type ok-nil))

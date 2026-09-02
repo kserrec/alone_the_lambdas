@@ -188,8 +188,6 @@
                     host-list->object-list
                     object-string->bytes
                     bytes->object-string
-                    object-nat->integer
-                    integer->object-nat
                     exact->object-rat
                     object-rat->exact
                     object-ok
@@ -230,7 +228,7 @@
           (eq? (source-classification-class classification)
                'reader))
         project-classifications)
- 10)
+ 9)
 
 (temporary-project
  (lambda (root)
@@ -581,8 +579,6 @@
                   host-list->object-list
                   object-string->bytes
                   bytes->object-string
-                  object-nat->integer
-                  integer->object-nat
                   exact->object-rat
                   object-rat->exact
                   object-ok

@@ -21,7 +21,6 @@
     [(0) "ERROR"]
     [(1) "BOOL"]
     [(2) "LIST"]
-    [(3) "NAT"]
     [(4) "RESULT"]
     [(5) "CHAR"]
     [(6) "STRING"]
