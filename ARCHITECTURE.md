@@ -149,8 +149,10 @@ the InvalidByte Error (kind 15); `BYTE-VALUE` converts back to a whole Rat;
 `BYTE-EQ` through `BYTE-GTE` compare payload magnitudes and return Bool.
 Byte is data, not a second number type: ordinary Rat arithmetic rejects it
 through the unchanged exact-tag checker, and a byte sequence is `List Byte`
-with no separate Bytes type. `readers/byte.rkt` renders payloads as host
-integers one way.
+with no separate Bytes type: `STRING-TO-BYTES` maps one Byte per Char, and
+`BYTES-TO-STRING` validates every element before converting, rejecting any
+non-Byte element as InvalidByte rather than assuming a List is a byte
+sequence. `readers/byte.rkt` renders payloads as host integers one way.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. The
 strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
 Result itself remains independent of the number surface and available to

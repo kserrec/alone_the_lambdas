@@ -10,23 +10,36 @@
 
 (require "../macros/macros.rkt"
          "binary-nat.rkt"
+         (only-in "chars.rkt"
+                  raw-make-char
+                  raw-char-value)
          (only-in "errors.rkt"
                   NIL
                   raw-cons
                   raw-add-result-frame
                   invalid-byte-error)
+         "fix.rkt"
          "function-names.rkt"
+         (only-in "lists.rkt"
+                  raw-list-head
+                  raw-list-is-nil
+                  raw-list-tail
+                  raw-map)
          "logic.rkt"
          "objects.rkt"
          (only-in "rat.rkt"
                   raw-rat-is-nonnegative-whole
                   raw-rat-magnitude-bits
                   raw-whole-rat)
+         (only-in "strings.rkt"
+                  raw-make-string)
          "tags.rkt"
          "typecheck.rkt")
 
 (provide raw-make-byte
          raw-byte-value
+         typed-string-to-bytes
+         typed-bytes-to-string
          typed-make-byte
          typed-byte-value
          typed-byte-equal
@@ -40,7 +53,9 @@
                      [typed-byte-less BYTE-LT]
                      [typed-byte-less-equal BYTE-LTE]
                      [typed-byte-greater BYTE-GT]
-                     [typed-byte-greater-equal BYTE-GTE]))
+                     [typed-byte-greater-equal BYTE-GTE]
+                     [typed-string-to-bytes STRING-TO-BYTES]
+                     [typed-bytes-to-string BYTES-TO-STRING]))
 
 (def raw-two-bits =
   (raw-nat-succ raw-one-bits))
@@ -131,3 +146,64 @@
      byte-gte-function-name)
     byte-binary-signature)
    (raw-wrap-return bool-type)))
+
+;; A byte sequence is `List Byte`. Text crosses to binary data and back
+;; entirely in lambda computation: one Byte per Char in each direction,
+;; validating every element rather than assuming any List is a byte
+;; sequence.
+
+(def raw-char-to-byte char =
+  (raw-make-byte
+   (raw-char-value char)))
+
+(def raw-string-to-bytes chars =
+  ((raw-map raw-char-to-byte) chars))
+
+(def raw-byte-to-char byte =
+  (raw-make-char
+   (raw-byte-value byte)))
+
+(def raw-byte-list-valid-step recur bytes =
+  (((raw-if
+     (raw-list-is-nil bytes))
+    raw-true)
+   (((raw-if
+      ((raw-is-type byte-type)
+       (raw-list-head bytes)))
+     (recur
+      (raw-list-tail bytes)))
+    raw-false)))
+
+(def raw-byte-list-valid? =
+  (raw-fix raw-byte-list-valid-step))
+
+(def raw-list-object payload =
+  ((raw-make-object list-type) payload))
+
+(def raw-bytes-to-string list-payload =
+  (lambda-let bytes =
+    (raw-list-object list-payload)
+    (((raw-if
+       (raw-byte-list-valid? bytes))
+      (raw-make-string
+       ((raw-map raw-byte-to-char) bytes)))
+     ((raw-add-result-frame invalid-byte-error)
+      bytes-to-string-function-name))))
+
+(def string-unary-signature =
+  ((raw-cons string-type) NIL))
+
+(def list-unary-signature =
+  ((raw-cons list-type) NIL))
+
+(def typed-string-to-bytes =
+  ((((make-typed-function raw-string-to-bytes)
+     string-to-bytes-function-name)
+    string-unary-signature)
+   raw-keep-return))
+
+(def typed-bytes-to-string =
+  ((((make-typed-function raw-bytes-to-string)
+     bytes-to-string-function-name)
+    list-unary-signature)
+   raw-keep-return))

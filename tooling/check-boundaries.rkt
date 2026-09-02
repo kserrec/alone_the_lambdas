@@ -391,7 +391,8 @@
      NIL HEAD TAIL IS-NIL LEN TAKE DROP)
    rat-public-bindings
    '(UNIT)
-   '(MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE)
+   '(MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
+     STRING-TO-BYTES BYTES-TO-STRING)
    '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
    character-public-bindings
    string-public-bindings
@@ -413,7 +414,8 @@
      (only-in racket/base (void language-discard))
      (only-in "../macros/macros.rkt" def (lambda-let language-let))
      (only-in "../core/byte.rkt"
-              MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE)
+              MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
+              STRING-TO-BYTES BYTES-TO-STRING)
      (only-in "../core/chars.rkt"
               raw-make-char
               ,@character-public-bindings)

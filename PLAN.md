@@ -1798,20 +1798,32 @@ inventory.
 
 ### Step 37.2 — Add pure String and byte-sequence conversion
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Represent a byte sequence as `List Byte`; add no Bytes tag or host-backed
+- [x] Represent a byte sequence as `List Byte`; add no Bytes tag or host-backed
   byte collection.
-- Add pure conversions between String and `List Byte`.
-- Validate every List element rather than assuming that any List is a byte
+- [x] Add pure conversions between String and `List Byte`.
+- [x] Validate every List element rather than assuming that any List is a byte
   sequence.
-- Implement traversal, validation, and element conversion entirely with
+- [x] Implement traversal, validation, and element conversion entirely with
   object-language lambdas.
-- Test empty, ordinary text, every boundary byte, embedded zero, invalid List
+- [x] Test empty, ordinary text, every boundary byte, embedded zero, invalid List
   elements, laziness, and Error propagation.
 
 Acceptance: AttaLambda can explicitly cross between text and binary data
 without using Racket to walk, validate, or transform an object-language List.
+
+Completion evidence: `STRING-TO-BYTES : String -> List` maps one Byte per
+Char with the existing pure `raw-map`, and `BYTES-TO-STRING : List ->
+String` walks the List validating each element's Byte tag before any
+conversion, rejecting a non-Byte element as
+`INVALID-BYTE\n  -> BYTES-TO-STRING(result)`. Both are strict facade
+exports built on the unchanged checker with pinned forms updated. Tests
+cover ABC text, empty values in both directions, the boundary bytes
+0/1/127/128/255 with an embedded zero round-tripping byte-exactly,
+non-Byte and Char elements rejected, wrong argument types, incoming Error
+bubbling, unary arity, and validation stopping at the first bad element
+without examining a divergent later element. The full suite passed 11,875 assertions across all 36 test files with the 20-module purity proof and zero-finding boundary inventory.
 
 ### Step 37.3 — Move file contents to `List Byte`
 

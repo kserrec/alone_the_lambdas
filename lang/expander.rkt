@@ -13,7 +13,9 @@
                   BYTE-LT
                   BYTE-LTE
                   BYTE-GT
-                  BYTE-GTE)
+                  BYTE-GTE
+                  STRING-TO-BYTES
+                  BYTES-TO-STRING)
          (only-in "../core/chars.rkt"
                   raw-make-char
                   MAKE-CHAR
@@ -148,6 +150,7 @@
          EQ LT LTE GT GTE IS-ZERO IS-WHOLE IS-NONNEGATIVE-WHOLE
          UNIT
          MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
+         STRING-TO-BYTES BYTES-TO-STRING
          make-ok make-err is-ok is-err unwrap-ok unwrap-err
          MAKE-CHAR CHAR-EQ CHAR-LT CHAR-LTE CHAR-GT CHAR-GTE
          A B C D E F G H I J K L M
