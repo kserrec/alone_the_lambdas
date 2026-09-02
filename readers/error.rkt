@@ -24,9 +24,9 @@
     [(4) "INVALID-CHAR"]
     [(5) "INVALID-STRING"]
     [(6) "WRONG-RESULT-VARIANT"]
-    [(13) "NON-WHOLE-EXPONENT"]
-    [(14) "INVALID-COUNT"]
-    [(15) "INVALID-BYTE"]
+    [(14) "NON-WHOLE-EXPONENT"]
+    [(15) "INVALID-COUNT"]
+    [(16) "INVALID-BYTE"]
     [else
      (format "ERROR-KIND:~a"
              kind-number)]))

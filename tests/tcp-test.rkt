@@ -318,7 +318,7 @@
                 (cadddr case)))
 
 ;; Negative and fractional numeric fields are INVALID-COUNT Errors
-;; (kind 14) from the request constructor itself.
+;; (kind 15) from the request constructor itself.
 (define negative-rat (exact->object-rat -1))
 (define fractional-rat (exact->object-rat 3/2))
 
@@ -337,7 +337,7 @@
               (apply-arguments make-tcp-close-request
                                (list fractional-rat))))])
   (check-true (typed-value? error-type bad-request))
-  (check-equal? (error-kind-integer bad-request) 14))
+  (check-equal? (error-kind-integer bad-request) 15))
 
 ;; Valid Rat wrappers dispatch exactly the documented requests; the host is
 ;; never applied for an invalid numeric field, and the Error bubbles.
@@ -408,7 +408,7 @@
               (lazy-apply (lazy-apply make-tcp-close rat-fake-host)
                           negative-rat)))])
   (check-true (typed-value? error-type bad-value))
-  (check-equal? (error-kind-integer bad-value) 14))
+  (check-equal? (error-kind-integer bad-value) 15))
 (check-equal? rat-calls invalid-field-calls)
 
 ;; Wrong argument types remain ordinary strict mismatches expecting RAT.

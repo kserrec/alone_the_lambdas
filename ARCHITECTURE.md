@@ -145,7 +145,7 @@ one. `readers/unit.rkt` renders the value's type name for humans.
 `core/byte.rkt` defines public Byte (tag 9): exactly 256 valid values
 backed by private normalized binary magnitudes. `MAKE-BYTE` accepts a
 nonnegative whole Rat from 0 through 255 and rejects every other value as
-the InvalidByte Error (kind 15); `BYTE-VALUE` converts back to a whole Rat;
+the InvalidByte Error (kind 16); `BYTE-VALUE` converts back to a whole Rat;
 `BYTE-EQ` through `BYTE-GTE` compare payload magnitudes and return Bool.
 Byte is data, not a second number type: ordinary Rat arithmetic rejects it
 through the unchanged exact-tag checker, and a byte sequence is `List Byte`
@@ -537,7 +537,7 @@ result routes back through the canonical constructor. Reciprocal and
 division guard a zero operand and return raw Result values: the expected
 failure is the canonical DivideByZero Error inside Err, never an exception
 or a sentinel. Exponentiation accepts only whole Rat exponents — a
-fractional exponent is the expected NonWholeExponent failure (error kind 13,
+fractional exponent is the expected NonWholeExponent failure (error kind 14,
 numbered after the host-protocol and HTTP kinds)
 even when that power would happen to be rational — computes magnitudes with
 the private squaring exponentiation, takes reciprocals for negative

@@ -62,14 +62,16 @@
 (def invalid-char-kind = church-four)
 (def invalid-string-kind = church-five)
 (def wrong-result-variant-kind = church-six)
-;; Kinds 7 and 8 belong to the host protocol and 9 through 12 to the pure
-;; HTTP layer; new core kinds continue after the complete assigned space.
+;; Kinds 7 and 8 belong to the host protocol, 9 through 12 to the pure
+;; HTTP layer, and 13 to the HTTP server's handler contract; new core
+;; kinds continue after the complete assigned space.
 (def non-whole-exponent-kind =
   (church-succ
    (church-succ
     (church-succ
      (church-succ
-      (church-succ church-eight))))))
+      (church-succ
+       (church-succ church-eight)))))))
 
 (def invalid-count-kind =
   (church-succ non-whole-exponent-kind))

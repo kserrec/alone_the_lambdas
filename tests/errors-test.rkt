@@ -493,3 +493,47 @@
            raw-false
            raw-false)))
  1)
+
+;; The error-kind space is a single flat namespace shared by the core,
+;; the host protocol, the pure HTTP layer, and the HTTP server. Every
+;; defined kind must hold a unique Church value at its documented number,
+;; so a miscounted successor chain in any layer fails here.
+(require (only-in "../effects/protocol.rkt"
+                  invalid-host-request-kind
+                  host-failure-kind)
+         (only-in "../effects/http.rkt"
+                  incomplete-http-request-kind
+                  malformed-http-request-kind
+                  unsupported-http-request-kind
+                  unsupported-http-status-kind)
+         (only-in "../effects/http-server.rkt"
+                  invalid-http-handler-result-kind))
+
+(define all-error-kinds
+  (list (cons type-mismatch-kind 0)
+        (cons empty-list-kind 1)
+        (cons invalid-nat-kind 2)
+        (cons divide-by-zero-kind 3)
+        (cons invalid-char-kind 4)
+        (cons invalid-string-kind 5)
+        (cons wrong-result-variant-kind 6)
+        (cons invalid-host-request-kind 7)
+        (cons host-failure-kind 8)
+        (cons incomplete-http-request-kind 9)
+        (cons malformed-http-request-kind 10)
+        (cons unsupported-http-request-kind 11)
+        (cons unsupported-http-status-kind 12)
+        (cons invalid-http-handler-result-kind 13)
+        (cons non-whole-exponent-kind 14)
+        (cons invalid-count-kind 15)
+        (cons invalid-byte-kind 16)))
+
+(for ([entry (in-list all-error-kinds)])
+  (check-equal? (type-tag->integer (car entry))
+                (cdr entry)))
+
+(check-equal?
+ (remove-duplicates
+  (map (lambda (entry) (type-tag->integer (car entry)))
+       all-error-kinds))
+ (map cdr all-error-kinds))

@@ -292,14 +292,14 @@
    (expt (first case) (second case))))
 
 ;; Every fractional exponent is the expected NON-WHOLE-EXPONENT failure,
-;; kind 13 — including powers that would happen to be rational.
+;; kind 14 — including powers that would happen to be rational.
 (for ([case (in-list '((4/9 1/2) (8/27 1/3) (2 1/2) (-3/2 7/3)
                        (1 1/2) (0 1/2)))])
   (check-err-kind
    (apply2 raw-rat-exp
            (exact->rat (first case))
            (exact->rat (second case)))
-   13))
+   14))
 
 ;; Zero raised to a negative whole exponent divides by zero.
 (for ([exponent (in-list '(-1 -2 -5))])
