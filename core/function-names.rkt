@@ -68,7 +68,14 @@
          some-function-name
          is-some-function-name
          is-none-function-name
-         option-case-function-name)
+         option-case-function-name
+         make-map-function-name
+         map-empty-function-name
+         map-size-function-name
+         map-lookup-function-name
+         map-contains-function-name
+         map-set-function-name
+         map-remove-function-name)
 
 (def raw-name-char bits =
   ((raw-make-object char-type) bits))
@@ -147,3 +154,11 @@
 (define-function-name is-some-function-name IS-SOME)
 (define-function-name is-none-function-name IS-NONE)
 (define-function-name option-case-function-name OPTION-CASE)
+
+(define-function-name make-map-function-name MAKE-MAP)
+(define-function-name map-empty-function-name MAP-EMPTY?)
+(define-function-name map-size-function-name MAP-SIZE)
+(define-function-name map-lookup-function-name MAP-LOOKUP)
+(define-function-name map-contains-function-name MAP-CONTAINS?)
+(define-function-name map-set-function-name MAP-SET)
+(define-function-name map-remove-function-name MAP-REMOVE)

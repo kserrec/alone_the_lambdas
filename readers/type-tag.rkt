@@ -28,6 +28,7 @@
     [(8) "UNIT"]
     [(9) "BYTE"]
     [(10) "OPTION"]
+    [(11) "MAP"]
     [else
      (format "TYPE:~a"
              tag-number)]))

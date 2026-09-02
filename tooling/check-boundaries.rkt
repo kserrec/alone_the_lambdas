@@ -224,7 +224,9 @@
     string string-append string-join string-value->string tag-number
     supported-ascii-code? total type-mismatch-root->string type-tag
     type-tag->integer type-tag->string typed-head typed-is-nil typed-tail
-    option->string raw-option-is-some unit->string value
+    length map->string option->string raw-map-entries raw-option-is-some
+    entry
+    unit->string value
     values))
 
 (define privileged-host-only-identifiers
@@ -398,6 +400,7 @@
    '(MAKE-BYTE BYTE-VALUE BYTE-EQ BYTE-LT BYTE-LTE BYTE-GT BYTE-GTE
      STRING-TO-BYTES BYTES-TO-STRING)
    '(SOME NONE IS-SOME IS-NONE OPTION-CASE)
+   '(MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP)
    '(make-ok make-err is-ok is-err unwrap-ok unwrap-err)
    character-public-bindings
    string-public-bindings
@@ -439,6 +442,7 @@
               (typed-is-nil IS-NIL))
      (only-in "../core/logic.rkt" raw-false raw-true)
      (only-in "../core/objects.rkt" raw-make-object)
+     (only-in "../core/map.rkt" MAKE-MAP MAP-EMPTY? MAP-SIZE MAP-LOOKUP)
      (only-in "../core/option.rkt" NONE SOME IS-SOME IS-NONE OPTION-CASE)
      (only-in "../core/pair.rkt" raw-pair)
      (only-in "../core/result.rkt"

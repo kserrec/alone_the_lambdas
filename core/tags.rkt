@@ -15,6 +15,7 @@
          church-eight
          church-nine
          church-ten
+         church-eleven
          error-type
          bool-type
          list-type
@@ -25,6 +26,7 @@
          unit-type
          byte-type
          option-type
+         map-type
          raw-tag-equal)
 
 (def church-zero step seed =
@@ -63,6 +65,9 @@
 (def church-ten =
   (church-succ church-nine))
 
+(def church-eleven =
+  (church-succ church-ten))
+
 (def error-type = church-zero)
 (def bool-type = church-one)
 (def list-type = church-two)
@@ -73,6 +78,7 @@
 (def unit-type = church-eight)
 (def byte-type = church-nine)
 (def option-type = church-ten)
+(def map-type = church-eleven)
 
 (def raw-church-is-zero numeral =
   ((numeral

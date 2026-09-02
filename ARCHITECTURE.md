@@ -102,7 +102,7 @@ become an object-language representation.
 | Mechanical syntax | `def`, lambda-based `let`, and other expansion-only sugar |
 | Raw calculus | Pairs, raw Boolean selectors, tags, and untyped algorithms |
 | Typed objects | Uniform tag/payload representation and strict validation |
-| Public data | List, Rat, Unit, Byte, Option, Error, Result, Char, and String |
+| Public data | List, Rat, Unit, Byte, Option, Map, Error, Result, Char, and String |
 | Pure effects | Lambda request validation, protocol computation, and wrappers over an injected unary host |
 | Boundary codec | Exact private representation conversion; no operating-system effects |
 | Privileged host | Sole `host` export and operations approved through the current phase |
@@ -174,6 +174,19 @@ singleton absent form, distinct from failure, false, zero, NIL, and Unit.
 lazy polymorphic eliminator: strict on its Option, selecting one branch
 without evaluating the other, exactly as `IF` treats its branches.
 `readers/option.rkt` renders the constructor name one way.
+
+`core/map.rkt` defines persistent public Map (tag 11): a user-supplied pure
+key-equality function paired with a private object-language List of
+key/value Pairs — never a Racket collection or Racket equality. `MAKE-MAP`
+fixes the equality function (an Error argument bubbles); `MAP-LOOKUP`
+returns Option with NONE for expected absence; `MAP-EMPTY?` and `MAP-SIZE`
+(a whole Rat) use the checker directly. The equality contract is
+`key -> key -> Bool`: an Error answer bubbles with the operation's frame,
+and any other non-Bool answer is a structured mismatch expecting BOOL.
+Mixed-strictness operations validate their Map argument manually, exactly
+as `IF` and `OPTION-CASE` handle polymorphic positions, because keys and
+values carry no tag contract. `readers/map.rkt` renders the entry count one
+way.
 `core/result.rkt` sits above Errors, Lists, objects, and the checker. The
 strict Rat layer depends on Result only for `DIV`, `EXP`, and `RECIP`, so
 Result itself remains independent of the number surface and available to
@@ -692,6 +705,7 @@ core/
   unit.rkt
   byte.rkt
   option.rkt
+  map.rkt
   result.rkt
   chars.rkt
   list-nat.rkt
@@ -725,6 +739,7 @@ readers/
   unit.rkt
   byte.rkt
   option.rkt
+  map.rkt
   char.rkt
   string.rkt
   error.rkt

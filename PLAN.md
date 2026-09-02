@@ -1931,20 +1931,36 @@ never alters the old Map.
 
 ### Step 39.1 — Add Map representation and lookup
 
-Status: pending
+Status: complete (2026-09-01)
 
-- Construct a Map with a user-supplied pure object-language key-equality
+- [x] Construct a Map with a user-supplied pure object-language key-equality
   function.
-- Store entries as a private object-language List of Pairs, never as a Racket
+- [x] Store entries as a private object-language List of Pairs, never as a Racket
   list, association list, hash table, dictionary, struct, or mutable value.
-- Add empty, lookup, and reader behavior.
-- Make lookup return `SOME value` or `NONE`.
-- Check that the supplied equality function returns Bool; otherwise return a
+- [x] Add empty, lookup, and reader behavior.
+- [x] Make lookup return `SOME value` or `NONE`.
+- [x] Check that the supplied equality function returns Bool; otherwise return a
   structured Error.
-- Implement every search and branch with pure unary lambdas.
+- [x] Implement every search and branch with pure unary lambdas.
 
 Acceptance: lookup works for user-defined key equality, expected absence uses
 Option, and no host collection or host equality participates.
+
+Completion evidence: `core/map.rkt` (tag 11, church-eleven) pairs the fixed
+equality function with a raw Pair-entry List. `MAKE-MAP` bubbles Error
+arguments; `MAP-EMPTY?` and `MAP-SIZE` (whole Rat via the raw List counter)
+use the unchanged checker; `MAP-LOOKUP` validates its Map argument manually
+(the `IF`/`OPTION-CASE` polymorphic pattern), bubbles an Error key with a
+result frame, and walks entries with the Map's own equality function,
+returning `SOME value` or `NONE`. A comparison answering an Error bubbles
+with the operation's frame; any other non-Bool answer renders as
+`MAP-LOOKUP(arg1 expected BOOL got …)`. All four names are facade exports
+with pinned forms, vocabularies, 22-module purity pins, and the
+thirteen-reader classification updated together; `readers/map.rkt` renders
+the entry count. Tests cover empty and populated lookup under Rat equality,
+both malformed-equality answers, wrong and Error Map/key arguments, size
+and emptiness, and unary arity. The full suite passed 11,935 assertions
+across all 38 test files with the zero-finding boundary inventory.
 
 ### Step 39.2 — Add Map updates and queries
 
