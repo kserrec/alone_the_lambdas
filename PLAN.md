@@ -1039,18 +1039,20 @@ go for it").
 
 ## Step R.1 — Merge the milestone
 
-- [ ] Merge `milestone-4-rationals` into `main` with a no-fast-forward merge
-  commit and push `main`.
+- [x] Merge `milestone-4-rationals` into `main` with a no-fast-forward merge
+  commit and push `main`. Merge commit `283c7be` (2026-09-02).
 
 ## Step R.2 — Finalize version 0.3.0
 
-- [ ] `VERSION` becomes exactly `0.3.0` + LF; `info.rkt` package version
+- [x] `VERSION` becomes exactly `0.3.0` + LF; `info.rkt` package version
   becomes `0.3`; the runner's accepted-version pattern gains `0.3.0`; the
   boundary gate's product-version projection table and its test copy gain
   `0.3.0 -> 0.3`; the three build scripts and the macOS test harness accept
-  `0.3.0`; `runner-test.rkt` expects `AttaLambda 0.3.0`.
-- [ ] Full suite, purity, and boundary gates green on `main` at the release
-  commit.
+  `0.3.0`; `runner-test.rkt` expects `AttaLambda 0.3.0`; fixture restore
+  literals in the boundary and runner tests follow the released state.
+- [x] Full suite, purity, and boundary gates green on `main`: 38 files,
+  12,298 assertions, 29-module purity proof, zero-finding inventory
+  (2026-09-02).
 
 ## Step R.3 — Build and independently verify the Linux artifact
 
