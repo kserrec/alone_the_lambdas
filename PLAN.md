@@ -227,9 +227,9 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
 
 ## Phase 3 — Reduce maintenance in checks, tests, and documentation
 
-### Step 3.1 — Remove only demonstrably redundant boundary locks
+### Step 3.1 — Remove only demonstrably redundant boundary locks — complete
 
-- [ ] **Scope:** `tooling/check-boundaries.rkt` and its focused tests.
+- [x] **Scope:** `tooling/check-boundaries.rkt` and its focused tests.
 - **Change:** start with the copied runner diagnostic bodies and their
   duplicate checks. For each removal, name the promise, remaining enforcement,
   and behavioral test. Keep any rule still needed to restrict capability.
@@ -241,9 +241,21 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
   Keep the expanded purity checker; change only mechanical references required
   by an earlier Step. A smaller blacklist is not equivalent enforcement.
 
-### Step 3.2 — Remove superseded test machinery without losing protection
+**Result:** Removed the checker's copied `stop` and
+`syntax-failure-reason` bodies and the exact-body comparison, deleting 40
+checker lines. Those copies protected diagnostic behavior, which
+`tests/runner-test.rkt` already verifies through the real command surface.
+The checker still requires the exact runner definition set, imports, exports,
+status definitions, input targets, entry/load shape, closed vocabulary,
+capability restrictions, and repository inventory. An isolated fixture
+reordered the side-effect-free operands of `stop`'s private location condition
+and passed the remaining boundary rules; the old exact-body lock would have
+rejected it. The boundary and runner suites passed 296 assertions, and the
+complete boundary inventory passed.
 
-- [ ] **Scope:** only tests and fixtures affected by Steps 1.2–3.1.
+### Step 3.2 — Remove superseded test machinery without losing protection — complete
+
+- [x] **Scope:** only tests and fixtures affected by Steps 1.2–3.1.
 - **Change:** remove source-copy/private-name assertions superseded by proven
   behavior or capability checks, and their unused fixtures. Reuse existing
   coverage. Approval of this plan permits those evidenced replacements;
@@ -253,9 +265,30 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
   proves nothing about the intended rule. Review repaired tests freshly;
   no coverage quota, new test tier, or repeated whole-suite audit.
 
-### Step 3.3 — Make the current system quick to understand
+**Result:** Audited the affected host, codec, runner, boundary, reader, and
+shared-helper tests under the project rule that tests need a named failure and
+must preserve behavior, invariants, error propagation, partial application,
+and laziness where applicable. The only redundant machinery was a seven-line
+runner assertion that counted the private loader expression before replacing
+it in a fault-injection fixture. The boundary checker independently enforces
+exactly one `(dynamic-require source-path #f)` call. An isolated duplicate-call
+mutation failed with `invalid-runner-entry-or-loader`, so the private count was
+removed. The fault-injection fixture remains: changing the generic failure
+handler to expose `exn-message` produced exactly two failures in that fixture,
+proving it still catches raw-detail leakage. No other assertion was removed;
+the same-layer candidates protect distinct argument precedence, conversion,
+resource-lifecycle, or representation cases. The restored runner suite passed
+all 180 assertions. A fresh reviewer close-read the affected checker/test diff
+and rules, independently confirmed that the equivalent private `stop` change
+passes while a duplicate loader call fails, and confirmed the diagnostic
+fixture catches raw-detail leakage. It found no blocking defect. The reviewer
+also caught an overbroad test comment: source validation is proven by runner
+behavior, while the structural rule proves that the one loader call uses
+`source-path`; the comment now states that exact division.
 
-- [ ] **Scope:** the non-pure architecture passages in `ARCHITECTURE.md`,
+### Step 3.3 — Make the current system quick to understand — complete
+
+- [x] **Scope:** the non-pure architecture passages in `ARCHITECTURE.md`,
   `README.md`'s repository guide, and `docs/design/host-boundary.md`.
 - **Change:** give each role a short explanation and real entry points:
   host performs effects; codec converts; frontend emits/injects; runner loads;
@@ -266,9 +299,24 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
   conversion from host/codec alone, following only relevant named functions.
   Other roles have equally direct entry points. No new documentation framework.
 
+**Result:** Replaced the architecture's milestone-by-milestone narration and
+test catalog with a task-based reading map, the five-step host path, concise
+frontend/runner/reader roles, the current dependency directions, and the two
+actual structural gates. Rewrote the host-boundary document around the current
+Rat, Unit, and `List Byte` contract instead of retaining an obsolete contract
+under a later amendment; all nine operations, bounds, results, failure codes,
+byte/path rules, lifecycle guarantees, authority, and approval remain stated.
+The README repository table now points directly to host, codec, expander, and
+runner entry files. The three documents fell from 1,743 to 901 lines. The pure
+representation/runtime-typing reference in `ARCHITECTURE.md` is byte-for-byte
+unchanged, and every local link resolves. Claims were traced to
+`dispatch-request`/`perform-*`, the codec exports, pure request constructors,
+the expander bindings, runner flow, reader exports, and both checker entry
+points.
+
 ### Step 3.4 — Remove obsolete process narration
 
-- [ ] **Scope:** `HANDOFF.md`, `docs/ACCEPTANCE.md`,
+- [x] **Scope:** `HANDOFF.md`, `docs/ACCEPTANCE.md`,
   `docs/design/standalone-distribution.md`, and the two existing plan archives.
 - **Change:** remove duplicated session instructions and stale active plans;
   retain unique release evidence, legal text, current platform constraints,
@@ -277,6 +325,21 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
 - **Check:** retained facts and local links remain intact; historical records
   cannot authorize new work. No distribution script, CI workflow, release,
   support policy, or legal-byte change. Run Phase checks, commit, and push.
+
+**Result:** Replaced repeated phase narratives with one 107-line current
+acceptance map, one 297-line distribution contract/release ledger, one 132-line
+completed-milestone ledger, and a 32-line active handoff. Deleted the second
+plan archive after moving its unique Milestone 4 outcomes, correction record,
+0.3.0 evidence, and deferred HTTP-parser finding into those existing homes.
+These five files fell from 4,043 to 568 lines, removing 3,475 documentation
+lines. Exact 0.2.0/0.3.0 commits, tags, artifact names, sizes, IDs and hashes;
+the desktop withdrawal record; legal hashes; Racket CS 9.3 build/consumer
+contract; Linux-only support; publication authority; and the bounded O(cap²)
+finding remain explicit. All local links resolve, the legal bytes retain their
+approved hashes, and no distribution script, workflow, release, support
+policy, or legal file changed. Phase-focused boundary, runner, and distribution
+tests passed 502 assertions; the full gate passed all 38 suites and 12,297
+assertions, the 29-file purity proof, and the complete boundary inventory.
 
 ## Phase 4 — Verify the benefit and stop
 

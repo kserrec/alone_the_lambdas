@@ -135,9 +135,10 @@ intentionally repeats neither.
 | --- | --- |
 | [`core/`](core) | Pure representations, raw algorithms, and strict typed operations. |
 | [`effects/`](effects) | Pure requests and wrappers for output, files, TCP, and HTTP. |
-| [`runtime/`](runtime) | Deterministic boundary conversion and the sole privileged `host`. |
-| [`lang/`](lang) | The `#lang attalambda` reader and public language surface. |
-| [`runner/`](runner) | The standalone command-line entry point. |
+| [`runtime/codec.rkt`](runtime/codec.rkt) | Deterministic conversion between lambda values and private host data. |
+| [`runtime/host.rkt`](runtime/host.rkt) | The sole privileged `host`; start at `dispatch-request`. |
+| [`lang/expander.rkt`](lang/expander.rkt) | Public exports, literal expansion, currying, and one-time host injection. |
+| [`runner/attalambda.rkt`](runner/attalambda.rkt) | Command, source validation, sanitized diagnostics, and one source load. |
 | [`macros/`](macros) | The two trusted mechanical-expansion modules every production file compiles through. |
 | [`readers/`](readers) | One-way human-readable observation used outside production computation. |
 | [`tests/`](tests) | Behavioral, representation, error, laziness, and boundary tests. |

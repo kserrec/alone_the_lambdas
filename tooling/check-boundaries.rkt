@@ -168,28 +168,6 @@
   '((build-path (path-only source) (quote up) "VERSION")
     source))
 
-(define expected-runner-stop-definition
-  '(define (stop status source reason (line #f) (column #f))
-     (cond
-       ((and source line column)
-        (eprintf "AttaLambda: ~s:~a:~a: ~a\n"
-                 source line column reason))
-       (source
-        (eprintf "AttaLambda: ~s: ~a\n" source reason))
-       (else
-        (eprintf "AttaLambda: ~a\n" reason)))
-     (exit status)))
-
-(define expected-runner-syntax-reason-definition
-  '(define (syntax-failure-reason expression)
-     (cond
-       ((and expression (identifier? expression))
-        (format "unknown AttaLambda name: ~s" (syntax-e expression)))
-       ((datum-failure-expression? expression)
-        "unsupported literal; only exact Rat and String literals are supported")
-       (else
-        "source has invalid syntax"))))
-
 ;; Readers may turn completed values into host values for tests and people,
 ;; but they are not another effects layer. Host control flow and data are
 ;; allowed there; external I/O, mutation, registries, process/eval/FFI access,
@@ -1443,15 +1421,6 @@
                       unavailable-source-status
                       unexpected-failure-status)))
             (module-info-forms info)))
-  (define stop-definition
-    (findf (lambda (form)
-             (eq? (top-level-binding-name form) 'stop))
-           (module-info-forms info)))
-  (define syntax-reason-definition
-    (findf (lambda (form)
-             (eq? (top-level-binding-name form)
-                  'syntax-failure-reason))
-           (module-info-forms info)))
   (append
    (exact-language-violations path
                               info
@@ -1472,15 +1441,6 @@
        (list (violation path
                         'invalid-runner-definition-set
                         definitions)))
-   (if (and (equal? stop-definition
-                    expected-runner-stop-definition)
-            (equal? syntax-reason-definition
-                    expected-runner-syntax-reason-definition))
-       '()
-       (list (violation path
-                        'invalid-runner-diagnostic-formatter
-                        (list stop-definition
-                              syntax-reason-definition))))
    (if (equal? status-definitions expected-runner-status-definitions)
        '()
        (list (violation path

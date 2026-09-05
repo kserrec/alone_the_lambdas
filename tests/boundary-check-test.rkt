@@ -1098,9 +1098,11 @@
    (rename-file-or-directory saved-version-file product-version-file)
    (delete-file version-target)
 
-   ;; The runner is an exact non-exporting scaffolding class. Its one loader
-   ;; call must receive the validated source path; process, environment, and
-   ;; additional-module surfaces all fail closed.
+   ;; The runner is a closed non-exporting scaffolding class. Its one loader
+   ;; call must use source-path; runner behavior covers how that path is
+   ;; validated. Process, environment, and additional-module surfaces all fail
+   ;; closed. Private implementation details may change without duplicating
+   ;; their bodies in this checker.
    (define runner-file
      (build-path root "runner" "attalambda.rkt"))
    (define clean-runner-datum
@@ -1112,13 +1114,12 @@
    (write-datum
     runner-file
     (replace-datum
-     '(format "unknown AttaLambda name: ~s" (syntax-e expression))
-     '(format "unknown AttaLambda name: ~s" expression)
+     '(and source line column)
+     '(and line source column)
      clean-runner-datum))
-   (check-not-false
-    (member 'invalid-runner-diagnostic-formatter
-            (kinds
-             (file-boundary-violations runner-file 'runner root))))
+   (check-equal?
+    (file-boundary-violations runner-file 'runner root)
+    '())
    (write-datum runner-file clean-runner-datum)
 
    (write-datum

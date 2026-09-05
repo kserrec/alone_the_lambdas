@@ -442,20 +442,13 @@
    ;; classify it as status 70 and discard every raw detail byte.
    (define runner-source
      (file->string runner))
-   (define loader-expression
-     "(dynamic-require source-path #f)")
-   (check-equal?
-    (length
-     (regexp-match* #rx"[(]dynamic-require source-path #f[)]"
-                    runner-source))
-    1)
    (define fault-runner
      (build-path package-source "runner" "attalambda-phase-23-fault.rkt"))
    (write-source
     fault-runner
     (string-replace
      runner-source
-     loader-expression
+     "(dynamic-require source-path #f)"
      "(error 'phase-23-test \"raw host detail: ~s\" car)"))
    (define internal-failure-result
      (run-command environment
