@@ -15,12 +15,17 @@ Phases 1 through 3 are committed and pushed:
 
 Phase 3 passed 12,297 assertions, the 29-module purity proof, and the complete
 boundary inventory before its commit. Phase 4's independent review found no
-production correctness or authority regression and identified four bounded
-test/documentation repairs now in progress. After independent review of those
-repairs, the remaining work is final Racket CS 9.3 Linux build/consumer
-acceptance, comparison with the recorded baseline, a clean commit and push,
-and a permanent stop. Do not open a pull request, merge, release, tag, or start
-later work without Kyle's separate explicit request.
+production correctness or authority regression; its four bounded test/doc
+findings were repaired, independently re-reviewed, and committed as `f772e8d`.
+That exact revision passed all 38 suites and 12,301 assertions, both structural
+gates, the clean Racket CS 9.3 Linux build, and the isolated no-Racket Ubuntu
+consumer. [`PLAN.md`](PLAN.md) records the complete comparison and artifact
+evidence. No confirmed finding remains.
+
+The refactor is complete. Its final evidence commit changes only planning and
+acceptance documentation outside the shipped package/archive inputs. Stop
+here: do not open a pull request, merge, release, tag, or start later work
+without Kyle's separate explicit request.
 
 The current public release remains AttaLambda 0.3.0 at commit `1b51603` and tag
 `v0.3.0`. Linux x86-64 is the sole supported binary target. Exact release and

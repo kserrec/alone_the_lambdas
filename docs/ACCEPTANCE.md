@@ -10,7 +10,9 @@ release facts are in the
 Run [`run-all-tests.sh`](../run-all-tests.sh) for the source acceptance gate.
 It runs every test suite, the expanded purity proof, and the repository-wide
 boundary inventory. The released 0.3.0 source passed 38 suites with 12,298
-assertions, all 29 pure production modules, and the complete boundary scan.
+assertions. The completed non-core refactor at `f772e8d` passed 38 suites with
+12,301 assertions, all 29 pure production modules, and the complete boundary
+scan.
 
 ## Language criteria
 

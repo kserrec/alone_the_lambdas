@@ -1,7 +1,7 @@
 # Non-core simplification plan
 
-Status: approved by Kyle on 2026-09-05; execution in progress. The baseline
-and removal-target review are complete.
+Status: complete on 2026-09-05; pushed for Kyle's review. The permanent stop
+at the end of Step 4.2 now applies.
 Branch: `refactor/non-core-simplification`.
 Starting commit: `578f1acc00566c17c18786a393cfa0b496c531ba`.
 
@@ -307,7 +307,7 @@ Rat, Unit, and `List Byte` contract instead of retaining an obsolete contract
 under a later amendment; all nine operations, bounds, results, failure codes,
 byte/path rules, lifecycle guarantees, authority, and approval remain stated.
 The README repository table now points directly to host, codec, expander, and
-runner entry files. The three documents fell from 1,743 to 901 lines. The pure
+runner entry files. The three documents fell from 1,743 to 903 lines. The pure
 representation/runtime-typing reference remained unchanged in this Step.
 Final review later corrected three pre-existing public Nat sentences to the
 implemented Rat boundary while leaving the private Nat descriptions intact.
@@ -380,7 +380,7 @@ links pass. Zero confirmed findings remain.
 
 ### Step 4.2 — Final acceptance, comparison, and completion
 
-- [ ] **Scope:** verification and concise final evidence in this plan.
+- [x] **Scope:** verification and concise final evidence in this plan.
 - **Work:** run the complete suite and both checkers; build and consume a
   clean, recorded implementation commit using the existing Racket CS 9.3
   Linux scripts and an independent consumer without Racket. Record revision,
@@ -400,3 +400,58 @@ links pass. Zero confirmed findings remain.
   Kyle reviews the completed branch and explicitly approves it. No merge,
   release, new milestone, or further cleanup, even after a generic `next`
   or skill invocation. Separate future work needs a separately named request.
+
+**Result:** Exact implementation/test revision
+`f772e8d1f87cf1df7d171476046f9986426192af` passed all 38 suites and 12,301
+assertions, the expanded purity proof over all 29 production files, and the
+complete boundary inventory. This includes the final review repair and the
+real filesystem, TCP, HTTP, runner, language, distribution-contract, and
+mutation suites. No confirmed review finding remains.
+
+The clean revision then built with full Racket CS 9.3 from pinned image
+`racket/racket:9.3-full` (image ID
+`f9c540abe281413dc9e25bfbe6e35276f1a5bca1fa40213c40ac7bac6bb69c62`).
+The resulting `attalambda-0.3.0-linux-x86_64.tar.gz` is 13,936,532 bytes with
+SHA-256
+`355cced2e6c7d8954e80404aaa53d2969329319c52446b083f6446b56141ce5c`;
+it contains 11 regular files totaling 59,741,483 bytes, including two runtime
+files. This is an unpublished acceptance artifact in `/tmp`, not a release.
+
+The existing consumer passed in read-only digest-pinned
+`ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea`
+with Racket and `raco` absent, no checkout, all capabilities dropped, and
+external networking disabled. Checksum, exact inventory, permissions, legal
+bytes, guide workflow, help/version, launcher statuses and sanitized
+diagnostics, stdout, binary file round-trip, TCP/HTTP loopback, foundations,
+and relocation all passed. First startup was 470 ms and relocated startup was
+369 ms.
+
+| Maintained code | Baseline | Final | Change |
+| --- | ---: | ---: | ---: |
+| Pure `core/` + `effects/` | 5,510 | 5,510 | 0 |
+| Non-pure implementation | 2,057 | 1,986 | -71 |
+| Tests/support | 13,478 | 13,398 | -80 |
+| Tooling/CI | 6,731 | 6,689 | -42 |
+| **All maintained code** | **27,776** | **27,583** | **-193** |
+| Refactor surface excluding the pure center | 22,266 | 22,073 | -193 |
+
+The production reduction comes from one codec conversion path replacing two
+pipelines, direct host dispatch replacing seven route helpers, and ten reader
+`lazy-apply` wrappers becoming direct applications. That is 16 fewer private
+production helper definitions. In tests, 21 repeated `apply2`/`apply3`
+definitions became two definitions in the existing lazy helper, for 19 fewer
+test helpers; the one added runner scenario protects a real branch left behind
+by the removed checker body lock. The checker itself loses copied private
+diagnostic bodies while retaining capability, authority, import/export,
+loader, vocabulary, and repository-inventory enforcement. No dependency,
+runtime module, public export, representation, effect, or distribution policy
+was added. The only intentional behavior change is the approved diagnostic
+correction from obsolete Nat wording to exact Rat wording.
+
+The changed planning and explanatory documents fell from 5,899 baseline lines
+to 2,282 lines while adding the 206-line controlling refactor
+specification. The final evidence update touches only `PLAN.md`, `HANDOFF.md`,
+and `docs/ACCEPTANCE.md`, none of which enters the shipped package or Linux
+archive inputs; the accepted implementation artifact therefore does not need
+rebuilding. The branch is complete after that documentation-only commit is
+pushed. No tag, Release, upload, merge, or pull request was created.
