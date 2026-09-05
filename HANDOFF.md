@@ -1,11 +1,16 @@
 # Session handoff
 
-Active work is the approved non-core simplification on branch
+Status recorded 2026-09-05: the refactor is complete, verified, pushed, and
+awaiting Kyle's review. This handoff becomes stale if the branch changes after
+the final wrapup commit, a pull request or merge is created, or `main` or the
+public release changes.
+
+The completed non-core simplification is on branch
 `refactor/non-core-simplification`, based on
 `578f1acc00566c17c18786a393cfa0b496c531ba`. Kyle authorized unattended
-execution on 2026-09-05. [`PLAN.md`](PLAN.md) is the exact remaining procedure;
-[`docs/design/non-core-refactor.md`](docs/design/non-core-refactor.md) defines
-the preserved behavior and reduction goal.
+execution on 2026-09-05. [`PLAN.md`](PLAN.md) records the completed procedure
+and evidence; [`docs/design/non-core-refactor.md`](docs/design/non-core-refactor.md)
+defines the preserved behavior and reduction goal.
 
 Phases 1 through 3 are committed and pushed:
 
