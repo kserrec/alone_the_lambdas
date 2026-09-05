@@ -1,5 +1,13 @@
 # Session handoff
 
+This is the historical 0.3.0 release handoff. As of 2026-09-05, active work is
+the non-core refactor on `refactor/non-core-simplification`; see
+[PLAN.md](PLAN.md) and [its specification](docs/design/non-core-refactor.md).
+Kyle approved the revised plan on 2026-09-05. Follow its serial autonomous
+run and permanent stopping rule.
+The records and work-remaining statements below describe the earlier release
+session and do not control continuation of the refactor.
+
 Status recorded: 2026-09-02, immediately after the AttaLambda 0.3.0 public
 release.
 

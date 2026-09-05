@@ -252,17 +252,17 @@
     define denominator else eq? error-value exact->object-rat exact?
     exn:fail? expected
     failure false-marker first
-    first-codec-failure for/fold for/list force function gcd
+    for/fold for/list for/or force function gcd
     host-list->object-list if in-bytes in-list integer
-    integer->raw-bits
+    integer->raw-bits integers
     lambda lazy-apply lazy-apply2 length let list list-type loop magnitude
     malformed-value-failure map
     module negative? nil? not null? numerator object-char->byte
     object-err
-    object-has-type? object-list->host-list object-ok
+    object-has-type? object-list->host-list object-list->immutable-bytes object-ok
     object-rat->exact object-unit object-byte->integer
     object-byte-list->bytes bytes->object-byte-list integer->object-byte
-    element elements byte-type raw-make-byte raw-byte-value
+    element element->integer elements byte-type raw-make-byte raw-byte-value
     object-string->bytes odd? only-in or ormap
     out-of-range payload provide quote quotient racket/base racket/promise
     raise-argument-error rat-type rational? raw-bit->boolean raw-bits->byte
@@ -282,7 +282,7 @@
 
 (define phase16-host-vocabulary
   '(#%module-begin + < <= = > EMPTY-STRING add1 address-in-use-code amount
-    and argument attempt-close backlog begin bound-port broken-pipe-code buffer
+    and argument argument-count arguments attempt-close backlog begin bound-port broken-pipe-code buffer
     bytes-length bytes->object-string bytes->string/utf-8 bytes=? cadr caddr
     cadddr call-with-output-file car case cdr cleanup-new-connection
     cleanup-new-listener close-entry close-input-port close-output-port
@@ -292,9 +292,7 @@
     connection-reset-code contract-code current-output-port decode-bounded-count
     decode-utf8
     decoded decoded-request define define-values discard-entry!
-    dispatch-one-string dispatch-string-and-byte-list dispatch-request dispatch-tcp-accept dispatch-tcp-close
-    dispatch-tcp-connect dispatch-tcp-listen dispatch-tcp-read
-    dispatch-tcp-write domain else end eof-object? entry
+    dispatch-one-string dispatch-request else end eof-object? entry
     eq? errno errno-in? exact-nonnegative-integer? exact-positive-integer?
     exn:fail:contract? exn:fail:filesystem:errno-errno
     exn:fail:filesystem:errno? exn:fail:network:errno-errno
@@ -309,7 +307,7 @@
     make-bytes make-hash make-host-bridge make-host-failure
     make-invalid-host-request maximum memv minimum module
     name-resolution-failed-code network-failure network-failure-code
-    network-unreachable-code next-handle not not-found-code null? numbers
+    network-unreachable-code next-handle not not-found-code null?
     object-err object-list->host-list object-rat->exact object-ok
     object-unit object-byte-list->bytes bytes->object-byte-list
     object-string->bytes only-in operation operation-bytes operation-value or
@@ -317,16 +315,16 @@
     path-payload payload perform-read-file perform-stdout perform-tcp-accept
     perform-tcp-close perform-tcp-connect perform-tcp-listen perform-tcp-read
     perform-tcp-write perform-write-file performer permission-denied-code port
-    posix prior-failure provide quote racket/base racket/file racket/promise
+    posix posix-numbers prior-failure provide quote racket/base racket/file racket/promise
     racket/tcp read-bytes-avail! read-file-operation reason reason->object
     register-entry! remote remote-address remote-payload remote-port request
     require resource-exhausted-code second set! start stdout-operation string=?
     string? struct subbytes tcp-accept tcp-accept-operation tcp-addresses
     tcp-close tcp-close-operation tcp-connect tcp-connect-operation tcp-listen
     tcp-listen-operation tcp-read-operation tcp-write-operation timed-out-code
-    truncate unknown-operation-reason value void when windows with-handlers
+    truncate unknown-operation-reason value void when windows windows-numbers with-handlers
     write-all-bytes write-bytes write-bytes-avail write-file-operation written
-    wrong-arity-reason wrong-handle-kind-code wrong-type-reason zero?))
+    wrong-arity wrong-arity-reason wrong-handle-kind-code wrong-type-reason zero?))
 
 (define macro-vocabulary
   '(... = NIL _ and andmap argument arguments binding bit-expressions body
