@@ -308,8 +308,10 @@ under a later amendment; all nine operations, bounds, results, failure codes,
 byte/path rules, lifecycle guarantees, authority, and approval remain stated.
 The README repository table now points directly to host, codec, expander, and
 runner entry files. The three documents fell from 1,743 to 901 lines. The pure
-representation/runtime-typing reference in `ARCHITECTURE.md` is byte-for-byte
-unchanged, and every local link resolves. Claims were traced to
+representation/runtime-typing reference remained unchanged in this Step.
+Final review later corrected three pre-existing public Nat sentences to the
+implemented Rat boundary while leaving the private Nat descriptions intact.
+Every local link resolves. Claims were traced to
 `dispatch-request`/`perform-*`, the codec exports, pure request constructors,
 the expander bindings, runner flow, reader exports, and both checker entry
 points.
@@ -345,7 +347,7 @@ assertions, the 29-file purity proof, and the complete boundary inventory.
 
 ### Step 4.1 — Fresh review of the completed changes
 
-- [ ] **Scope:** the completed non-pure diff and its direct interactions.
+- [x] **Scope:** the completed non-pure diff and its direct interactions.
 - **Work:** a fresh agent that did not author the changes reviews correctness,
   authority, unnecessary abstractions, and reading effort. Require evidence
   for bugs and a concrete benefit for suggested cleanup. Record close-read,
@@ -353,6 +355,28 @@ assertions, the 29-file purity proof, and the complete boundary inventory.
 - **Check:** repair proven in-scope defects serially in their owning Step,
   check siblings, and obtain fresh review of repairs. Revisit only affected
   evidence; do not launch another skill chain or find work to justify a pass.
+
+**Result:** A fresh agent close-read the complete production diff, every
+changed reader/helper caller, runner/boundary changes, all rewritten non-core
+documents, and the approved plan/specification; it skimmed unchanged adjacent
+performers/tests and did not re-audit unrelated pure algorithms or complete
+desktop harnesses. Six focused suites passed 792 assertions, the boundary
+inventory passed, and purity passed all 29 production files. It found no
+production correctness, purity, authority, or API regression, and confirmed
+the code reduction lowers reading effort.
+
+The review proved four bounded omissions: the runner's generic syntax fallback
+lacked behavioral coverage after its body lock was removed; three retained
+Architecture sentences still called public Rat boundaries Nat; the handoff
+predated the Phase 3 commit; and the Linux transfer description omitted the
+consumer harness itself. One invalid two-argument-lambda case now pins status
+65, source location, exact fallback text, empty stdout, and sanitized stderr;
+the runner suite passes 184 assertions. The three public contracts now say Rat,
+the handoff names all pushed phase commits, and the transfer names archive,
+checksum, and harness. A second independent close-read traced each repair to
+the runner, List/Char/String implementations, and Linux transfer commands. It
+found no excess scope or remaining repair finding; `git diff --check` and local
+links pass. Zero confirmed findings remain.
 
 ### Step 4.2 — Final acceptance, comparison, and completion
 

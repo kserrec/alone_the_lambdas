@@ -183,8 +183,9 @@ fold callback receives the head followed by the folded tail.
 available. Length returns canonical raw Nat bits. Take and drop accept raw Nat
 bits first and a List second; taking beyond the end returns the complete List,
 while dropping beyond the end returns `NIL`. The strict wrappers now use the
-generalized checker. They accept tagged Nat and List values, bubble incoming
-Errors, and preserve the one remaining application after a bad first argument.
+generalized checker. `LEN` returns a tagged whole Rat; `TAKE` and `DROP` accept
+a nonnegative whole Rat count and a List. They bubble incoming Errors and
+preserve the one remaining application after a bad first argument.
 
 ### Natural numbers (private machinery)
 
@@ -336,8 +337,9 @@ Result until a caller explicitly unwraps and uses its Error payload.
 `core/chars.rkt` represents Char as a Char-tagged object containing normalized
 raw Nat bits rather than a nested Nat object. Its pure upper bound is computed
 as `(16 × 16) − 1` with raw binary operations. `MAKE-CHAR` uses the generalized
-checker for its Nat argument, returns Char for values 0 through 255, and returns
-the canonical InvalidChar Error above that range.
+checker for its Rat argument, requires a nonnegative whole value, returns Char
+for values 0 through 255, and returns the canonical InvalidChar Error above
+that range.
 
 `CHAR-EQ`, `CHAR-LT`, `CHAR-LTE`, `CHAR-GT`, and `CHAR-GTE` use two-Char
 signatures through the same checker. They reuse raw binary Nat comparisons on
@@ -363,7 +365,7 @@ non-Char element returns the canonical InvalidString Error.
 `STRING-HEAD`, `STRING-TAIL`, `STRING-PREFIX?`, and `STRING-CONTAINS?` all use
 the generalized checker. The raw algorithms traverse List structure and
 compare Char binary payloads directly. Length reuses the canonical raw binary
-List counter and returns Nat. Head returns Char; tail returns String; either
+List counter and returns a whole Rat. Head returns Char; tail returns String; either
 partial operation returns EmptyList Error on the empty String. Prefix and
 contains take the searched String first and the candidate prefix or substring
 second; an empty candidate succeeds.

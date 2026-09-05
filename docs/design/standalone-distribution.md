@@ -229,11 +229,12 @@ The build copies these bytes unchanged.
 [`tooling/test-linux-distribution.sh`](../../tooling/test-linux-distribution.sh)
 crosses a build-to-consumer transfer boundary into
 `ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea`.
-The consumer has no Racket command or source checkout and receives only the
-archive and checksum. It verifies the checksum, layout, permissions, manifest,
-legal bytes, guide commands, version/help, diagnostics, stdout, binary file
-round-trip, TCP/HTTP loopback behavior, foundations example, and relocation.
-External networking is disabled; only ephemeral loopback service is used.
+The consumer has no Racket command or source checkout and receives the archive,
+checksum, and self-contained consumer harness. It verifies the checksum,
+layout, permissions, manifest, legal bytes, guide commands, version/help,
+diagnostics, stdout, binary file round-trip, TCP/HTTP loopback behavior,
+foundations example, and relocation. External networking is disabled; only
+ephemeral loopback service is used.
 
 Building or verifying an archive does not authorize a tag, Release, upload,
 signing or notarization operation, paid account use, purchase, or publication.

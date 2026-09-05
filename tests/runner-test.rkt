@@ -412,6 +412,19 @@
      #:line 2
      #:column 0))
 
+   (define invalid-syntax-source
+     (build-path working-directory "invalid-syntax.attl"))
+   (write-source invalid-syntax-source
+                 "#lang attalambda\n(lambda (left right) left)\n")
+   (check-runner-failure
+    (run '("invalid-syntax.attl"))
+    65
+    (source-diagnostic
+     "invalid-syntax.attl"
+     "source has invalid syntax"
+     #:line 2
+     #:column 0))
+
    (define reader-failure-source
      (build-path working-directory "reader-failure.attl"))
    (write-source reader-failure-source

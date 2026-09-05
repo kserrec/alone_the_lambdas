@@ -7,18 +7,20 @@ execution on 2026-09-05. [`PLAN.md`](PLAN.md) is the exact remaining procedure;
 [`docs/design/non-core-refactor.md`](docs/design/non-core-refactor.md) defines
 the preserved behavior and reduction goal.
 
-Phases 1 and 2 are committed and pushed:
+Phases 1 through 3 are committed and pushed:
 
 - `1f08b78` — simplify the codec and native host dispatch;
-- `2ee5205` — simplify runner call sites, readers, and shared test helpers.
+- `2ee5205` — simplify runner call sites, readers, and shared test helpers;
+- `b0081ab` — reduce redundant checker/test locks and historical documentation.
 
-Phase 3 reduces redundant checker/test locks and replaces repeated historical
-documentation with current contracts plus compact evidence. Its completed
-result must pass the focused checks and full suite before its phase commit.
-Phase 4 then requires an independent review, final Racket CS 9.3 Linux
-build/consumer acceptance, comparison with the recorded baseline, a clean
-commit and push, and a permanent stop. Do not open a pull request, merge,
-release, tag, or start later work without Kyle's separate explicit request.
+Phase 3 passed 12,297 assertions, the 29-module purity proof, and the complete
+boundary inventory before its commit. Phase 4's independent review found no
+production correctness or authority regression and identified four bounded
+test/documentation repairs now in progress. After independent review of those
+repairs, the remaining work is final Racket CS 9.3 Linux build/consumer
+acceptance, comparison with the recorded baseline, a clean commit and push,
+and a permanent stop. Do not open a pull request, merge, release, tag, or start
+later work without Kyle's separate explicit request.
 
 The current public release remains AttaLambda 0.3.0 at commit `1b51603` and tag
 `v0.3.0`. Linux x86-64 is the sole supported binary target. Exact release and
