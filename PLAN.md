@@ -162,7 +162,7 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
 
 ### Step 2.1 — Simplify runner validation and diagnostics
 
-- [ ] **Scope:** `runner/attalambda.rkt`.
+- [x] **Scope:** `runner/attalambda.rkt`.
 - **Change:** remove repeated preflight or exception plumbing only where
   existing behavior is demonstrably preserved. Replace custom path work with
   an ordinary Racket operation only if it preserves the current path policy
@@ -172,10 +172,17 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
   links/cycles, unavailable/nonregular inputs, UTF-8/header/syntax, sanitized
   failures, version/help, and unchanged Error/Err completion. A resolver change
   that needs a new policy is omitted rather than turned into another project.
+- **Result (2026-09-05):** `stop` now defaults its line and column, removing
+  the repeated `#f #f` plumbing from every locationless caller without adding
+  a helper; the runner remains 251 lines and is 92 bytes shorter. Its stale
+  unsupported-literal diagnostic now says exact Rat and String. A filesystem
+  probe showed that Racket's ordinary path simplifiers do not resolve an
+  intermediate parent link, so the tested custom resolver remains. All 181
+  runner and 82 language assertions passed, as did both architecture gates.
 
 ### Step 2.2 — Reduce repeated compile-time emission
 
-- [ ] **Scope:** `macros/macros.rkt` and `lang/expander.rkt`.
+- [x] **Scope:** `macros/macros.rkt` and `lang/expander.rkt`.
 - **Change:** share existing bit/List emission only if a small helper in an
   existing module reduces total code while keeping use-site and definition-site
   bindings explicit. Otherwise keep the small direct implementations. Preserve
@@ -183,10 +190,17 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
 - **Check:** macro/language/purity suites, public-export comparison, hygiene,
   shadowing, literal encodings, laziness, and exactly-once effects. No new
   literal/prelude module, renaming layer, or native object-language computation.
+- **Result (2026-09-05, no code change):** the similar emitters require
+  opposite binding contexts: function-name expansion deliberately creates
+  caller-context identifiers, while language literals capture the expander's
+  imports against user shadowing. Sharing them would require a cross-phase
+  generic context API and increase the complete call path. The existing direct
+  code stays. Macro/language tests passed 94 assertions; the preceding boundary
+  and purity gates preserve exact exports, hygiene, and generated pure terms.
 
 ### Step 2.3 — Trim only useful reader and test-helper duplication
 
-- [ ] **Scope:** existing `readers/` modules and
+- [x] **Scope:** existing `readers/` modules and
   `tests/helpers/lazy.rkt`, `tests/helpers/values.rkt`, and
   `tests/helpers/fresh-language.rkt`, with affected callers.
 - **Change:** remove concrete unused or repeated support code only when the
@@ -197,6 +211,19 @@ requires Kyle's decision; this plan must not grow back into the rejected one.
   Review this Phase's changed paths for hygiene, laziness, unintended effects,
   and diagnostics. No rendering, mocking, or process framework. Run Phase
   checks, commit, and push; a justified no-change result needs no extra sweep.
+- **Result (2026-09-05):** ten small readers now show their one to three
+  `force` applications directly, removing ten copied `lazy-apply` definitions
+  and 30 reader lines; the two readers where the helper prevents difficult
+  nesting retain it. `apply2` and `apply3` now live once in the already-imported
+  lazy test helper, replacing 21 identical local definitions across 14 tests
+  and removing 87 test/support lines net. No assertion or import edge changed;
+  broader `typed-value?` sharing was rejected because it would couple unrelated
+  suites to the object-value helper. Focused reader tests passed 6,263
+  assertions. A Phase bughunt close-read every executable/helper change and
+  mechanical removal and skimmed surrounding callers; unrelated test bodies
+  were outside scope. It found zero confirmed, likely, or latent bugs. The
+  Phase full suite passed all 38 files and 12,298 assertions, purity passed 29
+  files, and the complete boundary inventory passed.
 
 ## Phase 3 — Reduce maintenance in checks, tests, and documentation
 
